@@ -146,7 +146,7 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
         didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of outputType: SCStreamOutputType
     ) {
-        guard outputType == .screen, acceptsFrames else { return }
+        guard outputType == .screen, acceptsFrames, self.stream === stream else { return }
         captureView?.enqueue(sampleBuffer)
     }
 
