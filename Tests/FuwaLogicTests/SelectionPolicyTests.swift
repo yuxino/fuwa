@@ -55,6 +55,28 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
         "Finder Quick Look at layer 3 wins over the Finder main window"
     )
 
+    let focusedAppWindow = fixture(
+        id: 3_663,
+        pid: selectionTestContext.frontmostProcessID ?? 619,
+        owner: "Finder",
+        bundleIdentifier: "com.apple.finder"
+    )
+    let unrelatedFloatingOverlay = fixture(
+        id: 3_664,
+        pid: 8_888,
+        owner: "Subtitle Overlay",
+        bundleIdentifier: "app.example.subtitles",
+        layer: 1_000,
+        bounds: CGRect(x: 400, y: 700, width: 700, height: 180)
+    )
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [unrelatedFloatingOverlay, focusedAppWindow],
+            context: selectionTestContext
+        )?.id == focusedAppWindow.id,
+        "an unrelated always-on-top overlay does not replace the focused app's intent"
+    )
+
     let independentQuickLookWindows = [
         fixture(id: 3_885, pid: 16_762, owner: "qlmanage"),
         fixture(
@@ -74,7 +96,7 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
 
     let normalWindow = fixture(
         id: 200,
-        pid: 700,
+        pid: selectionTestContext.frontmostProcessID ?? 619,
         owner: "Notes",
         bundleIdentifier: "com.apple.Notes"
     )
@@ -91,6 +113,20 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
             owner: "Dock",
             bundleIdentifier: "com.apple.dock"
         ),
+        fixture(
+            id: 209,
+            pid: 708,
+            owner: "ChatGPT Computer Use",
+            bundleIdentifier: "com.openai.sky.CUAService",
+            layer: 102
+        ),
+        fixture(
+            id: 210,
+            pid: 709,
+            owner: "SecurityAgent",
+            bundleIdentifier: "com.apple.SecurityAgent",
+            layer: 1_000
+        ),
         normalWindow
     ]
     runner.expect(
@@ -98,7 +134,59 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
             in: systemUIWindows,
             context: selectionTestContext
         )?.id == normalWindow.id,
-        "known system UI bundles are excluded without relying on localized owner names"
+        "known system, authentication, and cursor-helper UI is excluded without relying on owner names"
+    )
+
+    let securityAgent = fixture(
+        id: 211,
+        pid: 709,
+        owner: "SecurityAgent",
+        bundleIdentifier: "com.apple.SecurityAgent",
+        layer: 1_000
+    )
+    let securityAgentContext = SelectionContext(
+        selfProcessID: selectionTestContext.selfProcessID,
+        frontmostProcessID: securityAgent.ownerPID,
+        displayBounds: selectionTestContext.displayBounds
+    )
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [securityAgent, normalWindow],
+            context: securityAgentContext
+        ) == nil,
+        "a foreground authentication surface never falls through to content behind it"
+    )
+
+    let unrelatedWindow = fixture(
+        id: 212,
+        pid: 8_121,
+        owner: "Other App",
+        bundleIdentifier: "app.example.other"
+    )
+    let windowlessFrontmostContext = SelectionContext(
+        selfProcessID: selectionTestContext.selfProcessID,
+        frontmostProcessID: 8_122,
+        displayBounds: selectionTestContext.displayBounds
+    )
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [unrelatedWindow],
+            context: windowlessFrontmostContext
+        ) == nil,
+        "a regular foreground app without an eligible window does not fall through to another app"
+    )
+
+    let selfFrontmostContext = SelectionContext(
+        selfProcessID: selectionTestContext.selfProcessID,
+        frontmostProcessID: selectionTestContext.selfProcessID,
+        displayBounds: selectionTestContext.displayBounds
+    )
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [normalWindow],
+            context: selfFrontmostContext
+        )?.id == normalWindow.id,
+        "Fuwa's own menu action can target the first eligible window underneath"
     )
 
     let ownWindow = fixture(
@@ -153,7 +241,7 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
 
     let partiallyVisibleWindow = fixture(
         id: 208,
-        pid: 707,
+        pid: selectionTestContext.frontmostProcessID ?? 619,
         bounds: CGRect(x: 1_900, y: 100, width: 200, height: 160)
     )
     runner.expect(
@@ -164,8 +252,14 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
         "a partially visible front window remains the user's visual intent"
     )
 
-    let unshareableIntent = fixture(id: 1, pid: 10)
-    let shareableWindowBehindIt = fixture(id: 2, pid: 20)
+    let unshareableIntent = fixture(
+        id: 1,
+        pid: selectionTestContext.frontmostProcessID ?? 619
+    )
+    let shareableWindowBehindIt = fixture(
+        id: 2,
+        pid: selectionTestContext.frontmostProcessID ?? 619
+    )
     runner.expect(
         SelectionPolicy.intentWindow(
             in: [unshareableIntent, shareableWindowBehindIt],

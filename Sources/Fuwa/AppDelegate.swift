@@ -1,196 +1,306 @@
 import AppKit
 import CoreGraphics
+import FuwaCore
+
+enum FuwaApplicationError: LocalizedError {
+    case unavailable
+
+    var errorDescription: String? {
+        "Fuwa is not available right now."
+    }
+}
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let pinCoordinator = PinCoordinator()
+    private let interactionCoordinator = InteractionCoordinator()
+    private let privacyLifecycle = PrivacyLifecycle()
+    private let settingsStore = AppSettingsStore()
+    private let launchAtLoginController = LaunchAtLoginController()
+
     private var hotKey: GlobalHotKey?
-    private var statusItem: NSStatusItem?
-    private var clearAllMenuItem: NSMenuItem?
-    private var stateMenuItem: NSMenuItem?
+    private var model: AppModel?
+    private var statusBarController: StatusBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        configureStatusItem()
-        configureCoordinatorCallbacks()
-
+        let requestedShortcut = settingsStore.shortcut
         let hotKey = GlobalHotKey { [weak self] in
-            self?.toggleFrontmostPin()
+            self?.handleGlobalShortcut()
         }
         self.hotKey = hotKey
 
+        var activeShortcut = requestedShortcut
+        var shortcutLaunchError: Error?
         do {
-            try hotKey.start()
+            try hotKey.start(shortcut: requestedShortcut)
         } catch {
-            showAlert(title: "Shortcut unavailable", message: error.localizedDescription)
+            shortcutLaunchError = error
+            if requestedShortcut != .defaultPin {
+                do {
+                    try hotKey.start(shortcut: .defaultPin)
+                    activeShortcut = .defaultPin
+                    settingsStore.shortcut = .defaultPin
+                } catch {
+                    shortcutLaunchError = error
+                }
+            }
+        }
+
+        let model = AppModel(
+            version: Self.version,
+            shortcut: activeShortcut,
+            shortcutIsActive: hotKey.currentShortcut != nil,
+            launchAtLoginState: launchAtLoginController.state,
+            screenRecordingPermission: screenRecordingPermissionState,
+            accessibilityPermission: accessibilityPermissionState
+        )
+        self.model = model
+        model.configure(actions: makeActions())
+        configureCoordinatorCallbacks(model: model)
+        configurePrivacyLifecycle()
+        refreshPermissions()
+
+        let statusBarController = StatusBarController(model: model)
+        self.statusBarController = statusBarController
+        privacyLifecycle.start()
+
+        if let shortcutLaunchError {
+            model.report(shortcutLaunchError)
         }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         hotKey?.stop()
+        privacyLifecycle.stop()
+        model?.disengageInteraction()
+        pinCoordinator.clearAllImmediately()
+        statusBarController?.invalidate()
+        statusBarController = nil
     }
 
-    @objc private func toggleFrontmostPin() {
+    private func makeActions() -> FuwaAppActions {
+        FuwaAppActions(
+            pinFrontWindow: { [weak self] in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                try await pinFrontWindow()
+            },
+            freeze: { [weak self] id in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                try await pinCoordinator.freeze(id)
+            },
+            resume: { [weak self] id in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                try await pinCoordinator.resume(id)
+            },
+            interact: { [weak self] id in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                try engageSource(for: id, isInteract: true)
+            },
+            revealSource: { [weak self] id in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                try engageSource(for: id, isInteract: false)
+            },
+            unpin: { [weak self] id in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                await pinCoordinator.unpin(id)
+            },
+            clearAll: { [weak self] in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                model?.disengageInteraction()
+                await pinCoordinator.clearAll()
+            },
+            updateShortcut: { [weak self] shortcut in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                guard let hotKey else { throw FuwaApplicationError.unavailable }
+                let outcome = try hotKey.update(to: shortcut)
+                if outcome == .registered {
+                    settingsStore.shortcut = shortcut
+                }
+                return outcome
+            },
+            updateLaunchAtLogin: { [weak self] enabled in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                return try launchAtLoginController.setEnabled(enabled)
+            },
+            openScreenRecordingSettings: { [weak self] in
+                self?.openPrivacySettings(anchor: "Privacy_ScreenCapture")
+            },
+            openAccessibilitySettings: { [weak self] in
+                self?.openPrivacySettings(anchor: "Privacy_Accessibility")
+            },
+            openLoginItemsSettings: { [weak self] in
+                self?.launchAtLoginController.openSettings()
+            },
+            showAbout: { [weak self] in
+                self?.showAboutPanel()
+            },
+            quit: { [weak self] in
+                self?.model?.disengageInteraction()
+                self?.pinCoordinator.clearAllImmediately()
+                NSApp.terminate(nil)
+            }
+        )
+    }
+
+    /// The hotkey path snapshots visual intent synchronously before creating a
+    /// Task. This is what keeps Finder Quick Look and other transient windows
+    /// from disappearing between user input and target selection.
+    private func handleGlobalShortcut() {
         let intent: TargetIntentSnapshot
         do {
-            // Keep this synchronous and before Task creation. Quick Look and
-            // other transient panels can disappear as soon as focus changes.
             intent = try pinCoordinator.snapshotFrontmostIntent()
         } catch {
-            showAlert(title: "No window to pin", message: error.localizedDescription)
+            model?.report(error)
             return
         }
 
-        stateMenuItem?.title = "Pinning…"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                try await pinCoordinator.toggle(intent)
-            } catch TargetResolutionError.screenRecordingPermissionDenied {
-                updatePinnedState(pinCoordinator.snapshots)
-                _ = CGRequestScreenCaptureAccess()
-                showScreenRecordingPermissionAlert()
+                try await toggle(intent)
             } catch PinCoordinatorError.operationCancelled {
-                updatePinnedState(pinCoordinator.snapshots)
+                return
             } catch {
-                updatePinnedState(pinCoordinator.snapshots)
-                showAlert(title: "Couldn’t pin window", message: error.localizedDescription)
+                model?.report(error)
             }
         }
     }
 
-    @objc private func clearAllPins() {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            await pinCoordinator.clearAll()
+    private func pinFrontWindow() async throws {
+        let intent = try pinCoordinator.snapshotFrontmostIntent()
+        try await toggle(intent)
+    }
+
+    private func toggle(_ intent: TargetIntentSnapshot) async throws {
+        do {
+            try await pinCoordinator.toggle(intent)
+        } catch TargetResolutionError.screenRecordingPermissionDenied {
+            settingsStore.didRequestScreenRecording = true
+            _ = CGRequestScreenCaptureAccess()
+            refreshPermissions()
+            throw TargetResolutionError.screenRecordingPermissionDenied
         }
     }
 
-    @objc private func openScreenRecordingSettings() {
+    private func engageSource(for id: UUID, isInteract: Bool) throws {
+        try ensureAccessibilityPermission()
+        let target = try pinCoordinator.interactionTarget(for: id)
+
+        if isInteract {
+            _ = try interactionCoordinator.interact(
+                with: target.descriptor,
+                expectedTitle: target.windowTitle
+            )
+        } else {
+            _ = try interactionCoordinator.revealSource(
+                matching: target.descriptor,
+                expectedTitle: target.windowTitle
+            )
+        }
+    }
+
+    private func ensureAccessibilityPermission() throws {
+        if interactionCoordinator.accessibilityPermissionStatus == .granted {
+            return
+        }
+
+        if !settingsStore.didRequestAccessibility {
+            guard presentAccessibilityRationale() else {
+                throw InteractionError.viewOnly(.accessibilityPermissionRequired)
+            }
+            settingsStore.didRequestAccessibility = true
+            _ = interactionCoordinator.requestAccessibilityAccess()
+        } else {
+            _ = interactionCoordinator.refreshAccessibilityPermission()
+        }
+        refreshPermissions()
+
+        guard interactionCoordinator.accessibilityPermissionStatus == .granted else {
+            throw InteractionError.viewOnly(.accessibilityPermissionRequired)
+        }
+    }
+
+    private func presentAccessibilityRationale() -> Bool {
+        let isChinese = model?.copy.language == .simplifiedChinese
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = isChinese ? "显示真实的源窗口" : "Reveal the real source window"
+        alert.informativeText = isChinese
+            ? "Fuwa 只使用辅助功能权限来激活并抬升你选择的源窗口。它不会读取或转发键盘输入，也不会注入点击事件。"
+            : "Fuwa uses Accessibility only to activate and raise the source window you chose. It does not read or forward keyboard input, and it never injects clicks."
+        alert.addButton(withTitle: isChinese ? "继续" : "Continue")
+        alert.addButton(withTitle: isChinese ? "暂不" : "Not Now")
+        NSApp.activate(ignoringOtherApps: true)
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    private func configureCoordinatorCallbacks(model: AppModel) {
+        pinCoordinator.onPinsChanged = { [weak model] snapshots in
+            model?.updatePins(snapshots)
+        }
+        pinCoordinator.onFailure = { [weak model] error in
+            model?.report(error)
+        }
+        model.updatePins(pinCoordinator.snapshots)
+    }
+
+    private func configurePrivacyLifecycle() {
+        privacyLifecycle.onPrivacyBoundary = { [weak self] _ in
+            self?.model?.disengageInteraction()
+            self?.pinCoordinator.clearAllImmediately()
+        }
+        privacyLifecycle.onEnvironmentRefresh = { [weak self] in
+            self?.refreshPermissions()
+        }
+    }
+
+    private func refreshPermissions() {
+        let screenRecordingGranted = CGPreflightScreenCaptureAccess()
+        if !screenRecordingGranted, pinCoordinator.pinCount > 0 {
+            model?.disengageInteraction()
+            pinCoordinator.clearAllImmediately()
+        }
+
+        _ = interactionCoordinator.refreshAccessibilityPermission()
+        model?.updatePermissions(
+            screenRecording: screenRecordingPermissionState,
+            accessibility: accessibilityPermissionState
+        )
+        model?.updateLaunchAtLoginState(launchAtLoginController.state)
+    }
+
+    private var screenRecordingPermissionState: FuwaPermissionState {
+        if CGPreflightScreenCaptureAccess() { return .granted }
+        return settingsStore.didRequestScreenRecording ? .denied : .unknown
+    }
+
+    private var accessibilityPermissionState: FuwaPermissionState {
+        if interactionCoordinator.accessibilityPermissionStatus == .granted {
+            return .granted
+        }
+        return settingsStore.didRequestAccessibility ? .denied : .unknown
+    }
+
+    private func openPrivacySettings(anchor: String) {
         guard let url = URL(
-            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+            string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)"
         ) else { return }
         NSWorkspace.shared.open(url)
     }
 
-    @objc private func quitApplication() {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            await pinCoordinator.clearAll()
-            NSApp.terminate(nil)
-        }
-    }
-
-    private func configureStatusItem() {
-        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        self.statusItem = statusItem
-
-        if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "pin", accessibilityDescription: "Fuwa")
-            image?.isTemplate = true
-            button.image = image
-            button.toolTip = "Fuwa · ⌥⌘P"
-        }
-
-        let menu = NSMenu()
-        let stateItem = NSMenuItem(title: "No pinned windows", action: nil, keyEquivalent: "")
-        stateItem.isEnabled = false
-        stateMenuItem = stateItem
-        menu.addItem(stateItem)
-        menu.addItem(.separator())
-
-        let pinItem = NSMenuItem(
-            title: "Pin Front Window  ⌥⌘P",
-            action: #selector(toggleFrontmostPin),
-            keyEquivalent: ""
-        )
-        pinItem.target = self
-        menu.addItem(pinItem)
-
-        let clearItem = NSMenuItem(
-            title: "Clear All Pins",
-            action: #selector(clearAllPins),
-            keyEquivalent: ""
-        )
-        clearItem.target = self
-        clearItem.isEnabled = false
-        clearAllMenuItem = clearItem
-        menu.addItem(clearItem)
-
-        let permissionItem = NSMenuItem(
-            title: "Screen Recording Settings…",
-            action: #selector(openScreenRecordingSettings),
-            keyEquivalent: ""
-        )
-        permissionItem.target = self
-        menu.addItem(permissionItem)
-
-        menu.addItem(.separator())
-        let quitItem = NSMenuItem(
-            title: "Quit Fuwa",
-            action: #selector(quitApplication),
-            keyEquivalent: "q"
-        )
-        quitItem.target = self
-        menu.addItem(quitItem)
-        statusItem.menu = menu
-    }
-
-    private func configureCoordinatorCallbacks() {
-        pinCoordinator.onPinsChanged = { [weak self] snapshots in
-            self?.updatePinnedState(snapshots)
-        }
-        pinCoordinator.onFailure = { [weak self] message in
-            self?.showAlert(title: "Fuwa", message: message)
-        }
-        updatePinnedState([])
-    }
-
-    private func updatePinnedState(_ snapshots: [PinSnapshot]) {
-        let liveCount = snapshots.count(where: { $0.state == .live || $0.state == .starting })
-        let frozenCount = snapshots.count(where: {
-            if case .frozen = $0.state { return true }
-            return false
-        })
-
-        switch snapshots.count {
-        case 0:
-            stateMenuItem?.title = "No pinned windows"
-        default:
-            var details: [String] = []
-            if liveCount > 0 { details.append("\(liveCount) live") }
-            if frozenCount > 0 { details.append("\(frozenCount) frozen") }
-            stateMenuItem?.title = "\(snapshots.count) pinned"
-                + (details.isEmpty ? "" : " · " + details.joined(separator: ", "))
-        }
-
-        clearAllMenuItem?.isEnabled = !snapshots.isEmpty
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: snapshots.isEmpty ? "pin" : "pin.fill",
-            accessibilityDescription: snapshots.isEmpty ? "Fuwa" : "Fuwa has pinned windows"
-        )
-        statusItem?.button?.image?.isTemplate = true
-    }
-
-    private func showScreenRecordingPermissionAlert() {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = "Allow Screen Recording"
-        alert.informativeText = "Fuwa uses Screen Recording only to mirror windows you pin. Frames stay on this Mac and are never uploaded. After allowing Fuwa, reopen it and press ⌥⌘P again."
-        alert.addButton(withTitle: "Open Settings")
-        alert.addButton(withTitle: "Not Now")
+    private func showAboutPanel() {
         NSApp.activate(ignoringOtherApps: true)
-        if alert.runModal() == .alertFirstButtonReturn {
-            openScreenRecordingSettings()
-        }
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: "Fuwa",
+            .applicationVersion: Self.version,
+            .credits: NSAttributedString(
+                string: "A quiet, local window pin for macOS.\nMIT License · github.com/yuxino/fuwa"
+            )
+        ])
     }
 
-    private func showAlert(title: String, message: String) {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = title
-        alert.informativeText = message
-        alert.addButton(withTitle: "OK")
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
+    private static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "0.1.0"
     }
 }

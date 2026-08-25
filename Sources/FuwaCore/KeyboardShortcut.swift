@@ -111,6 +111,9 @@ public enum KeyboardShortcutRegistrationOutcome: Equatable, Hashable, Sendable {
     case registered
     case conflict
     case failed
+    /// The proposed shortcut failed and Fuwa could not keep a previous
+    /// registration active. The UI must not present any shortcut as active.
+    case inactive
 }
 
 /// An immutable shortcut edit transaction.
@@ -141,7 +144,7 @@ public struct KeyboardShortcutUpdate: Equatable, Hashable, Sendable {
         switch outcome {
         case .registered:
             proposed
-        case .conflict, .failed:
+        case .conflict, .failed, .inactive:
             previous
         }
     }

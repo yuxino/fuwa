@@ -14,21 +14,29 @@ public struct SelectionContext: Equatable, Sendable {
         "com.apple.controlcenter",
         "com.apple.dock",
         "com.apple.loginwindow",
+        "com.apple.localauthentication.uiagent",
+        "com.apple.localauthenticationremoteservice",
         "com.apple.notificationcenterui",
         "com.apple.screencaptureui",
+        "com.apple.securityagent",
         "com.apple.siri",
         "com.apple.spotlight",
         "com.apple.systemuiserver",
         "com.apple.textinputmenuagent",
         "com.apple.wallpaper",
         "com.apple.wallpaper.agent",
-        "com.apple.windowmanager"
+        "com.apple.windowmanager",
+        // Computer Use renders its pointer in a transparent helper window
+        // above real content. Treat that cursor surface like other system UI
+        // so the user's visible window remains the selection intent.
+        "com.openai.sky.cuaservice"
     ]
 
     public let selfProcessID: pid_t
 
-    /// Kept to make the intent snapshot self-describing. Selection is based on
-    /// visual z-order and deliberately does not require this PID to match.
+    /// Used to distinguish the user's focused app from unrelated floating
+    /// overlays. Z-order is preserved within the focused app, while Quick Look
+    /// helpers remain eligible as an intentional cross-process exception.
     public let frontmostProcessID: pid_t?
 
     /// Quartz-coordinate display rectangles participating in this snapshot.
@@ -66,14 +74,42 @@ public struct SelectionContext: Equatable, Sendable {
 /// Deterministic, side-effect-free policy for resolving what the user meant to
 /// pin. Capture availability is intentionally a separate second stage.
 public enum SelectionPolicy {
-    /// Returns the first eligible entry from a front-to-back WindowServer list.
+    /// Resolves the user's intended entry from a front-to-back WindowServer list.
+    /// Within a regular foreground app, front-to-back order is preserved. Fuwa
+    /// itself may fall through to the first eligible window so its menu action
+    /// can target the app underneath. A foreground system surface never falls
+    /// through to potentially sensitive content behind it.
     public static func intentWindow(
         in orderedWindows: [WindowDescriptor],
         context: SelectionContext
     ) -> WindowDescriptor? {
-        orderedWindows.first { descriptor in
+        if let frontmostProcessID = context.frontmostProcessID,
+           frontmostProcessID != context.selfProcessID,
+           orderedWindows.contains(where: { descriptor in
+               descriptor.ownerPID == frontmostProcessID
+                   && isSystemUI(descriptor, context: context)
+           }) {
+            return nil
+        }
+
+        let eligibleWindows = orderedWindows.filter { descriptor in
             isEligibleIntent(descriptor, context: context)
         }
+
+        // A visible overlay from another application (subtitles, cursor
+        // helpers, screen annotation tools) may sit above the window that owns
+        // keyboard focus. Prefer the frontmost application's own surface while
+        // preserving z-order within that app. Quick Look helpers are the one
+        // intentional cross-process exception.
+        if let frontmostProcessID = context.frontmostProcessID,
+           frontmostProcessID != context.selfProcessID {
+            return eligibleWindows.first(where: { descriptor in
+                descriptor.ownerPID == frontmostProcessID
+                    || isQuickLookHelper(descriptor)
+            })
+        }
+
+        return eligibleWindows.first
     }
 
     /// Confirms only the selected intent's exact WindowServer ID.
@@ -160,5 +196,16 @@ public enum SelectionPolicy {
             bundleIdentifier == excludedIdentifier
                 || bundleIdentifier.hasPrefix(excludedIdentifier + ".")
         }
+    }
+
+    private static func isQuickLookHelper(_ descriptor: WindowDescriptor) -> Bool {
+        if let bundleIdentifier = descriptor.ownerBundleIdentifier?.lowercased(),
+           (bundleIdentifier.hasPrefix("com.apple.quicklook")
+                || bundleIdentifier.contains(".quicklook.")) {
+            return true
+        }
+
+        guard let ownerName = descriptor.ownerName?.lowercased() else { return false }
+        return ownerName == "qlmanage" || ownerName.hasPrefix("quicklook")
     }
 }

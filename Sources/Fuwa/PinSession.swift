@@ -10,6 +10,7 @@ enum PinSessionError: LocalizedError {
     case invalidTransition(PinTransitionError)
     case captureStartFailed(String)
     case captureStartInterrupted
+    case captureFailed(String)
     case freezeFailed(String)
 
     var errorDescription: String? {
@@ -20,6 +21,8 @@ enum PinSessionError: LocalizedError {
             "Fuwa could not start capturing this window: \(message)"
         case .captureStartInterrupted:
             "The capture stopped while Fuwa was starting it."
+        case .captureFailed(let message):
+            "Window capture failed: \(message)"
         case .freezeFailed(let message):
             "Fuwa could not preserve the last frame: \(message)"
         }
@@ -54,7 +57,8 @@ final class PinSession {
 
     var onChange: (() -> Void)?
     var onGeometryChanged: (() -> Void)?
-    var onFailure: ((String) -> Void)?
+    var onFailure: ((Error) -> Void)?
+    var onScreenRecordingRevoked: (() -> Void)?
 
     private(set) var descriptor: WindowDescriptor
     private(set) var coordinateSpace: DisplayCoordinateSpace
@@ -307,7 +311,7 @@ final class PinSession {
             try transition(.firstCompleteFrame)
         } catch {
             errorMessage = error.localizedDescription
-            onFailure?(error.localizedDescription)
+            onFailure?(error)
             return
         }
 
@@ -441,6 +445,14 @@ final class PinSession {
     ) async {
         guard isCurrent(streamID: streamID, generation: generation) else { return }
 
+        guard CGPreflightScreenCaptureAccess() else {
+            // Permission revocation is an app-wide privacy boundary. The
+            // coordinator synchronously hides every panel and clears every
+            // retained frame, including pins that were already frozen.
+            onScreenRecordingRevoked?()
+            return
+        }
+
         let currentSource = WindowInventory.currentDescriptor(for: descriptor.id)
         let sourceStillExists = currentSource?.ownerPID == descriptor.ownerPID
 
@@ -539,7 +551,7 @@ final class PinSession {
         let detachedCycle = detachCurrentCycle()
         await Self.stopCaptureCycle(detachedCycle)
         notifyChange()
-        onFailure?(message)
+        onFailure?(PinSessionError.captureFailed(message))
     }
 
     private func createPresentationIfNeeded() {

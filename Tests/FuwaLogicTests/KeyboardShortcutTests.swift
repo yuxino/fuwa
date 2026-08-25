@@ -78,6 +78,10 @@ func runKeyboardShortcutTests(runner: inout LogicTestRunner) {
             "a conflicting registration resolves atomically to the previous shortcut"
         )
         runner.expect(
+            update.resolvedValue(after: .inactive) == standard,
+            "an inactive registration keeps the previous shortcut as an editable candidate"
+        )
+        runner.expect(
             standard == KeyboardShortcut.defaultPin,
             "constructing an update never mutates the current shortcut"
         )

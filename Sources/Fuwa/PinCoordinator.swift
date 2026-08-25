@@ -5,6 +5,8 @@ import FuwaCore
 enum PinCoordinatorError: LocalizedError {
     case pinNotFound
     case operationCancelled
+    case pinLimitReached(maximum: Int)
+    case screenRecordingRevoked
 
     var errorDescription: String? {
         switch self {
@@ -12,14 +14,25 @@ enum PinCoordinatorError: LocalizedError {
             "This pin is no longer available."
         case .operationCancelled:
             "The pin operation was cancelled."
+        case .pinLimitReached(let maximum):
+            "Fuwa keeps up to \(maximum) windows pinned at once. Unpin one before adding another."
+        case .screenRecordingRevoked:
+            "Screen Recording permission was removed. Fuwa cleared every captured frame."
         }
     }
 }
 
+struct PinInteractionTarget {
+    let descriptor: WindowDescriptor
+    let windowTitle: String?
+}
+
 @MainActor
 final class PinCoordinator {
+    static let maximumPinCount = 8
+
     var onPinsChanged: (([PinSnapshot]) -> Void)?
-    var onFailure: ((String) -> Void)?
+    var onFailure: ((Error) -> Void)?
 
     private let resolver = TargetResolver()
     private let tracker: WindowTracker
@@ -36,7 +49,7 @@ final class PinCoordinator {
             self?.reconcileSessions(with: inventory)
         }
         tracker.onError = { [weak self] error in
-            self?.onFailure?(error.localizedDescription)
+            self?.onFailure?(error)
         }
     }
 
@@ -48,6 +61,28 @@ final class PinCoordinator {
         sessionsByID.count
     }
 
+    func interactionTarget(for id: UUID) throws -> PinInteractionTarget {
+        guard let session = sessionsByID[id] else {
+            throw PinCoordinatorError.pinNotFound
+        }
+        let previousDescriptor = session.descriptor
+        guard let currentDescriptor = WindowInventory.currentDescriptor(
+            for: previousDescriptor.id,
+            ownerPID: previousDescriptor.ownerPID
+        ) else {
+            throw TargetResolutionError.intentDisappeared(
+                windowID: previousDescriptor.id
+            )
+        }
+        let snapshot = session.snapshot
+        return PinInteractionTarget(
+            descriptor: currentDescriptor,
+            windowTitle: snapshot.windowTitle == snapshot.applicationName
+                ? nil
+                : snapshot.windowTitle
+        )
+    }
+
     func snapshotFrontmostIntent() throws -> TargetIntentSnapshot {
         try resolver.snapshotIntent(excluding: overlayWindowIDs)
     }
@@ -56,6 +91,10 @@ final class PinCoordinator {
         if let sessionID = sessionIDByWindowID[intent.descriptor.id] {
             await unpin(sessionID)
             return
+        }
+
+        guard sessionsByID.count + pendingWindowIDs.count < Self.maximumPinCount else {
+            throw PinCoordinatorError.pinLimitReached(maximum: Self.maximumPinCount)
         }
 
         guard pendingWindowIDs.insert(intent.descriptor.id).inserted else { return }
@@ -82,6 +121,10 @@ final class PinCoordinator {
         do {
             try await session.startInitialCapture(with: target)
         } catch {
+            if !CGPreflightScreenCaptureAccess() {
+                clearAllImmediately()
+                throw TargetResolutionError.screenRecordingPermissionDenied
+            }
             await removeFailedSession(session)
             throw error
         }
@@ -113,6 +156,12 @@ final class PinCoordinator {
                 throw PinCoordinatorError.operationCancelled
             }
             try await session.resume(with: target)
+        } catch TargetResolutionError.screenRecordingPermissionDenied {
+            // Resuming can be the first operation after permission was revoked
+            // while every pin was frozen. Treat that detection as the same
+            // global privacy boundary as an active stream ending.
+            clearAllImmediately()
+            throw TargetResolutionError.screenRecordingPermissionDenied
         } catch TargetResolutionError.intentDisappeared {
             guard sessionsByID[id] === session else {
                 throw PinCoordinatorError.operationCancelled
@@ -134,6 +183,7 @@ final class PinCoordinator {
         session.onChange = nil
         session.onGeometryChanged = nil
         session.onFailure = nil
+        session.onScreenRecordingRevoked = nil
         session.prepareForStop()
         updateTrackerActivity()
         publishSnapshots()
@@ -141,6 +191,21 @@ final class PinCoordinator {
     }
 
     func clearAll() async {
+        let sessions = prepareToClearAll()
+        await finishStopping(sessions)
+    }
+
+    /// Used for lock, sleep, user switch, permission revocation and termination.
+    /// The sensitive work completes synchronously; stream shutdown continues in
+    /// a detached main-actor task after every panel and pixel has disappeared.
+    func clearAllImmediately() {
+        let sessions = prepareToClearAll()
+        Task { @MainActor in
+            await finishStopping(sessions)
+        }
+    }
+
+    private func prepareToClearAll() -> [PinSession] {
         operationGeneration &+= 1
         let sessions = insertionOrder.compactMap { sessionsByID[$0] }
         sessionsByID.removeAll()
@@ -154,10 +219,15 @@ final class PinCoordinator {
             session.onChange = nil
             session.onGeometryChanged = nil
             session.onFailure = nil
+            session.onScreenRecordingRevoked = nil
             session.prepareForStop()
         }
         publishSnapshots()
 
+        return sessions
+    }
+
+    private func finishStopping(_ sessions: [PinSession]) async {
         for session in sessions {
             await session.stop()
         }
@@ -178,8 +248,13 @@ final class PinCoordinator {
         session.onGeometryChanged = { [weak self] in
             self?.tracker.markGeometryChanged()
         }
-        session.onFailure = { [weak self] message in
-            self?.onFailure?(message)
+        session.onFailure = { [weak self] error in
+            self?.onFailure?(error)
+        }
+        session.onScreenRecordingRevoked = { [weak self] in
+            guard let self else { return }
+            self.clearAllImmediately()
+            self.onFailure?(PinCoordinatorError.screenRecordingRevoked)
         }
     }
 
@@ -209,6 +284,7 @@ final class PinCoordinator {
         session.onChange = nil
         session.onGeometryChanged = nil
         session.onFailure = nil
+        session.onScreenRecordingRevoked = nil
         session.prepareForStop()
         updateTrackerActivity()
         publishSnapshots()
