@@ -4,7 +4,7 @@ import CoreGraphics
 import CoreMedia
 import CoreVideo
 import ScreenCaptureKit
-import WindowPinCore
+import FuwaCore
 
 enum PinError: LocalizedError {
     case screenRecordingPermissionRequired
@@ -15,7 +15,7 @@ enum PinError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .screenRecordingPermissionRequired:
-            "需要屏幕录制权限。请在系统设置中允许 WindowPinDemo，然后重新打开应用。"
+            "需要屏幕录制权限。请在系统设置中允许 Fuwa，然后重新打开应用。"
         case .noUsableWindow:
             "没有找到可固定的前台窗口。请先点一下目标窗口，再按 ⌥⌘P。"
         case .selectedWindowUnavailable:

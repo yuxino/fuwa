@@ -3,7 +3,7 @@ set -euo pipefail
 
 WINDOW_PIN_SCRIPT_DIR="${0:A:h}"
 WINDOW_PIN_PROJECT_DIR="${WINDOW_PIN_SCRIPT_DIR:h}"
-WINDOW_PIN_APP_DIR="${WINDOW_PIN_PROJECT_DIR}/dist/WindowPinDemo.app"
+WINDOW_PIN_APP_DIR="${WINDOW_PIN_PROJECT_DIR}/dist/Fuwa.app"
 WINDOW_PIN_CONTENTS_DIR="${WINDOW_PIN_APP_DIR}/Contents"
 WINDOW_PIN_MACOS_DIR="${WINDOW_PIN_CONTENTS_DIR}/MacOS"
 WINDOW_PIN_RESOURCES_DIR="${WINDOW_PIN_CONTENTS_DIR}/Resources"
@@ -13,26 +13,26 @@ if [[ -d "${WINDOW_PIN_SDK_15}" ]]; then
     export SDKROOT="${WINDOW_PIN_SDK_15}"
 fi
 
-export CLANG_MODULE_CACHE_PATH="/private/tmp/window-pin-demo-clang-cache"
-export SWIFTPM_MODULECACHE_OVERRIDE="/private/tmp/window-pin-demo-swift-cache"
+export CLANG_MODULE_CACHE_PATH="/private/tmp/fuwa-clang-cache"
+export SWIFTPM_MODULECACHE_OVERRIDE="/private/tmp/fuwa-swift-cache"
 
 cd "${WINDOW_PIN_PROJECT_DIR}"
 swift build \
     --disable-sandbox \
     --configuration release \
-    --product WindowPinDemo
+    --product Fuwa
 
 WINDOW_PIN_BIN_DIR="$(swift build \
     --disable-sandbox \
     --configuration release \
-    --product WindowPinDemo \
+    --product Fuwa \
     --show-bin-path)"
 
 rm -rf "${WINDOW_PIN_APP_DIR}"
 mkdir -p "${WINDOW_PIN_MACOS_DIR}" "${WINDOW_PIN_RESOURCES_DIR}"
-cp "${WINDOW_PIN_BIN_DIR}/WindowPinDemo" "${WINDOW_PIN_MACOS_DIR}/WindowPinDemo"
+cp "${WINDOW_PIN_BIN_DIR}/Fuwa" "${WINDOW_PIN_MACOS_DIR}/Fuwa"
 cp "${WINDOW_PIN_PROJECT_DIR}/Resources/Info.plist" "${WINDOW_PIN_CONTENTS_DIR}/Info.plist"
-chmod +x "${WINDOW_PIN_MACOS_DIR}/WindowPinDemo"
+chmod +x "${WINDOW_PIN_MACOS_DIR}/Fuwa"
 
 plutil -lint "${WINDOW_PIN_CONTENTS_DIR}/Info.plist"
 codesign --force --sign - --timestamp=none "${WINDOW_PIN_APP_DIR}"

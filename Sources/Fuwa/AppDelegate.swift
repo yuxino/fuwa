@@ -106,11 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             let image = NSImage(
                 systemSymbolName: "pin",
-                accessibilityDescription: "WindowPinDemo"
+                accessibilityDescription: "Fuwa"
             )
             image?.isTemplate = true
             button.image = image
-            button.toolTip = "WindowPinDemo · ⌥⌘P"
+            button.toolTip = "Fuwa · ⌥⌘P"
         }
 
         let menu = NSMenu()
@@ -139,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         let quitItem = NSMenuItem(
-            title: "退出 WindowPinDemo",
+            title: "退出 Fuwa",
             action: #selector(quitApplication),
             keyEquivalent: "q"
         )
@@ -153,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updatePinnedState(isPinned)
         }
         pinnedWindowController.onFailure = { [weak self] message in
-            self?.showAlert(title: "WindowPinDemo", message: message)
+            self?.showAlert(title: "Fuwa", message: message)
         }
     }
 
@@ -162,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pinMenuItem?.title = isPinned ? "取消固定  ⌥⌘P" : "固定当前窗口  ⌥⌘P"
         statusItem?.button?.image = NSImage(
             systemSymbolName: isPinned ? "pin.fill" : "pin",
-            accessibilityDescription: isPinned ? "窗口已固定" : "WindowPinDemo"
+            accessibilityDescription: isPinned ? "窗口已固定" : "Fuwa"
         )
         statusItem?.button?.image?.isTemplate = true
     }
@@ -191,7 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.alertStyle = .informational
         alert.messageText = "需要屏幕录制权限"
-        alert.informativeText = "允许 WindowPinDemo 后请退出并重新打开，再按 ⌥⌘P。画面只在本机用于实时镜像。"
+        alert.informativeText = "允许 Fuwa 后请退出并重新打开，再按 ⌥⌘P。画面只在本机用于实时镜像。"
         alert.addButton(withTitle: "打开系统设置")
         alert.addButton(withTitle: "稍后")
         NSApp.activate(ignoringOtherApps: true)

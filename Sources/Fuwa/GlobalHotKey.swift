@@ -17,7 +17,7 @@ final class GlobalHotKey {
         }
     }
 
-    private static let signature: OSType = 0x5750_4E44 // WPND
+    private static let signature: OSType = 0x4655_5741 // FUWA
     private static let identifier: UInt32 = 1
 
     private let action: () -> Void

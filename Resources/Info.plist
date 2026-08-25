@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>zh_CN</string>
+    <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>WindowPinDemo</string>
+    <string>Fuwa</string>
     <key>CFBundleIdentifier</key>
-    <string>com.gavin.WindowPinDemo</string>
+    <string>app.yuxino.fuwa</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>WindowPinDemo</string>
+    <string>Fuwa</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -27,6 +27,6 @@
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>WindowPinDemo 需要捕获你主动选中的窗口，以便在本机显示实时置顶镜像。</string>
+    <string>Fuwa captures only the window you choose so it can keep a private, live mirror visible on your Mac.</string>
 </dict>
 </plist>
