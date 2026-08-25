@@ -55,6 +55,7 @@ runLegacyWindowSelectionTests(runner: &runner)
 runSelectionPolicyTests(runner: &runner)
 runPinStateTests(runner: &runner)
 runKeyboardShortcutTests(runner: &runner)
+runDisplayCoordinateSpaceTests(runner: &runner)
 
 if runner.failures > 0 {
     print("\(runner.failures) logic test(s) failed")

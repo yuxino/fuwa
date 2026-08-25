@@ -1,0 +1,183 @@
+import AppKit
+import CoreGraphics
+import FuwaCore
+
+enum WindowInventoryError: Error, Equatable, Sendable {
+    case windowListUnavailable
+    case activeDisplayListUnavailable
+    case noActiveDisplays
+    case invalidDisplayCoordinateSpace(DisplayCoordinateSpace.ValidationError)
+}
+
+extension WindowInventoryError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .windowListUnavailable:
+            "Fuwa could not read the current WindowServer window list."
+        case .activeDisplayListUnavailable:
+            "Fuwa could not read the active display arrangement."
+        case .noActiveDisplays:
+            "Fuwa could not find an active display."
+        case .invalidDisplayCoordinateSpace:
+            "The active display arrangement could not be converted safely."
+        }
+    }
+}
+
+/// A synchronous, front-to-back WindowServer snapshot captured for one hotkey
+/// invocation. No ScreenCaptureKit availability filtering happens here.
+struct WindowInventory: Sendable {
+    let orderedWindows: [WindowDescriptor]
+    let coordinateSpace: DisplayCoordinateSpace
+    let frontmostProcessID: pid_t?
+
+    var activeDisplayBounds: [CGRect] {
+        coordinateSpace.activeDisplayBounds
+    }
+
+    func descriptor(for windowID: CGWindowID) -> WindowDescriptor? {
+        orderedWindows.first(where: { $0.id == windowID })
+    }
+
+    /// Captures visual intent before any asynchronous ScreenCaptureKit work can
+    /// allow z-order or a transient Quick Look window to change.
+    @MainActor
+    static func capture() throws -> WindowInventory {
+        guard let windowInfo = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else {
+            throw WindowInventoryError.windowListUnavailable
+        }
+
+        let displays = try activeDisplayCoordinateSpace()
+        let descriptors = descriptors(from: windowInfo)
+        let frontmostProcessID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+
+        return WindowInventory(
+            orderedWindows: descriptors,
+            coordinateSpace: displays,
+            frontmostProcessID: frontmostProcessID
+        )
+    }
+
+    /// A narrow liveness check used only to classify an exact-ID confirmation
+    /// failure. It never participates in selecting a replacement target.
+    @MainActor
+    static func currentDescriptor(for windowID: CGWindowID) -> WindowDescriptor? {
+        guard let windowInfo = CGWindowListCopyWindowInfo(
+            [.optionIncludingWindow],
+            windowID
+        ) as? [[String: Any]] else {
+            return nil
+        }
+
+        return descriptors(from: windowInfo).first(where: { $0.id == windowID })
+    }
+
+    @MainActor
+    private static func descriptors(from windowInfo: [[String: Any]]) -> [WindowDescriptor] {
+        var bundleIdentifiers: [pid_t: String] = [:]
+        var resolvedProcessIDs = Set<pid_t>()
+        var result: [WindowDescriptor] = []
+        result.reserveCapacity(windowInfo.count)
+
+        for info in windowInfo {
+            guard let rawDescriptor = RawWindowDescriptor(windowInfo: info) else {
+                continue
+            }
+
+            let processID = rawDescriptor.ownerPID
+            if resolvedProcessIDs.insert(processID).inserted,
+               let bundleIdentifier = NSRunningApplication(
+                   processIdentifier: processID
+               )?.bundleIdentifier,
+               !bundleIdentifier.isEmpty {
+                bundleIdentifiers[processID] = bundleIdentifier
+            }
+
+            result.append(
+                WindowDescriptor(
+                    id: rawDescriptor.id,
+                    ownerPID: processID,
+                    ownerName: rawDescriptor.ownerName,
+                    ownerBundleIdentifier: bundleIdentifiers[processID],
+                    layer: rawDescriptor.layer,
+                    alpha: rawDescriptor.alpha,
+                    bounds: rawDescriptor.bounds
+                )
+            )
+        }
+
+        return result
+    }
+
+    private static func activeDisplayCoordinateSpace() throws -> DisplayCoordinateSpace {
+        var displayCount: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &displayCount) == .success else {
+            throw WindowInventoryError.activeDisplayListUnavailable
+        }
+        guard displayCount > 0 else {
+            throw WindowInventoryError.noActiveDisplays
+        }
+
+        var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
+        var capturedDisplayCount: UInt32 = 0
+        let displayListError = displayIDs.withUnsafeMutableBufferPointer { buffer in
+            CGGetActiveDisplayList(displayCount, buffer.baseAddress, &capturedDisplayCount)
+        }
+        guard displayListError == .success else {
+            throw WindowInventoryError.activeDisplayListUnavailable
+        }
+
+        guard capturedDisplayCount <= displayCount else {
+            throw WindowInventoryError.activeDisplayListUnavailable
+        }
+        displayIDs.removeSubrange(Int(capturedDisplayCount)..<displayIDs.count)
+        guard !displayIDs.isEmpty else {
+            throw WindowInventoryError.noActiveDisplays
+        }
+
+        let primaryDisplayBounds = CGDisplayBounds(CGMainDisplayID())
+        let activeDisplayBounds = displayIDs.map(CGDisplayBounds)
+
+        do {
+            return try DisplayCoordinateSpace(
+                primaryDisplayBounds: primaryDisplayBounds,
+                activeDisplayBounds: activeDisplayBounds
+            )
+        } catch let error as DisplayCoordinateSpace.ValidationError {
+            throw WindowInventoryError.invalidDisplayCoordinateSpace(error)
+        }
+    }
+}
+
+private struct RawWindowDescriptor {
+    let id: CGWindowID
+    let ownerPID: pid_t
+    let ownerName: String?
+    let layer: Int
+    let alpha: Double
+    let bounds: CGRect
+
+    init?(windowInfo: [String: Any]) {
+        guard
+            let windowNumber = windowInfo[kCGWindowNumber as String] as? NSNumber,
+            let processIdentifier = windowInfo[kCGWindowOwnerPID as String] as? NSNumber,
+            let boundsDictionary = windowInfo[kCGWindowBounds as String] as? [String: Any],
+            let x = (boundsDictionary["X"] as? NSNumber)?.doubleValue,
+            let y = (boundsDictionary["Y"] as? NSNumber)?.doubleValue,
+            let width = (boundsDictionary["Width"] as? NSNumber)?.doubleValue,
+            let height = (boundsDictionary["Height"] as? NSNumber)?.doubleValue
+        else {
+            return nil
+        }
+
+        id = windowNumber.uint32Value
+        ownerPID = pid_t(processIdentifier.int32Value)
+        ownerName = windowInfo[kCGWindowOwnerName as String] as? String
+        layer = (windowInfo[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
+        alpha = (windowInfo[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1
+        bounds = CGRect(x: x, y: y, width: width, height: height)
+    }
+}

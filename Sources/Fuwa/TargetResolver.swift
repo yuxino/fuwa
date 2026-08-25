@@ -1,0 +1,169 @@
+import CoreGraphics
+import FuwaCore
+import ScreenCaptureKit
+
+struct TargetIntentSnapshot: Sendable {
+    let descriptor: WindowDescriptor
+    let coordinateSpace: DisplayCoordinateSpace
+}
+
+struct ResolvedTarget {
+    let window: SCWindow
+    let descriptor: WindowDescriptor
+    let coordinateSpace: DisplayCoordinateSpace
+}
+
+enum TargetResolutionError: Error, Equatable, Sendable {
+    case inventoryUnavailable(WindowInventoryError)
+    case noEligibleIntent
+    case screenRecordingPermissionDenied
+    case shareableContentUnavailable(message: String)
+    case intentDisappeared(windowID: CGWindowID)
+    case intentNotShareable(windowID: CGWindowID)
+}
+
+extension TargetResolutionError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .inventoryUnavailable(let error):
+            error.localizedDescription
+        case .noEligibleIntent:
+            "No eligible front window is visible."
+        case .screenRecordingPermissionDenied:
+            "Screen Recording permission is required to pin this window."
+        case .shareableContentUnavailable(let message):
+            "The capturable window list is unavailable: \(message)"
+        case .intentDisappeared:
+            "The front window closed before Fuwa could start capturing it."
+        case .intentNotShareable:
+            "The front window is visible but macOS does not allow it to be captured."
+        }
+    }
+}
+
+/// Resolves the user's visual intent in two deliberately separate stages.
+///
+/// `snapshotIntent` must be called synchronously by the hotkey handler. Only
+/// after that immutable intent exists should the caller start an async task and
+/// call `resolve`, which confirms the exact WindowServer ID in
+/// ScreenCaptureKit. An unavailable intent is always an error; the resolver
+/// never selects a window behind it.
+@MainActor
+final class TargetResolver {
+    func snapshotIntent(
+        excluding overlayWindowIDs: Set<CGWindowID> = []
+    ) throws -> TargetIntentSnapshot {
+        let inventory = try captureInventory()
+
+        let context = SelectionContext(
+            selfProcessID: ProcessInfo.processInfo.processIdentifier,
+            frontmostProcessID: inventory.frontmostProcessID,
+            displayBounds: inventory.activeDisplayBounds,
+            excludedWindowIDs: overlayWindowIDs
+        )
+        guard let descriptor = SelectionPolicy.intentWindow(
+            in: inventory.orderedWindows,
+            context: context
+        ) else {
+            throw TargetResolutionError.noEligibleIntent
+        }
+
+        return TargetIntentSnapshot(
+            descriptor: descriptor,
+            coordinateSpace: inventory.coordinateSpace
+        )
+    }
+
+    /// Refreshes an existing source by its original identity. This is the
+    /// Resume path for a frozen pin: it refreshes bounds and display topology,
+    /// but never applies frontmost-window selection or substitutes another ID.
+    func snapshotExactWindow(
+        matching previousDescriptor: WindowDescriptor
+    ) throws -> TargetIntentSnapshot {
+        let inventory = try captureInventory()
+        guard
+            let currentDescriptor = inventory.descriptor(for: previousDescriptor.id),
+            currentDescriptor.ownerPID == previousDescriptor.ownerPID
+        else {
+            throw TargetResolutionError.intentDisappeared(
+                windowID: previousDescriptor.id
+            )
+        }
+
+        return TargetIntentSnapshot(
+            descriptor: currentDescriptor,
+            coordinateSpace: inventory.coordinateSpace
+        )
+    }
+
+    func resolveExact(
+        matching previousDescriptor: WindowDescriptor
+    ) async throws -> ResolvedTarget {
+        let intent = try snapshotExactWindow(matching: previousDescriptor)
+        return try await resolve(intent)
+    }
+
+    func resolve(_ intent: TargetIntentSnapshot) async throws -> ResolvedTarget {
+        guard CGPreflightScreenCaptureAccess() else {
+            throw TargetResolutionError.screenRecordingPermissionDenied
+        }
+
+        let content: SCShareableContent
+        do {
+            content = try await SCShareableContent.excludingDesktopWindows(
+                false,
+                onScreenWindowsOnly: true
+            )
+        } catch {
+            if !CGPreflightScreenCaptureAccess() {
+                throw TargetResolutionError.screenRecordingPermissionDenied
+            }
+            throw TargetResolutionError.shareableContentUnavailable(
+                message: error.localizedDescription
+            )
+        }
+
+        let shareableWindowIDs = Set(content.windows.map(\.windowID))
+        guard SelectionPolicy.confirm(
+            intent.descriptor,
+            shareableWindowIDs: shareableWindowIDs
+        ) != nil else {
+            let currentDescriptor = WindowInventory.currentDescriptor(
+                for: intent.descriptor.id
+            )
+            guard currentDescriptor?.ownerPID == intent.descriptor.ownerPID else {
+                throw TargetResolutionError.intentDisappeared(
+                    windowID: intent.descriptor.id
+                )
+            }
+            throw TargetResolutionError.intentNotShareable(
+                windowID: intent.descriptor.id
+            )
+        }
+
+        guard let window = content.windows.first(where: {
+            $0.windowID == intent.descriptor.id
+        }) else {
+            // This should be unreachable because the ID set above came from the
+            // same immutable content snapshot. Keep a typed error in release
+            // builds instead of relying on an assertion.
+            throw TargetResolutionError.intentNotShareable(
+                windowID: intent.descriptor.id
+            )
+        }
+
+        return ResolvedTarget(
+            window: window,
+            descriptor: intent.descriptor,
+            coordinateSpace: intent.coordinateSpace
+        )
+    }
+
+    private func captureInventory() throws -> WindowInventory {
+        do {
+            return try WindowInventory.capture()
+        } catch let error as WindowInventoryError {
+            throw TargetResolutionError.inventoryUnavailable(error)
+        }
+    }
+}
