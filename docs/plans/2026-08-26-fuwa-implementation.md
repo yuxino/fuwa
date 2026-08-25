@@ -6,9 +6,13 @@
 
 **Architecture:** A Swift 6 modular monolith keeps deterministic selection/state logic in `FuwaCore` and AppKit/SwiftUI/ScreenCaptureKit integrations in `Fuwa`. `TargetResolver` combines CGWindow z-order with `SCShareableContent`; `PinCoordinator` owns independent `PinSession` state machines and publishes immutable view models to a neutral SwiftUI popover.
 
-**Tech Stack:** Swift 6.2, AppKit, SwiftUI, ScreenCaptureKit, AVFoundation, CoreGraphics, Accessibility, ServiceManagement, XCTest, shell packaging, GitHub Actions.
+**Tech Stack:** Swift 6.2, AppKit, SwiftUI, ScreenCaptureKit, AVFoundation, CoreGraphics, Accessibility, ServiceManagement, a dependency-free executable logic-test harness, shell packaging, GitHub Actions.
 
 ---
+
+## Environment note
+
+The development Mac has Command Line Tools rather than full Xcode, and its compatible macOS 15.4 SDK exposes neither XCTest nor Swift Testing. The plan therefore uses the `FuwaLogicTests` executable target and fails the process on any assertion. CI runs the same target. This keeps the test suite dependency-free and executable both locally and on GitHub-hosted macOS runners.
 
 ### Task 1: Rebrand the provenance base
 
@@ -16,16 +20,16 @@
 - Modify: `Package.swift`
 - Move: `Sources/WindowPinCore` → `Sources/FuwaCore`
 - Move: `Sources/WindowPinDemo` → `Sources/Fuwa`
-- Move: `Tests/WindowPinDemoLogicTests` → `Tests/FuwaCoreTests`
+- Move: `Tests/WindowPinDemoLogicTests` → `Tests/FuwaLogicTests`
 - Modify: `Resources/Info.plist`
 - Modify: `.gitignore`
 
 **Steps:**
 
 1. Rename package, products, targets, imports, executable and bundle identifiers to `Fuwa` / `FuwaCore` / `app.yuxino.fuwa`.
-2. Convert the executable logic-test target into an XCTest `.testTarget`.
+2. Keep a dependency-free executable `FuwaLogicTests` target and split its suites into callable functions.
 3. Add `swiftLanguageModes: [.v6]` and keep macOS 14 as the minimum.
-4. Run `swift test` and verify the renamed baseline passes.
+4. Run `swift run FuwaLogicTests` and verify the renamed baseline passes.
 5. Commit with `refactor: establish Fuwa project foundation`.
 
 ### Task 2: Specify target selection with failing tests
@@ -33,8 +37,8 @@
 **Files:**
 - Create: `Sources/FuwaCore/WindowDescriptor.swift`
 - Create: `Sources/FuwaCore/SelectionPolicy.swift`
-- Create: `Tests/FuwaCoreTests/SelectionPolicyTests.swift`
-- Create: `Tests/FuwaCoreTests/Fixtures/WindowFixtures.swift`
+- Create: `Tests/FuwaLogicTests/SelectionPolicyTests.swift`
+- Create: `Tests/FuwaLogicTests/TestHarness.swift`
 - Remove: `Sources/FuwaCore/WindowSelection.swift`
 
 **Required tests:**
@@ -67,7 +71,7 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 **Steps:**
 
 1. Add Quick Look, qlmanage, system UI, self-window, transparent, tiny, off-screen and unshareable-race fixtures.
-2. Run `swift test --filter SelectionPolicyTests` and confirm the new tests fail.
+2. Run `swift run FuwaLogicTests` and confirm the new assertions fail before implementation.
 3. Implement the two-stage policy: choose visual intent first, then confirm the exact ID is shareable.
 4. Keep PID and layer as metadata only; exclude system UI using bundle identifiers plus defensive geometry rules.
 5. Run the focused tests, then the full suite.
@@ -78,8 +82,8 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 **Files:**
 - Create: `Sources/FuwaCore/PinState.swift`
 - Create: `Sources/FuwaCore/KeyboardShortcut.swift`
-- Create: `Tests/FuwaCoreTests/PinStateTests.swift`
-- Create: `Tests/FuwaCoreTests/KeyboardShortcutTests.swift`
+- Create: `Tests/FuwaLogicTests/PinStateTests.swift`
+- Create: `Tests/FuwaLogicTests/KeyboardShortcutTests.swift`
 
 **Steps:**
 
@@ -95,7 +99,7 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 - Create: `Sources/Fuwa/TargetResolver.swift`
 - Create: `Sources/Fuwa/WindowInventory.swift`
 - Create: `Sources/Fuwa/DisplayCoordinateSpace.swift`
-- Create: `Tests/FuwaCoreTests/DisplayCoordinateSpaceTests.swift`
+- Create: `Tests/FuwaLogicTests/DisplayCoordinateSpaceTests.swift`
 
 **Steps:**
 
@@ -134,7 +138,7 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 - Modify: `Sources/Fuwa/CaptureView.swift`
 - Modify: `Sources/Fuwa/PinSession.swift`
 - Modify: `Sources/Fuwa/PinCoordinator.swift`
-- Create: `Tests/FuwaCoreTests/FreezePolicyTests.swift`
+- Create: `Tests/FuwaLogicTests/FreezePolicyTests.swift`
 
 **Steps:**
 
@@ -260,7 +264,7 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 
 **Steps:**
 
-1. Run `swift test` and strict debug/release builds.
+1. Run `swift run FuwaLogicTests` and strict debug/release builds.
 2. Package and verify universal2 Fuwa.app.
 3. Test ordinary App windows, Finder JPEG/PNG/PDF/video Quick Look and `qlmanage`.
 4. Test multiple pins, Freeze/Resume, source closure, move/resize, multiple displays, Spaces, full screen and Stage Manager.
@@ -270,4 +274,3 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 8. Tag `v0.1.0`, push the tag, wait for CI/release, download the published artifact and verify checksum/signature/launch.
 9. Update release notes only if published evidence differs from local QA.
 10. Perform a requirement-by-requirement completion audit against the product design.
-
