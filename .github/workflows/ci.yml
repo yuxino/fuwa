@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift:
+    name: Strict build and logic tests
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show Swift toolchain
+        run: swift --version
+
+      - name: Validate package manifest
+        run: |
+          swift package dump-package > /dev/null
+          swift package describe --type json > /dev/null
+
+      - name: Build Fuwa in Release mode
+        run: >-
+          swift build --configuration release --product Fuwa
+          -Xswiftc -strict-concurrency=complete
+          -Xswiftc -warnings-as-errors
+
+      - name: Run logic tests in Release mode
+        run: >-
+          swift run --configuration release
+          -Xswiftc -strict-concurrency=complete
+          -Xswiftc -warnings-as-errors
+          FuwaLogicTests
+
+      - name: Check packaging script syntax
+        run: zsh -n scripts/package-app.sh
