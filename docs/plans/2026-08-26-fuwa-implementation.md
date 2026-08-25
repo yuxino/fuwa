@@ -1,10 +1,8 @@
 # Fuwa Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
-
 **Goal:** Turn the existing WindowPinDemo provenance base into Fuwa, a polished public macOS menu-bar app that pins capturable windows reliably, supports Finder Quick Look, multiple live/frozen pins, and permission-on-demand interaction.
 
-**Architecture:** A Swift 6 modular monolith keeps deterministic selection/state logic in `FuwaCore` and AppKit/SwiftUI/ScreenCaptureKit integrations in `Fuwa`. `TargetResolver` combines CGWindow z-order with `SCShareableContent`; `PinCoordinator` owns independent `PinSession` state machines and publishes immutable view models to a neutral SwiftUI popover.
+**Architecture:** A Swift 6 modular monolith keeps deterministic selection/state logic in `FuwaCore` and AppKit/SwiftUI/ScreenCaptureKit integrations in `Fuwa`. `TargetResolver` combines the foreground process, CGWindow z-order, narrow Quick Look helper exceptions, and `SCShareableContent`; `PinCoordinator` owns independent `PinSession` state machines and publishes immutable view models to a neutral SwiftUI popover.
 
 **Tech Stack:** Swift 6.2, AppKit, SwiftUI, ScreenCaptureKit, AVFoundation, CoreGraphics, Accessibility, ServiceManagement, a dependency-free executable logic-test harness, shell packaging, GitHub Actions.
 

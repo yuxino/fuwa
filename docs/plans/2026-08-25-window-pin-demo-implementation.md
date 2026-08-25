@@ -1,7 +1,5 @@
 # WindowPinDemo Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
-
 **Goal:** Build a minimal macOS menu-bar app that pins a live mirror of the frontmost window with `⌥⌘P`.
 
 **Architecture:** A Swift Package executable runs an AppKit status-bar app. Carbon handles the global shortcut, Core Graphics selects the frontmost window, and ScreenCaptureKit streams that window into a floating `NSPanel`.

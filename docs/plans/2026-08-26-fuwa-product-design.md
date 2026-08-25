@@ -2,14 +2,14 @@
 
 ## 产品目标
 
-Fuwa 是一个安静、可靠、键盘优先的 macOS 菜单栏工具。用户按 `⌥⌘P`，Fuwa 会把当前视觉上最前面的可捕获窗口固定在其他普通窗口之上。它不修改第三方 App 的原始窗口层级，而是使用公开的 ScreenCaptureKit 创建实时镜像。
+Fuwa 是一个安静、可靠、键盘优先的 macOS 菜单栏工具。用户按 `⌥⌘P`，Fuwa 会优先固定前台 App 中符合意图的最前窗口，跳过已知跨 App 浮层与系统认证窗，并为 Finder Quick Look 保留窄范围例外。它不修改第三方 App 的原始窗口层级，而是使用公开的 ScreenCaptureKit 创建实时镜像。
 
 首个公开版本必须让这件小事做起来足够舒服：触发快、没有黑闪、默认不抢鼠标、不多要权限、窗口关闭后不会突然消失，并且能正确处理 Finder 空格预览等临时窗口。
 
 ## 设计原则
 
 - **稳定优先。** 默认观察模式只显示实时镜像，不通过鼠标进入/离开反复切换原窗口。
-- **权限渐进。** 启动不请求权限；第一次固定时才请求屏幕录制；第一次使用 Interact 时才请求辅助功能。
+- **权限渐进。** 启动不请求权限；第一次固定时才请求屏幕录制；第一次使用 Interact 或 Reveal Source 时才请求辅助功能。
 - **键盘优先。** 全局快捷键是不激活 Fuwa、也不破坏 Quick Look 的主路径。
 - **本地与克制。** 不上传窗口内容、不做分析、不记录窗口标题或像素。
 - **公开 API。** 不使用 SkyLight/CGS 私有 API，不注入其他进程，不要求关闭 SIP。
@@ -30,7 +30,7 @@ Fuwa 是一个安静、可靠、键盘优先的 macOS 菜单栏工具。用户�
 
 ### Finder Quick Look
 
-Finder 空格预览在当前系统实测为 Finder 所有、`layer=3` 的可捕获窗口；`qlmanage -p` 又可能是独立进程的 `layer=0` 窗口。Fuwa 不硬编码进程名、窗口标题、特定 layer 或本地化 AX subrole，而是使用统一的“CG z-order + SC 可捕获性”规则。
+Finder 空格预览在当前系统实测为 Finder 所有、`layer=3` 的可捕获窗口；`qlmanage -p` 又可能是独立进程的 `layer=0` 窗口。Fuwa 以“前台 App 归属 + CG z-order + SC 可捕获性”为主规则，并只为公开可识别的 Quick Look helper 保留窄范围跨进程例外；不依赖窗口标题、特定 layer 或本地化 AX subrole。
 
 Quick Look 关闭后：
 
@@ -164,4 +164,3 @@ Popover 保持单列、低密度、黑白与中性灰：
 - 中英文界面、VoiceOver 标签、Launch at Login 与可修改快捷键可用。
 - `swift test`、严格 release build、打包验证和 CI 全部通过。
 - public GitHub 仓库包含 MIT LICENSE、双语 README、隐私说明、贡献指南、来源说明、截图和首个 Release。
-
