@@ -1,75 +1,67 @@
 import AppKit
-import Darwin
+import CoreGraphics
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let pinnedWindowController = PinnedWindowController()
+    private let pinCoordinator = PinCoordinator()
     private var hotKey: GlobalHotKey?
     private var statusItem: NSStatusItem?
-    private var pinMenuItem: NSMenuItem?
+    private var clearAllMenuItem: NSMenuItem?
     private var stateMenuItem: NSMenuItem?
-    private var lastExternalProcessID: pid_t?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        rememberFrontmostApplication()
         configureStatusItem()
-        configurePinnedWindowCallbacks()
-
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(workspaceApplicationActivated(_:)),
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
+        configureCoordinatorCallbacks()
 
         let hotKey = GlobalHotKey { [weak self] in
-            self?.togglePin()
+            self?.toggleFrontmostPin()
         }
         self.hotKey = hotKey
 
         do {
             try hotKey.start()
         } catch {
-            showAlert(title: "快捷键不可用", message: error.localizedDescription)
+            showAlert(title: "Shortcut unavailable", message: error.localizedDescription)
         }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        NSWorkspace.shared.notificationCenter.removeObserver(self)
         hotKey?.stop()
     }
 
-    @objc private func togglePin() {
-        guard !pinnedWindowController.isTransitioning else { return }
-
-        if pinnedWindowController.isPinned {
-            Task { @MainActor [weak self] in
-                await self?.pinnedWindowController.stop()
-            }
+    @objc private func toggleFrontmostPin() {
+        let intent: TargetIntentSnapshot
+        do {
+            // Keep this synchronous and before Task creation. Quick Look and
+            // other transient panels can disappear as soon as focus changes.
+            intent = try pinCoordinator.snapshotFrontmostIntent()
+        } catch {
+            showAlert(title: "No window to pin", message: error.localizedDescription)
             return
         }
 
-        rememberFrontmostApplication()
-        guard let processID = currentTargetProcessID else {
-            showAlert(
-                title: "没有目标窗口",
-                message: "请先点一下想固定的窗口，再按 ⌥⌘P。"
-            )
-            return
-        }
-
-        stateMenuItem?.title = "正在固定…"
+        stateMenuItem?.title = "Pinning…"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                try await pinnedWindowController.pinFrontmostWindow(ownerPID: processID)
-            } catch PinError.screenRecordingPermissionRequired {
-                updatePinnedState(false)
+                try await pinCoordinator.toggle(intent)
+            } catch TargetResolutionError.screenRecordingPermissionDenied {
+                updatePinnedState(pinCoordinator.snapshots)
+                _ = CGRequestScreenCaptureAccess()
                 showScreenRecordingPermissionAlert()
+            } catch PinCoordinatorError.operationCancelled {
+                updatePinnedState(pinCoordinator.snapshots)
             } catch {
-                updatePinnedState(false)
-                showAlert(title: "无法固定窗口", message: error.localizedDescription)
+                updatePinnedState(pinCoordinator.snapshots)
+                showAlert(title: "Couldn’t pin window", message: error.localizedDescription)
             }
+        }
+    }
+
+    @objc private func clearAllPins() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await pinCoordinator.clearAll()
         }
     }
 
@@ -83,20 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quitApplication() {
         Task { @MainActor [weak self] in
             guard let self else { return }
-            await pinnedWindowController.stop()
+            await pinCoordinator.clearAll()
             NSApp.terminate(nil)
         }
-    }
-
-    @objc private func workspaceApplicationActivated(_ notification: Notification) {
-        guard
-            let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
-                as? NSRunningApplication,
-            application.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        else {
-            return
-        }
-        lastExternalProcessID = application.processIdentifier
     }
 
     private func configureStatusItem() {
@@ -104,33 +85,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.statusItem = statusItem
 
         if let button = statusItem.button {
-            let image = NSImage(
-                systemSymbolName: "pin",
-                accessibilityDescription: "Fuwa"
-            )
+            let image = NSImage(systemSymbolName: "pin", accessibilityDescription: "Fuwa")
             image?.isTemplate = true
             button.image = image
             button.toolTip = "Fuwa · ⌥⌘P"
         }
 
         let menu = NSMenu()
-        let stateItem = NSMenuItem(title: "未固定窗口", action: nil, keyEquivalent: "")
+        let stateItem = NSMenuItem(title: "No pinned windows", action: nil, keyEquivalent: "")
         stateItem.isEnabled = false
         stateMenuItem = stateItem
         menu.addItem(stateItem)
         menu.addItem(.separator())
 
         let pinItem = NSMenuItem(
-            title: "固定当前窗口  ⌥⌘P",
-            action: #selector(togglePin),
+            title: "Pin Front Window  ⌥⌘P",
+            action: #selector(toggleFrontmostPin),
             keyEquivalent: ""
         )
         pinItem.target = self
-        pinMenuItem = pinItem
         menu.addItem(pinItem)
 
+        let clearItem = NSMenuItem(
+            title: "Clear All Pins",
+            action: #selector(clearAllPins),
+            keyEquivalent: ""
+        )
+        clearItem.target = self
+        clearItem.isEnabled = false
+        clearAllMenuItem = clearItem
+        menu.addItem(clearItem)
+
         let permissionItem = NSMenuItem(
-            title: "打开屏幕录制设置…",
+            title: "Screen Recording Settings…",
             action: #selector(openScreenRecordingSettings),
             keyEquivalent: ""
         )
@@ -139,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         let quitItem = NSMenuItem(
-            title: "退出 Fuwa",
+            title: "Quit Fuwa",
             action: #selector(quitApplication),
             keyEquivalent: "q"
         )
@@ -148,52 +135,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
 
-    private func configurePinnedWindowCallbacks() {
-        pinnedWindowController.onPinnedStateChange = { [weak self] isPinned in
-            self?.updatePinnedState(isPinned)
+    private func configureCoordinatorCallbacks() {
+        pinCoordinator.onPinsChanged = { [weak self] snapshots in
+            self?.updatePinnedState(snapshots)
         }
-        pinnedWindowController.onFailure = { [weak self] message in
+        pinCoordinator.onFailure = { [weak self] message in
             self?.showAlert(title: "Fuwa", message: message)
         }
+        updatePinnedState([])
     }
 
-    private func updatePinnedState(_ isPinned: Bool) {
-        stateMenuItem?.title = isPinned ? "窗口已固定" : "未固定窗口"
-        pinMenuItem?.title = isPinned ? "取消固定  ⌥⌘P" : "固定当前窗口  ⌥⌘P"
+    private func updatePinnedState(_ snapshots: [PinSnapshot]) {
+        let liveCount = snapshots.count(where: { $0.state == .live || $0.state == .starting })
+        let frozenCount = snapshots.count(where: {
+            if case .frozen = $0.state { return true }
+            return false
+        })
+
+        switch snapshots.count {
+        case 0:
+            stateMenuItem?.title = "No pinned windows"
+        default:
+            var details: [String] = []
+            if liveCount > 0 { details.append("\(liveCount) live") }
+            if frozenCount > 0 { details.append("\(frozenCount) frozen") }
+            stateMenuItem?.title = "\(snapshots.count) pinned"
+                + (details.isEmpty ? "" : " · " + details.joined(separator: ", "))
+        }
+
+        clearAllMenuItem?.isEnabled = !snapshots.isEmpty
         statusItem?.button?.image = NSImage(
-            systemSymbolName: isPinned ? "pin.fill" : "pin",
-            accessibilityDescription: isPinned ? "窗口已固定" : "Fuwa"
+            systemSymbolName: snapshots.isEmpty ? "pin" : "pin.fill",
+            accessibilityDescription: snapshots.isEmpty ? "Fuwa" : "Fuwa has pinned windows"
         )
         statusItem?.button?.image?.isTemplate = true
-    }
-
-    private func rememberFrontmostApplication() {
-        guard
-            let application = NSWorkspace.shared.frontmostApplication,
-            application.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        else {
-            return
-        }
-        lastExternalProcessID = application.processIdentifier
-    }
-
-    private var currentTargetProcessID: pid_t? {
-        if
-            let application = NSWorkspace.shared.frontmostApplication,
-            application.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        {
-            return application.processIdentifier
-        }
-        return lastExternalProcessID
     }
 
     private func showScreenRecordingPermissionAlert() {
         let alert = NSAlert()
         alert.alertStyle = .informational
-        alert.messageText = "需要屏幕录制权限"
-        alert.informativeText = "允许 Fuwa 后请退出并重新打开，再按 ⌥⌘P。画面只在本机用于实时镜像。"
-        alert.addButton(withTitle: "打开系统设置")
-        alert.addButton(withTitle: "稍后")
+        alert.messageText = "Allow Screen Recording"
+        alert.informativeText = "Fuwa uses Screen Recording only to mirror windows you pin. Frames stay on this Mac and are never uploaded. After allowing Fuwa, reopen it and press ⌥⌘P again."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Not Now")
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn {
             openScreenRecordingSettings()
@@ -205,7 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.alertStyle = .warning
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: "OK")
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }

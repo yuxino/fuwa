@@ -27,15 +27,44 @@ extension WindowInventoryError: LocalizedError {
 /// A synchronous, front-to-back WindowServer snapshot captured for one hotkey
 /// invocation. No ScreenCaptureKit availability filtering happens here.
 struct WindowInventory: Sendable {
+    /// The visual inventory used for target selection. WindowServer preserves
+    /// front-to-back order for this on-screen-only list.
     let orderedWindows: [WindowDescriptor]
     let coordinateSpace: DisplayCoordinateSpace
     let frontmostProcessID: pid_t?
+
+    /// Exact WindowServer identities from `.optionAll`. This deliberately
+    /// includes minimized windows and windows on another Space: visibility is
+    /// not the same thing as source liveness.
+    private let allWindowsByID: [CGWindowID: WindowDescriptor]
 
     var activeDisplayBounds: [CGRect] {
         coordinateSpace.activeDisplayBounds
     }
 
+    /// Returns an exact source descriptor irrespective of whether the source
+    /// is currently visible. Callers use this for liveness and geometry
+    /// reconciliation, never for choosing a new target.
     func descriptor(for windowID: CGWindowID) -> WindowDescriptor? {
+        allWindowsByID[windowID]
+    }
+
+    /// PID-qualified identity protects long-running pins from the unlikely
+    /// case where WindowServer recycles a closed window's numeric ID.
+    func descriptor(
+        for windowID: CGWindowID,
+        ownerPID: pid_t
+    ) -> WindowDescriptor? {
+        guard let descriptor = allWindowsByID[windowID],
+              descriptor.ownerPID == ownerPID else {
+            return nil
+        }
+        return descriptor
+    }
+
+    /// Explicit visual lookup for diagnostics. Selection itself consumes the
+    /// ordered array so z-order remains meaningful.
+    func onScreenDescriptor(for windowID: CGWindowID) -> WindowDescriptor? {
         orderedWindows.first(where: { $0.id == windowID })
     }
 
@@ -43,21 +72,32 @@ struct WindowInventory: Sendable {
     /// allow z-order or a transient Quick Look window to change.
     @MainActor
     static func capture() throws -> WindowInventory {
-        guard let windowInfo = CGWindowListCopyWindowInfo(
+        guard let onScreenWindowInfo = CGWindowListCopyWindowInfo(
             [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else {
+            throw WindowInventoryError.windowListUnavailable
+        }
+        guard let allWindowInfo = CGWindowListCopyWindowInfo(
+            .optionAll,
             kCGNullWindowID
         ) as? [[String: Any]] else {
             throw WindowInventoryError.windowListUnavailable
         }
 
         let displays = try activeDisplayCoordinateSpace()
-        let descriptors = descriptors(from: windowInfo)
+        let onScreenDescriptors = descriptors(from: onScreenWindowInfo)
+        let allDescriptors = descriptors(from: allWindowInfo)
         let frontmostProcessID = NSWorkspace.shared.frontmostApplication?.processIdentifier
 
         return WindowInventory(
-            orderedWindows: descriptors,
+            orderedWindows: onScreenDescriptors,
             coordinateSpace: displays,
-            frontmostProcessID: frontmostProcessID
+            frontmostProcessID: frontmostProcessID,
+            allWindowsByID: Dictionary(
+                allDescriptors.map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
         )
     }
 
@@ -66,13 +106,28 @@ struct WindowInventory: Sendable {
     @MainActor
     static func currentDescriptor(for windowID: CGWindowID) -> WindowDescriptor? {
         guard let windowInfo = CGWindowListCopyWindowInfo(
-            [.optionIncludingWindow],
-            windowID
+            .optionAll,
+            kCGNullWindowID
         ) as? [[String: Any]] else {
             return nil
         }
 
         return descriptors(from: windowInfo).first(where: { $0.id == windowID })
+    }
+
+    /// Exact-ID/PID variant for code that already holds a stable source
+    /// identity. Like `capture`, this checks all WindowServer windows rather
+    /// than treating off-Space or minimized sources as closed.
+    @MainActor
+    static func currentDescriptor(
+        for windowID: CGWindowID,
+        ownerPID: pid_t
+    ) -> WindowDescriptor? {
+        guard let descriptor = currentDescriptor(for: windowID),
+              descriptor.ownerPID == ownerPID else {
+            return nil
+        }
+        return descriptor
     }
 
     @MainActor

@@ -63,6 +63,28 @@ func runPinStateTests(runner: inout LogicTestRunner) {
         runner.expect(false, "source-closed resume should use PinTransitionError")
     }
 
+    var interrupted = PinStateMachine(initialState: .live)
+    do {
+        _ = try interrupted.apply(.freeze(.captureInterrupted))
+        _ = try interrupted.apply(.resume)
+        runner.expect(
+            interrupted.state == .starting,
+            "an interrupted capture can be retried while keeping its frozen frame"
+        )
+    } catch {
+        runner.expect(false, "capture-interrupted pins should be resumable: \(error)")
+    }
+
+    do {
+        _ = try interrupted.apply(.resumeFailed(.captureInterrupted))
+        runner.expect(
+            interrupted.state == .frozen(.captureInterrupted),
+            "a failed capture retry returns to its retryable frozen state"
+        )
+    } catch {
+        runner.expect(false, "a failed retry should preserve its frozen state: \(error)")
+    }
+
     do {
         let firstStop = try machine.apply(.requestStop)
         let repeatedStop = try machine.apply(.requestStop)

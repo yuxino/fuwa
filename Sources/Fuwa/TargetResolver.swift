@@ -81,10 +81,10 @@ final class TargetResolver {
         matching previousDescriptor: WindowDescriptor
     ) throws -> TargetIntentSnapshot {
         let inventory = try captureInventory()
-        guard
-            let currentDescriptor = inventory.descriptor(for: previousDescriptor.id),
-            currentDescriptor.ownerPID == previousDescriptor.ownerPID
-        else {
+        guard let currentDescriptor = inventory.descriptor(
+            for: previousDescriptor.id,
+            ownerPID: previousDescriptor.ownerPID
+        ) else {
             throw TargetResolutionError.intentDisappeared(
                 windowID: previousDescriptor.id
             )
@@ -112,7 +112,7 @@ final class TargetResolver {
         do {
             content = try await SCShareableContent.excludingDesktopWindows(
                 false,
-                onScreenWindowsOnly: true
+                onScreenWindowsOnly: false
             )
         } catch {
             if !CGPreflightScreenCaptureAccess() {
@@ -123,30 +123,19 @@ final class TargetResolver {
             )
         }
 
-        let shareableWindowIDs = Set(content.windows.map(\.windowID))
-        guard SelectionPolicy.confirm(
-            intent.descriptor,
-            shareableWindowIDs: shareableWindowIDs
-        ) != nil else {
-            let currentDescriptor = WindowInventory.currentDescriptor(
-                for: intent.descriptor.id
-            )
-            guard currentDescriptor?.ownerPID == intent.descriptor.ownerPID else {
+        let window = content.windows.first(where: {
+            $0.windowID == intent.descriptor.id
+                && $0.owningApplication?.processID == intent.descriptor.ownerPID
+        })
+        guard let window else {
+            guard WindowInventory.currentDescriptor(
+                for: intent.descriptor.id,
+                ownerPID: intent.descriptor.ownerPID
+            ) != nil else {
                 throw TargetResolutionError.intentDisappeared(
                     windowID: intent.descriptor.id
                 )
             }
-            throw TargetResolutionError.intentNotShareable(
-                windowID: intent.descriptor.id
-            )
-        }
-
-        guard let window = content.windows.first(where: {
-            $0.windowID == intent.descriptor.id
-        }) else {
-            // This should be unreachable because the ID set above came from the
-            // same immutable content snapshot. Keep a typed error in release
-            // builds instead of relying on an assertion.
             throw TargetResolutionError.intentNotShareable(
                 windowID: intent.descriptor.id
             )

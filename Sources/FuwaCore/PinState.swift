@@ -5,6 +5,9 @@ public enum PinFreezeReason: String, Codable, Equatable, Hashable, Sendable {
 
     /// The source window closed after Fuwa had received at least one complete frame.
     case sourceClosed
+
+    /// Capture stopped unexpectedly after a complete frame was available.
+    case captureInterrupted
 }
 
 /// A stable, UI-independent classification for terminal capture failures.
@@ -33,6 +36,7 @@ public enum PinEvent: Equatable, Hashable, Sendable {
     case freeze(PinFreezeReason)
     case sourceDisappeared
     case resume
+    case resumeFailed(PinFreezeReason)
     case fail(PinFailureReason)
     case requestStop
     case didStop
@@ -107,8 +111,14 @@ public struct PinStateMachine: Equatable, Hashable, Sendable {
             // stronger reason prevents the UI from offering a resume that cannot work.
             nextState = .frozen(.sourceClosed)
 
-        case (.frozen(.manual), .resume):
+        case (.frozen(.manual), .resume),
+             (.frozen(.captureInterrupted), .resume):
             nextState = .starting
+
+        case (.starting, .resumeFailed(let reason)) where reason != .sourceClosed:
+            // A failed retry must keep the independent frozen frame visible and
+            // retryable. Initial capture failures still use `.fail` below.
+            nextState = .frozen(reason)
 
         case (.resolving, .fail(let reason)),
              (.starting, .fail(let reason)),
