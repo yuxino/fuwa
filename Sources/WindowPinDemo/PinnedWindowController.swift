@@ -10,6 +10,7 @@ enum PinError: LocalizedError {
     case screenRecordingPermissionRequired
     case noUsableWindow
     case selectedWindowUnavailable
+    case streamStopped(String)
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,8 @@ enum PinError: LocalizedError {
             "没有找到可固定的前台窗口。请先点一下目标窗口，再按 ⌥⌘P。"
         case .selectedWindowUnavailable:
             "目标窗口无法被 ScreenCaptureKit 捕获。"
+        case .streamStopped(let message):
+            "捕获在启动时停止：\(message)"
         }
     }
 }
@@ -39,11 +42,13 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
     private var targetWindowID: CGWindowID?
     private var captureScale: CGFloat = 2
     private var acceptsFrames = false
+    private var pendingStartFailure: String?
 
     func pinFrontmostWindow(ownerPID: pid_t) async throws {
         guard !isTransitioning, !isPinned else { return }
         isTransitioning = true
         defer { isTransitioning = false }
+        pendingStartFailure = nil
 
         guard CGPreflightScreenCaptureAccess() else {
             _ = CGRequestScreenCaptureAccess()
@@ -100,6 +105,14 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
             throw error
         }
 
+        if let pendingStartFailure {
+            acceptsFrames = false
+            try? await captureStream.stopCapture()
+            try? captureStream.removeStreamOutput(self, type: .screen)
+            clearCapturedState(notify: false)
+            throw PinError.streamStopped(pendingStartFailure)
+        }
+
         isPinned = true
         startGeometryTracking()
         overlay.panel.orderFrontRegardless()
@@ -138,9 +151,22 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
     }
 
     nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
+        let stoppedStreamID = ObjectIdentifier(stream)
         let message = error.localizedDescription
         Task { @MainActor [weak self] in
-            guard let self, self.acceptsFrames else { return }
+            guard
+                let self,
+                let currentStream = self.stream,
+                ObjectIdentifier(currentStream) == stoppedStreamID,
+                self.acceptsFrames
+            else {
+                return
+            }
+
+            if self.isTransitioning && !self.isPinned {
+                self.pendingStartFailure = message
+                return
+            }
             await self.stopAfterStreamFailure(message)
         }
     }
@@ -243,7 +269,6 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
 
     private func stopAfterStreamFailure(_ message: String) async {
         acceptsFrames = false
-        isTransitioning = false
         await stop()
         onFailure?("捕获已停止：\(message)")
     }
@@ -257,6 +282,7 @@ final class PinnedWindowController: NSObject, @preconcurrency SCStreamOutput, SC
         captureView = nil
         panel = nil
         targetWindowID = nil
+        pendingStartFailure = nil
         isPinned = false
         if notify {
             onPinnedStateChange?(false)
