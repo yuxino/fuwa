@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Request Screen Recording only once instead of invoking the macOS permission request again after every denied pin attempt.
+- Require one stable signing identity and verify the full designated requirement before replacing the canonical local installation, preventing rebuilt apps from repeatedly losing Screen Recording and Accessibility grants.
+
+### Changed
+
+- Source builds now fail closed when no stable signing identity exists; ad-hoc signing requires an explicit two-part disposable-QA override.
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

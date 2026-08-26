@@ -42,11 +42,19 @@ To build from source:
 ```sh
 git clone https://github.com/yuxino/fuwa.git
 cd fuwa
-./scripts/package-app.sh
-open dist/Fuwa.app
+./scripts/setup-local-signing.sh  # once per Mac
+./scripts/install-app.sh
 ```
 
-The source packaging script creates an ad-hoc-signed app for local development and verification. This is not a claim of Developer ID signing or Apple notarization.
+`install-app.sh` keeps Fuwa at `/Applications/Fuwa.app` and compares the full code identity before every update. It prefers an Apple Development identity and otherwise uses the long-lived `mimi Local Development` identity on the same Mac. Both prevent macOS from mistaking each rebuild for a different app. Neither is a claim of Developer ID signing or Apple notarization.
+
+Moving from the ad-hoc-signed `v0.1.0` build to a stable signature still requires one final authorization because the identity itself changes. Subsequent in-place updates retain that identity. If `/Applications/Fuwa.app` already exists, explicitly allow only that migration:
+
+```sh
+FUWA_ALLOW_IDENTITY_CHANGE=1 ./scripts/install-app.sh
+```
+
+Normal packaging refuses ad-hoc signing. A disposable UI-only check may opt in with both `FUWA_CODESIGN_IDENTITY=-` and `FUWA_ALLOW_AD_HOC_SIGNING=1`, but that build must never request privacy access or be used as a normal installation or release.
 
 ## Use
 
@@ -56,6 +64,8 @@ The source packaging script creates an ad-hoc-signed app for local development a
 4. Use the menu bar panel to Freeze, Resume, Interact, Reveal Source, or Unpin.
 
 macOS asks for Screen Recording permission the first time you pin. Fuwa explains and requests Accessibility permission only after you explicitly choose `Interact` or `Reveal Source`. If macOS asks you to reopen the app after granting access, quit and relaunch Fuwa.
+
+Fuwa initiates each system permission request only once. After a denial, later actions keep the Settings guidance visible instead of reopening the macOS permission prompt in a loop.
 
 ## How it works
 
@@ -81,6 +91,8 @@ swift run --configuration release -Xswiftc -warnings-as-errors FuwaLogicTests
 ```
 
 `FuwaLogicTests` is the dependency-free executable logic-test entry point. CI performs package validation, a strict Release build, and logic tests only. It does not pretend to perform signing or notarization.
+
+Use `./scripts/install-app.sh` whenever you need to run a real `.app`. Do not run the bare executable from `.build` or launch Fuwa from changing temporary paths. `./scripts/package-app.sh` also requires a stable identity, but only creates `dist/Fuwa.app`; it does not replace the canonical installation.
 
 Fuwa is implemented independently from Apple public APIs, original design work, and project-owned tests. Topit was a product-research reference only; Fuwa contains none of its AGPL-licensed code, assets, copy, or file structure. See the [independent implementation statement](docs/independent-implementation.md).
 

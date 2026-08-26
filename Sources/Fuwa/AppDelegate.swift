@@ -175,8 +175,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try await pinCoordinator.toggle(intent)
         } catch TargetResolutionError.screenRecordingPermissionDenied {
-            settingsStore.didRequestScreenRecording = true
-            _ = CGRequestScreenCaptureAccess()
+            let requestAction = SystemPermissionRequestPolicy.action(
+                hasRequestedBefore: settingsStore.didRequestScreenRecording
+            )
+            if requestAction == .requestSystemPrompt {
+                settingsStore.didRequestScreenRecording = true
+                _ = CGRequestScreenCaptureAccess()
+            }
             refreshPermissions()
             throw TargetResolutionError.screenRecordingPermissionDenied
         }

@@ -43,5 +43,15 @@ jobs:
           -Xswiftc -warnings-as-errors
           FuwaLogicTests
 
-      - name: Check packaging script syntax
-        run: zsh -n scripts/package-app.sh
+      - name: Check macOS scripts and signing guard
+        run: |
+          zsh -n scripts/*.sh
+          if FUWA_CODESIGN_IDENTITY=- scripts/codesign-identity.sh; then
+            echo "ad-hoc signing was accepted without the explicit safety override" >&2
+            exit 1
+          fi
+          test "$(
+            FUWA_CODESIGN_IDENTITY=- \
+            FUWA_ALLOW_AD_HOC_SIGNING=1 \
+            scripts/codesign-identity.sh
+          )" = "-"

@@ -57,6 +57,7 @@ runPinStateTests(runner: &runner)
 runKeyboardShortcutTests(runner: &runner)
 runDisplayCoordinateSpaceTests(runner: &runner)
 runFrozenFrameSizingTests(runner: &runner)
+runSystemPermissionRequestPolicyTests(runner: &runner)
 
 if runner.failures > 0 {
     print("\(runner.failures) logic test(s) failed")

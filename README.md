@@ -42,11 +42,19 @@ shasum -a 256 -c Fuwa-0.1.0.zip.sha256
 ```sh
 git clone https://github.com/yuxino/fuwa.git
 cd fuwa
-./scripts/package-app.sh
-open dist/Fuwa.app
+./scripts/setup-local-signing.sh  # 每台 Mac 只需一次
+./scripts/install-app.sh
 ```
 
-源码打包脚本生成的是供本机开发验证使用的 ad-hoc 签名 App，不代表 Developer ID 签名或 Apple 公证。
+`install-app.sh` 会把 Fuwa 固定安装到 `/Applications/Fuwa.app`，并在每次更新前核对完整代码身份。脚本优先使用 Apple Development 身份；没有时使用同一台 Mac 上长期保留的 `mimi Local Development` 本机身份。两者都能避免重建后被 macOS 当成另一个 App。它们不代表 Developer ID 签名或 Apple 公证。
+
+从 `v0.1.0` 的 ad-hoc 包迁移到稳定签名时，macOS 仍会要求最后授权一次；这是身份切换本身造成的，后续原位更新不会再重复。若 `/Applications/Fuwa.app` 已存在，需仅在这次迁移中明确允许：
+
+```sh
+FUWA_ALLOW_IDENTITY_CHANGE=1 ./scripts/install-app.sh
+```
+
+打包脚本默认拒绝 ad-hoc 签名。只有不触发任何隐私权限的临时界面检查才可同时设置 `FUWA_CODESIGN_IDENTITY=-` 与 `FUWA_ALLOW_AD_HOC_SIGNING=1`；这种包不可作为日常运行或发布版本。
 
 ## 使用
 
@@ -56,6 +64,8 @@ open dist/Fuwa.app
 4. 从菜单栏面板中 Freeze、Resume、Interact、Reveal Source 或 Unpin。
 
 首次固定窗口时，macOS 会请求屏幕录制权限。首次明确选择 `Interact` 或 `Reveal Source` 时，Fuwa 才会说明并请求辅助功能权限。授权后如果系统提示需要重新打开 App，请退出并重新启动 Fuwa。
+
+Fuwa 对每一种系统权限只发起一次请求。拒绝后再次操作只会保留设置引导，不会循环弹出系统授权窗。
 
 ## 工作方式
 
@@ -81,6 +91,8 @@ swift run --configuration release -Xswiftc -warnings-as-errors FuwaLogicTests
 ```
 
 `FuwaLogicTests` 是无第三方依赖的可执行逻辑测试入口。CI 只执行 package 检查、严格 Release 构建和逻辑测试；签名与公证不在 CI 中伪装执行。
+
+需要运行真实 `.app` 时使用 `./scripts/install-app.sh`，不要直接运行 `.build` 中的裸二进制或从不断变化的临时目录启动 App。`./scripts/package-app.sh` 同样要求稳定身份，但只生成 `dist/Fuwa.app`，不会替换固定安装版本。
 
 Fuwa 依据 Apple 公开 API、原创设计和独立测试实现。Topit 仅作为产品调研参考；Fuwa 未复制或合并其 AGPL 代码、资产、文案或文件结构。详情见[独立实现说明](docs/independent-implementation.md)。
 
