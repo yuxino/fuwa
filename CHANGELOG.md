@@ -12,14 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Removed the app icon's extra outer matte and included every standard and Retina ICNS size.
 - Request Screen Recording only once instead of invoking the macOS permission request again after every denied pin attempt.
 - Require one stable signing identity and verify the full designated requirement before replacing the canonical local installation, preventing rebuilt apps from repeatedly losing Screen Recording and Accessibility grants.
+- Preserve transient Finder Quick Look targets before the menu-bar popover takes focus, including system-hosted previews whose ScreenCaptureKit owner PID differs from WindowServer metadata.
 
 ### Changed
 
 - Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
 - Replaced the neutral prototype icon with an original Fuwa mascot that belongs to the same visual family as Kiri and mimi, and aligned both README headers with that product system.
 - Added a reproducible icon pipeline and CI freshness check so the committed `.icns` cannot drift from the transparent PNG master.
+- Collapse the empty Pins area into a compact popover while keeping the full management list for active pins.
 
 ## [0.1.0] - 2026-08-26
 

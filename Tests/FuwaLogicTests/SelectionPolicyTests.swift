@@ -8,6 +8,11 @@ private let selectionTestContext = SelectionContext(
     displayBounds: [CGRect(x: 0, y: 0, width: 1_920, height: 1_080)]
 )
 
+private struct ShareableWindowFixture {
+    let windowID: CGWindowID
+    let ownerPID: pid_t?
+}
+
 private func fixture(
     id: CGWindowID,
     pid: pid_t,
@@ -92,6 +97,23 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
             context: selectionTestContext
         )?.id == 3_885,
         "qlmanage is not rejected merely because its PID differs from the frontmost app"
+    )
+
+    let quickLookUIServiceWindows = [
+        fixture(
+            id: 3_886,
+            pid: 16_763,
+            owner: "QuickLookUIService",
+            bundleIdentifier: "com.apple.quicklook.QuickLookUIService"
+        ),
+        finderQuickLookWindows[1]
+    ]
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: quickLookUIServiceWindows,
+            context: selectionTestContext
+        )?.id == 3_886,
+        "a Quick Look service remains eligible across the Finder process boundary"
     )
 
     let normalWindow = fixture(
@@ -288,5 +310,43 @@ func runSelectionPolicyTests(runner: inout LogicTestRunner) {
             shareableWindowIDs: [unshareableIntent.id, shareableWindowBehindIt.id]
         ) == unshareableIntent,
         "confirmation returns the exact intent when ScreenCaptureKit exposes its ID"
+    )
+
+    let wrongIDSameProcessWindow = ShareableWindowFixture(
+        windowID: shareableWindowBehindIt.id,
+        ownerPID: unshareableIntent.ownerPID
+    )
+    let exactIDCrossProcessWindow = ShareableWindowFixture(
+        windowID: unshareableIntent.id,
+        ownerPID: 42_424
+    )
+    let confirmedCaptureWindow = SelectionPolicy.confirm(
+        unshareableIntent,
+        among: [wrongIDSameProcessWindow, exactIDCrossProcessWindow],
+        windowID: \ShareableWindowFixture.windowID
+    )
+    runner.expect(
+        confirmedCaptureWindow?.ownerPID == exactIDCrossProcessWindow.ownerPID,
+        "ScreenCaptureKit confirmation uses exact window ID even when its owner PID differs"
+    )
+    let exactIDWithoutProcessWindow = ShareableWindowFixture(
+        windowID: unshareableIntent.id,
+        ownerPID: nil
+    )
+    runner.expect(
+        SelectionPolicy.confirm(
+            unshareableIntent,
+            among: [wrongIDSameProcessWindow, exactIDWithoutProcessWindow],
+            windowID: \ShareableWindowFixture.windowID
+        )?.windowID == unshareableIntent.id,
+        "ScreenCaptureKit confirmation does not require an owner PID when the window ID matches"
+    )
+    runner.expect(
+        SelectionPolicy.confirm(
+            unshareableIntent,
+            among: [wrongIDSameProcessWindow],
+            windowID: \ShareableWindowFixture.windowID
+        ) == nil,
+        "ScreenCaptureKit confirmation rejects candidates with a different window ID"
     )
 }

@@ -14,17 +14,17 @@ struct PinsView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 12)
 
-            Divider()
+            if showsContentArea {
+                Divider()
 
-            switch model.contentState {
-            case .loading:
-                scrollableState { loadingState }
-            case .failed(let message):
-                scrollableState { errorState(message) }
-            case .ready where model.pins.isEmpty:
-                scrollableState { emptyState }
-            case .ready:
-                pinsList
+                switch model.contentState {
+                case .loading:
+                    scrollableState { loadingState }
+                case .failed(let message):
+                    scrollableState { errorState(message) }
+                case .ready:
+                    pinsList
+                }
             }
         }
         .onAppear {
@@ -110,27 +110,6 @@ struct PinsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "pin.slash")
-                .font(.title2.weight(.light))
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
-
-            Text(copy.text(.noPinsTitle))
-                .font(.body.weight(.semibold))
-
-            Text(pinButtonHint)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 245)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-
     private func errorState(_ message: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: "exclamationmark.circle")
@@ -162,6 +141,10 @@ struct PinsView: View {
 
     private var pinButtonHint: String {
         model.shortcutIsActive ? copy.text(.noPinsBody) : copy.text(.shortcutInactive)
+    }
+
+    private var showsContentArea: Bool {
+        model.contentState != .ready || !model.pins.isEmpty
     }
 
     private func scrollableState<Content: View>(

@@ -4,9 +4,15 @@ import FuwaCore
 
 enum FuwaApplicationError: LocalizedError {
     case unavailable
+    case pinIntentUnavailable
 
     var errorDescription: String? {
-        "Fuwa is not available right now."
+        switch self {
+        case .unavailable:
+            "Fuwa is not available right now."
+        case .pinIntentUnavailable:
+            "Reopen Fuwa while the window you want to pin is still visible."
+        }
     }
 }
 
@@ -21,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: GlobalHotKey?
     private var model: AppModel?
     private var statusBarController: StatusBarController?
+    private var preparedPopoverIntent = PreparedIntentSlot<
+        Result<TargetIntentSnapshot, Error>
+    >()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let requestedShortcut = settingsStore.shortcut
@@ -60,7 +69,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configurePrivacyLifecycle()
         refreshPermissions()
 
-        let statusBarController = StatusBarController(model: model)
+        let statusBarController = StatusBarController(
+            model: model,
+            onWillShowPopover: { [weak self] in
+                self?.preparePopoverIntent()
+            },
+            onDidClosePopover: { [weak self] in
+                self?.discardPopoverIntent()
+            }
+        )
         self.statusBarController = statusBarController
         privacyLifecycle.start()
 
@@ -70,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        discardPopoverIntent()
         hotKey?.stop()
         privacyLifecycle.stop()
         model?.disengageInteraction()
@@ -80,9 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeActions() -> FuwaAppActions {
         FuwaAppActions(
-            pinFrontWindow: { [weak self] in
+            beginPinFrontWindow: { [weak self] in
                 guard let self else { throw FuwaApplicationError.unavailable }
-                try await pinFrontWindow()
+                let intent = try takePreparedPopoverIntent()
+                return { [weak self] in
+                    guard let self else { throw FuwaApplicationError.unavailable }
+                    try await toggle(intent)
+                }
             },
             freeze: { [weak self] id in
                 guard let self else { throw FuwaApplicationError.unavailable }
@@ -138,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.showAboutPanel()
             },
             quit: { [weak self] in
+                self?.discardPopoverIntent()
                 self?.model?.disengageInteraction()
                 self?.pinCoordinator.clearAllImmediately()
                 NSApp.terminate(nil)
@@ -149,6 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Task. This is what keeps Finder Quick Look and other transient windows
     /// from disappearing between user input and target selection.
     private func handleGlobalShortcut() {
+        discardPopoverIntent()
         let intent: TargetIntentSnapshot
         do {
             intent = try pinCoordinator.snapshotFrontmostIntent()
@@ -169,9 +193,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func pinFrontWindow() async throws {
-        let intent = try pinCoordinator.snapshotFrontmostIntent()
-        try await toggle(intent)
+    private func takePreparedPopoverIntent() throws -> TargetIntentSnapshot {
+        guard let preparedIntent = preparedPopoverIntent.consume() else {
+            throw FuwaApplicationError.pinIntentUnavailable
+        }
+        return try preparedIntent.get()
+    }
+
+    /// The status-item action runs before the popover becomes key. Preserve
+    /// both success and failure so the later button action never rescans behind
+    /// a transient Quick Look panel that may already have disappeared.
+    private func preparePopoverIntent() {
+        preparedPopoverIntent.replace(
+            with: Result {
+                try pinCoordinator.snapshotFrontmostIntent()
+            }
+        )
+    }
+
+    private func discardPopoverIntent() {
+        preparedPopoverIntent.clear()
     }
 
     private func toggle(_ intent: TargetIntentSnapshot) async throws {
@@ -254,6 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configurePrivacyLifecycle() {
         privacyLifecycle.onPrivacyBoundary = { [weak self] _ in
+            self?.discardPopoverIntent()
             self?.model?.disengageInteraction()
             self?.pinCoordinator.clearAllImmediately()
         }

@@ -3,14 +3,21 @@ import SwiftUI
 
 @MainActor
 final class StatusBarController: NSObject, NSPopoverDelegate {
-    private static let defaultPopoverSize = NSSize(width: 364, height: 520)
-
     private let model: AppModel
     private let statusItem: NSStatusItem
     private let popover: NSPopover
+    private let onWillShowPopover: @MainActor () -> Void
+    private let onDidClosePopover: @MainActor () -> Void
+    private var preparedIntentForPendingClick = false
 
-    init(model: AppModel) {
+    init(
+        model: AppModel,
+        onWillShowPopover: @escaping @MainActor () -> Void = {},
+        onDidClosePopover: @escaping @MainActor () -> Void = {}
+    ) {
         self.model = model
+        self.onWillShowPopover = onWillShowPopover
+        self.onDidClosePopover = onDidClosePopover
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         popover = NSPopover()
         super.init()
@@ -33,26 +40,49 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
-    @objc private func togglePopover() {
+    @objc private func handleStatusItemAction() {
+        switch NSApp.currentEvent?.type {
+        case .leftMouseDown:
+            guard !popover.isShown else { return }
+            onWillShowPopover()
+            preparedIntentForPendingClick = true
+        case .leftMouseUp:
+            togglePopover(preparingIntentIfNeeded: !preparedIntentForPendingClick)
+            preparedIntentForPendingClick = false
+        default:
+            // Keyboard and accessibility activation do not have a mouse-down
+            // phase, so preserve the target in the action itself.
+            togglePopover(preparingIntentIfNeeded: true)
+        }
+    }
+
+    private func togglePopover(preparingIntentIfNeeded: Bool) {
         if popover.isShown {
             closePopover()
         } else {
-            showPopover()
+            showPopover(preparingIntentIfNeeded: preparingIntentIfNeeded)
         }
     }
 
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
         button.target = self
-        button.action = #selector(togglePopover)
-        button.sendAction(on: [.leftMouseUp])
+        button.action = #selector(handleStatusItemAction)
+        button.sendAction(on: [.leftMouseDown, .leftMouseUp])
         button.imagePosition = .imageOnly
     }
 
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        popover.contentSize = Self.defaultPopoverSize
+        popover.contentSize = FuwaPopoverLayout.preferredContentSize(
+            route: model.route,
+            contentState: model.contentState,
+            hasPins: !model.pins.isEmpty,
+            hasNotice: model.notice != nil,
+            hasPermissionWarning: model.hasPermissionWarning,
+            dynamicTypeSize: .large
+        )
         popover.contentViewController = NSHostingController(
             rootView: FuwaPopoverView(
                 model: model,
@@ -68,23 +98,40 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         let visibleSize = statusItem.button?.window?.screen?.visibleFrame.size
             ?? NSScreen.main?.visibleFrame.size
 
-        guard let visibleSize else {
-            popover.contentSize = preferredSize
-            return
+        let targetSize: NSSize
+        if let visibleSize {
+            // Leave room for the menu bar, popover arrow and screen edges.
+            // Content remains scrollable if an accessibility size exceeds the
+            // display.
+            let maximumWidth = max(320, visibleSize.width - 32)
+            let maximumHeight = max(360, visibleSize.height - 64)
+            targetSize = NSSize(
+                width: min(preferredSize.width, maximumWidth),
+                height: min(preferredSize.height, maximumHeight)
+            )
+        } else {
+            targetSize = preferredSize
         }
 
-        // Leave room for the menu bar, popover arrow and screen edges. Content
-        // remains scrollable if an accessibility size exceeds the display.
-        let maximumWidth = max(320, visibleSize.width - 32)
-        let maximumHeight = max(360, visibleSize.height - 64)
-        popover.contentSize = NSSize(
-            width: min(preferredSize.width, maximumWidth),
-            height: min(preferredSize.height, maximumHeight)
-        )
+        guard popover.contentSize != targetSize else { return }
+        popover.contentSize = targetSize
     }
 
-    private func showPopover() {
+    private func showPopover(preparingIntentIfNeeded: Bool) {
         guard let button = statusItem.button else { return }
+        if preparingIntentIfNeeded {
+            onWillShowPopover()
+        }
+        applyPreferredContentSize(
+            FuwaPopoverLayout.preferredContentSize(
+                route: model.route,
+                contentState: model.contentState,
+                hasPins: !model.pins.isEmpty,
+                hasNotice: model.notice != nil,
+                hasPermissionWarning: model.hasPermissionWarning,
+                dynamicTypeSize: .large
+            )
+        )
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
     }
@@ -116,6 +163,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     func popoverDidClose(_ notification: Notification) {
+        guard !popover.isShown else { return }
+        preparedIntentForPendingClick = false
+        onDidClosePopover()
         model.showPins()
     }
 }

@@ -41,7 +41,12 @@ struct FuwaNotice: Identifiable, Equatable {
 }
 
 struct FuwaAppActions {
-    var pinFrontWindow: @MainActor () async throws -> Void = {}
+    typealias PinFrontWindowOperation = @MainActor () async throws -> Void
+
+    /// Synchronously claims the target prepared for this popover, then returns
+    /// the asynchronous capture work. Keeping the claim outside `Task` prevents
+    /// a close event from discarding an operation the user already started.
+    var beginPinFrontWindow: @MainActor () throws -> PinFrontWindowOperation = { {} }
     var freeze: @MainActor (UUID) async throws -> Void = { _ in }
     var resume: @MainActor (UUID) async throws -> Void = { _ in }
     var interact: @MainActor (UUID) async throws -> Void = { _ in }
@@ -229,11 +234,20 @@ final class AppModel: ObservableObject {
         isPinningFrontWindow = true
         notice = nil
 
+        let operation: FuwaAppActions.PinFrontWindowOperation
+        do {
+            operation = try actions.beginPinFrontWindow()
+        } catch {
+            isPinningFrontWindow = false
+            presentError(error)
+            return
+        }
+
         Task { @MainActor [weak self] in
             guard let self else { return }
             defer { isPinningFrontWindow = false }
             do {
-                try await actions.pinFrontWindow()
+                try await operation()
             } catch {
                 presentError(error)
             }

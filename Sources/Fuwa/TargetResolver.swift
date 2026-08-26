@@ -123,10 +123,11 @@ final class TargetResolver {
             )
         }
 
-        let window = content.windows.first(where: {
-            $0.windowID == intent.descriptor.id
-                && $0.owningApplication?.processID == intent.descriptor.ownerPID
-        })
+        let window = SelectionPolicy.confirm(
+            intent.descriptor,
+            among: content.windows,
+            windowID: \SCWindow.windowID
+        )
         guard let window else {
             guard WindowInventory.currentDescriptor(
                 for: intent.descriptor.id,
@@ -137,6 +138,14 @@ final class TargetResolver {
                 )
             }
             throw TargetResolutionError.intentNotShareable(
+                windowID: intent.descriptor.id
+            )
+        }
+        guard WindowInventory.currentDescriptor(
+            for: intent.descriptor.id,
+            ownerPID: intent.descriptor.ownerPID
+        ) != nil else {
+            throw TargetResolutionError.intentDisappeared(
                 windowID: intent.descriptor.id
             )
         }

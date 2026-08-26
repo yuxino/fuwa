@@ -1,6 +1,69 @@
 import AppKit
 import SwiftUI
 
+enum FuwaPopoverLayout {
+    static func isCompactEmpty(
+        route: FuwaPopoverRoute,
+        contentState: FuwaContentState,
+        hasPins: Bool
+    ) -> Bool {
+        route == .pins && contentState == .ready && !hasPins
+    }
+
+    static func preferredContentSize(
+        route: FuwaPopoverRoute,
+        contentState: FuwaContentState,
+        hasPins: Bool,
+        hasNotice: Bool,
+        hasPermissionWarning: Bool,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> NSSize {
+        let compact = isCompactEmpty(
+            route: route,
+            contentState: contentState,
+            hasPins: hasPins
+        )
+
+        if dynamicTypeSize >= .accessibility3 {
+            return NSSize(
+                width: 472,
+                height: compact
+                    ? (hasNotice ? 580 : 340) + (hasPermissionWarning ? 40 : 0)
+                    : 720
+            )
+        }
+        if dynamicTypeSize.isAccessibilitySize {
+            return NSSize(
+                width: 436,
+                height: compact
+                    ? (hasNotice ? 460 : 280) + (hasPermissionWarning ? 28 : 0)
+                    : 660
+            )
+        }
+        if dynamicTypeSize >= .xxLarge {
+            return NSSize(
+                width: 396,
+                height: compact
+                    ? (hasNotice ? 320 : 192) + (hasPermissionWarning ? 16 : 0)
+                    : 600
+            )
+        }
+        return NSSize(
+            width: 364,
+            height: compact ? (hasNotice ? 248 : 160) : 520
+        )
+    }
+}
+
+private struct FuwaPopoverLayoutSignature: Equatable {
+    let route: FuwaPopoverRoute
+    let contentState: FuwaContentState
+    let hasPins: Bool
+    let noticeID: UUID?
+    let hasPermissionWarning: Bool
+    let dynamicTypeSize: DynamicTypeSize
+}
+
 @MainActor
 struct FuwaPopoverView: View {
     @ObservedObject var model: AppModel
@@ -45,7 +108,10 @@ struct FuwaPopoverView: View {
                     SettingsView(model: model)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: isCompactEmpty ? nil : .infinity
+            )
 
             if model.route == .pins {
                 Divider()
@@ -56,14 +122,14 @@ struct FuwaPopoverView: View {
             minWidth: 320,
             idealWidth: preferredContentSize.width,
             maxWidth: .infinity,
-            minHeight: 360,
+            minHeight: isCompactEmpty ? 0 : 360,
             idealHeight: preferredContentSize.height,
             maxHeight: .infinity
         )
         .background(Color(nsColor: .windowBackgroundColor))
         .onExitCommand(perform: model.dismissPopover)
         .onAppear(perform: reportPreferredContentSize)
-        .onChange(of: dynamicTypeSize) { _, _ in
+        .onChange(of: layoutSignature) { _, _ in
             reportPreferredContentSize()
         }
         .accessibilityElement(children: .contain)
@@ -191,16 +257,33 @@ struct FuwaPopoverView: View {
     }
 
     private var preferredContentSize: NSSize {
-        if dynamicTypeSize.isAccessibilitySize {
-            if dynamicTypeSize >= .accessibility3 {
-                return NSSize(width: 472, height: 720)
-            }
-            return NSSize(width: 436, height: 660)
-        }
-        if dynamicTypeSize >= .xxLarge {
-            return NSSize(width: 396, height: 600)
-        }
-        return NSSize(width: 364, height: 520)
+        FuwaPopoverLayout.preferredContentSize(
+            route: model.route,
+            contentState: model.contentState,
+            hasPins: !model.pins.isEmpty,
+            hasNotice: model.notice != nil,
+            hasPermissionWarning: model.hasPermissionWarning,
+            dynamicTypeSize: dynamicTypeSize
+        )
+    }
+
+    private var isCompactEmpty: Bool {
+        FuwaPopoverLayout.isCompactEmpty(
+            route: model.route,
+            contentState: model.contentState,
+            hasPins: !model.pins.isEmpty
+        )
+    }
+
+    private var layoutSignature: FuwaPopoverLayoutSignature {
+        FuwaPopoverLayoutSignature(
+            route: model.route,
+            contentState: model.contentState,
+            hasPins: !model.pins.isEmpty,
+            noticeID: model.notice?.id,
+            hasPermissionWarning: model.hasPermissionWarning,
+            dynamicTypeSize: dynamicTypeSize
+        )
     }
 
     private func reportPreferredContentSize() {

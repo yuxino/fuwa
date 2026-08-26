@@ -17,6 +17,14 @@ enum FuwaErrorMessage {
     }
 
     private static func englishDescription(for error: Error) -> String {
+        if let error = error as? FuwaApplicationError {
+            switch error {
+            case .unavailable:
+                return "Fuwa is temporarily unavailable. Try again."
+            case .pinIntentUnavailable:
+                return "Reopen Fuwa while the target window is still visible, then try again."
+            }
+        }
         if let error = error as? GlobalHotKey.RegistrationError {
             switch error {
             case .installHandler(let status):
@@ -33,12 +41,74 @@ enum FuwaErrorMessage {
                 return "Launch at Login is unavailable for this copy. Move Fuwa to Applications and try again."
             }
         }
-        return error.localizedDescription
+        if let error = error as? PinCoordinatorError {
+            switch error {
+            case .pinNotFound:
+                return "This pinned window is no longer available."
+            case .operationCancelled:
+                return "The pin operation was cancelled."
+            case .pinLimitReached(let maximum):
+                return "Fuwa can pin up to \(maximum) windows. Remove one before adding another."
+            case .screenRecordingRevoked:
+                return "Screen Recording permission was removed, so Fuwa cleared all captured frames."
+            }
+        }
+        if let error = error as? TargetResolutionError {
+            switch error {
+            case .inventoryUnavailable:
+                return "Fuwa cannot read the current window list right now."
+            case .noEligibleIntent:
+                return "No pinnable window is visible in front."
+            case .screenRecordingPermissionDenied:
+                return "Enable Screen Recording permission before Fuwa can pin this window."
+            case .shareableContentUnavailable:
+                return "macOS did not provide a capturable window list. Try again."
+            case .intentDisappeared:
+                return "The front window closed before capture began."
+            case .intentNotShareable:
+                return "This window is visible, but macOS does not allow it to be captured."
+            }
+        }
+        if let error = error as? InteractionError {
+            switch error {
+            case .viewOnly(let reason):
+                return englishInteractionDescription(reason)
+            }
+        }
+        if error is AccessibilityWindowResolutionError {
+            return "Fuwa could not safely confirm the source window, so the pin remains view-only."
+        }
+        if let error = error as? PinSessionError {
+            switch error {
+            case .invalidTransition:
+                return "This pinned window changed state. Try again."
+            case .captureStartFailed:
+                return "Fuwa could not start capturing this window."
+            case .captureStartInterrupted:
+                return "Capture stopped while Fuwa was starting it."
+            case .captureFailed:
+                return "Window capture stopped, so Fuwa stopped displaying that frame."
+            case .freezeFailed:
+                return "Fuwa could not preserve the last frame."
+            }
+        }
+        if error is FrozenFrameError {
+            return "Fuwa has not received a complete frame to freeze yet."
+        }
+        if error is WindowInventoryError {
+            return "Fuwa cannot read the current windows or display arrangement right now."
+        }
+        return "Fuwa could not complete this action. Try again."
     }
 
     private static func simplifiedChineseDescription(for error: Error) -> String {
-        if error is FuwaApplicationError {
-            return "Fuwa 暂时不可用，请再试一次。"
+        if let error = error as? FuwaApplicationError {
+            switch error {
+            case .unavailable:
+                return "Fuwa 暂时不可用，请再试一次。"
+            case .pinIntentUnavailable:
+                return "请在目标窗口仍可见时重新打开 Fuwa，再试一次。"
+            }
         }
         if let error = error as? GlobalHotKey.RegistrationError {
             switch error {
@@ -113,7 +183,7 @@ enum FuwaErrorMessage {
         if error is WindowInventoryError {
             return "Fuwa 暂时无法读取窗口或显示器信息。"
         }
-        return error.localizedDescription
+        return "Fuwa 无法完成这次操作，请再试一次。"
     }
 
     private static func interactionDescription(_ reason: InteractionViewOnlyReason) -> String {
@@ -132,6 +202,27 @@ enum FuwaErrorMessage {
             return "这个源窗口不支持通过辅助功能显示。"
         case .raiseFailed(let code):
             return "macOS 无法显示源窗口（辅助功能错误 \(code)）。"
+        }
+    }
+
+    private static func englishInteractionDescription(
+        _ reason: InteractionViewOnlyReason
+    ) -> String {
+        switch reason {
+        case .accessibilityPermissionRequired:
+            return "Enable Accessibility permission to reveal and use the source window."
+        case .sourceApplicationUnavailable:
+            return "The source app has quit, so this pin remains view-only."
+        case .sourceWindowUnavailable:
+            return "Fuwa could not find the original source window, so this pin remains view-only."
+        case .sourceWindowAmbiguous:
+            return "Several windows look alike, so Fuwa did not switch to a possibly wrong source."
+        case .sourceActivationRejected:
+            return "macOS did not allow Fuwa to activate the source app."
+        case .raiseUnsupported:
+            return "This source window cannot be revealed through Accessibility."
+        case .raiseFailed(let code):
+            return "macOS could not reveal the source window (Accessibility error \(code))."
         }
     }
 }

@@ -74,6 +74,30 @@ swift "${FUWA_ICON_SCRIPT_DIR}/make-icns.swift" \
     "${FUWA_ICONSET_DIR}" \
     "${FUWA_ICON_GENERATED}"
 
+FUWA_ICON_EXTRACTED_DIR="${FUWA_ICON_TEMP_DIR}/Verified.iconset"
+iconutil -c iconset "${FUWA_ICON_GENERATED}" -o "${FUWA_ICON_EXTRACTED_DIR}"
+FUWA_ICON_EXPECTED_FILES=(
+    "icon_16x16.png"
+    "icon_16x16@2x.png"
+    "icon_32x32.png"
+    "icon_32x32@2x.png"
+    "icon_128x128.png"
+    "icon_128x128@2x.png"
+    "icon_256x256.png"
+    "icon_256x256@2x.png"
+    "icon_512x512.png"
+    "icon_512x512@2x.png"
+)
+for FUWA_ICON_EXPECTED_FILE in "${FUWA_ICON_EXPECTED_FILES[@]}"; do
+    if [[ ! -f "${FUWA_ICON_EXTRACTED_DIR}/${FUWA_ICON_EXPECTED_FILE}" ]]; then
+        print -u2 -r -- "error: AppIcon.icns is missing ${FUWA_ICON_EXPECTED_FILE}"
+        exit 1
+    fi
+done
+swift "${FUWA_ICON_SCRIPT_DIR}/verify-icon-roundtrip.swift" \
+    "${FUWA_ICONSET_DIR}" \
+    "${FUWA_ICON_EXTRACTED_DIR}"
+
 if [[ "${FUWA_ICON_MODE}" == "check" ]]; then
     if ! cmp -s "${FUWA_ICON_GENERATED}" "${FUWA_ICON_OUTPUT}"; then
         print -u2 -r -- "error: AppIcon.icns is stale; run ./scripts/generate-app-icon.sh"

@@ -124,6 +124,20 @@ public enum SelectionPolicy {
         shareableWindowIDs.contains(intent.id) ? intent : nil
     }
 
+    /// Returns the exact capture candidate whose WindowServer identity matches
+    /// the visual intent. ScreenCaptureKit may describe the owning process
+    /// differently for system-hosted windows such as Quick Look, so its PID is
+    /// diagnostic metadata rather than part of this cross-framework identity.
+    public static func confirm<Candidate>(
+        _ intent: WindowDescriptor,
+        among candidates: [Candidate],
+        windowID: KeyPath<Candidate, CGWindowID>
+    ) -> Candidate? {
+        candidates.first { candidate in
+            candidate[keyPath: windowID] == intent.id
+        }
+    }
+
     /// Convenience that preserves the required two-stage ordering.
     public static func resolve(
         in orderedWindows: [WindowDescriptor],
