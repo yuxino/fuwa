@@ -54,7 +54,7 @@ cd fuwa
 FUWA_ALLOW_IDENTITY_CHANGE=1 ./scripts/install-app.sh
 ```
 
-打包脚本默认拒绝 ad-hoc 签名。只有不触发任何隐私权限的临时界面检查才可同时设置 `FUWA_CODESIGN_IDENTITY=-` 与 `FUWA_ALLOW_AD_HOC_SIGNING=1`；这种包不可作为日常运行或发布版本。
+打包脚本始终拒绝 ad-hoc 签名；没有稳定身份时不会生成可运行的 `.app` 或压缩包。
 
 ## 使用
 

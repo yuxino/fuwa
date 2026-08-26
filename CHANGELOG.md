@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Source builds now fail closed when no stable signing identity exists; ad-hoc signing requires an explicit two-part disposable-QA override.
+- Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
 
 ## [0.1.0] - 2026-08-26
 

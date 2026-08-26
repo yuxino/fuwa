@@ -76,41 +76,33 @@ chmod +x "${FUWA_MACOS_DIR}/Fuwa"
 
 plutil -lint "${FUWA_CONTENTS_DIR}/Info.plist"
 
-if [[ "${FUWA_CODESIGN_IDENTITY}" == "-" ]]; then
-    codesign \
-        --force \
-        --sign - \
-        --timestamp=none \
-        "${FUWA_APP_DIR}"
-else
-    FUWA_IDENTITY_DESCRIPTION="$(
-        /usr/bin/security find-identity -v -p codesigning \
-            | /usr/bin/grep -F "${FUWA_CODESIGN_IDENTITY}" \
-            | /usr/bin/head -n 1
-    )"
-    case "${FUWA_CODESIGN_TIMESTAMP:-auto}" in
-        auto)
-            if [[ "${FUWA_IDENTITY_DESCRIPTION}" == *'"Developer ID Application:'* ]]; then
-                FUWA_TIMESTAMP_ARGUMENT="--timestamp"
-            else
-                FUWA_TIMESTAMP_ARGUMENT="--timestamp=none"
-            fi
-            ;;
-        1) FUWA_TIMESTAMP_ARGUMENT="--timestamp" ;;
-        0) FUWA_TIMESTAMP_ARGUMENT="--timestamp=none" ;;
-        *)
-            print -u2 -r -- "error: FUWA_CODESIGN_TIMESTAMP must be auto, 1, or 0"
-            exit 2
-            ;;
-    esac
-    codesign \
-        --force \
-        --deep \
-        --options runtime \
-        "${FUWA_TIMESTAMP_ARGUMENT}" \
-        --sign "${FUWA_CODESIGN_IDENTITY}" \
-        "${FUWA_APP_DIR}"
-fi
+FUWA_IDENTITY_DESCRIPTION="$(
+    /usr/bin/security find-identity -v -p codesigning \
+        | /usr/bin/grep -F "${FUWA_CODESIGN_IDENTITY}" \
+        | /usr/bin/head -n 1
+)"
+case "${FUWA_CODESIGN_TIMESTAMP:-auto}" in
+    auto)
+        if [[ "${FUWA_IDENTITY_DESCRIPTION}" == *'"Developer ID Application:'* ]]; then
+            FUWA_TIMESTAMP_ARGUMENT="--timestamp"
+        else
+            FUWA_TIMESTAMP_ARGUMENT="--timestamp=none"
+        fi
+        ;;
+    1) FUWA_TIMESTAMP_ARGUMENT="--timestamp" ;;
+    0) FUWA_TIMESTAMP_ARGUMENT="--timestamp=none" ;;
+    *)
+        print -u2 -r -- "error: FUWA_CODESIGN_TIMESTAMP must be auto, 1, or 0"
+        exit 2
+        ;;
+esac
+codesign \
+    --force \
+    --deep \
+    --options runtime \
+    "${FUWA_TIMESTAMP_ARGUMENT}" \
+    --sign "${FUWA_CODESIGN_IDENTITY}" \
+    "${FUWA_APP_DIR}"
 
 codesign --verify --deep --strict --verbose=2 "${FUWA_APP_DIR}"
 FUWA_DESIGNATED_REQUIREMENT="$(
@@ -121,8 +113,7 @@ if [[ -z "${FUWA_DESIGNATED_REQUIREMENT}" ]]; then
     print -u2 -r -- "error: packaged app has no designated requirement"
     exit 1
 fi
-if [[ "${FUWA_CODESIGN_IDENTITY}" != "-" \
-    && "${FUWA_DESIGNATED_REQUIREMENT:l}" == *cdhash* ]]; then
+if [[ "${FUWA_DESIGNATED_REQUIREMENT:l}" == *cdhash* ]]; then
     print -u2 -r -- "error: stable package unexpectedly has a build-specific cdhash requirement"
     exit 1
 fi

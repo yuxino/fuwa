@@ -54,7 +54,7 @@ Moving from the ad-hoc-signed `v0.1.0` build to a stable signature still require
 FUWA_ALLOW_IDENTITY_CHANGE=1 ./scripts/install-app.sh
 ```
 
-Normal packaging refuses ad-hoc signing. A disposable UI-only check may opt in with both `FUWA_CODESIGN_IDENTITY=-` and `FUWA_ALLOW_AD_HOC_SIGNING=1`, but that build must never request privacy access or be used as a normal installation or release.
+Packaging always refuses ad-hoc signing. Without a stable identity, it does not create a runnable `.app` or archive.
 
 ## Use
 

@@ -47,11 +47,10 @@ jobs:
         run: |
           zsh -n scripts/*.sh
           if FUWA_CODESIGN_IDENTITY=- scripts/codesign-identity.sh; then
-            echo "ad-hoc signing was accepted without the explicit safety override" >&2
+            echo "ad-hoc signing was accepted" >&2
             exit 1
           fi
-          test "$(
-            FUWA_CODESIGN_IDENTITY=- \
-            FUWA_ALLOW_AD_HOC_SIGNING=1 \
-            scripts/codesign-identity.sh
-          )" = "-"
+          if grep -R 'FUWA_ALLOW_AD_HOC_SIGNING' scripts README.md README_EN.md; then
+            echo "an ad-hoc signing escape hatch was reintroduced" >&2
+            exit 1
+          fi

@@ -59,12 +59,7 @@ resolve_exact_identity() {
 }
 
 if [[ "${FUWA_CODESIGN_IDENTITY:-}" == "-" ]]; then
-    if [[ "${FUWA_ALLOW_AD_HOC_SIGNING:-0}" != "1" ]]; then
-        fail "ad-hoc signing requires both FUWA_CODESIGN_IDENTITY=- and FUWA_ALLOW_AD_HOC_SIGNING=1"
-    fi
-    print -u2 -r -- "warning: creating a disposable ad-hoc build; do not grant it macOS privacy permissions"
-    print -r -- "-"
-    exit 0
+    fail "ad-hoc signing is not allowed for an app that can request macOS privacy permissions"
 fi
 
 if [[ -n "${FUWA_CODESIGN_IDENTITY:-}" ]]; then

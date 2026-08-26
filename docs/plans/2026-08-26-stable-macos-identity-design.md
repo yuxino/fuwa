@@ -21,11 +21,9 @@ identifier. Fuwa selects an explicit `FUWA_CODESIGN_IDENTITY`, then a unique
 Apple Development identity, then the existing shared local identity named
 `mimi Local Development`. The legacy name is retained because mimi, kiri, and
 satori already use that certificate; rotating it merely for naming would force
-one more identity migration. With no stable identity, packaging fails closed.
-Ad-hoc signing remains available only when both
-`FUWA_CODESIGN_IDENTITY=-` and `FUWA_ALLOW_AD_HOC_SIGNING=1` are present. This
-two-part escape hatch is for disposable checks that must not request macOS
-privacy access.
+one more identity migration. With no stable identity, packaging fails closed
+without creating a runnable app or archive. There is no ad-hoc escape hatch
+for a program whose normal behavior can request macOS privacy access.
 
 Manual testing uses `/Applications/Fuwa.app`. The installer verifies the
 bundle identifier and full designated requirement before replacement and
