@@ -43,6 +43,9 @@ jobs:
           -Xswiftc -warnings-as-errors
           FuwaLogicTests
 
+      - name: Verify app icon assets
+        run: ./scripts/generate-app-icon.sh --check
+
       - name: Check macOS scripts and signing guard
         run: |
           zsh -n scripts/*.sh

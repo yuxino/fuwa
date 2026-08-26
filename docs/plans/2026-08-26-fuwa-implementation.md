@@ -228,9 +228,9 @@ func testUnshareableIntentDoesNotFallThroughToWindowBehindIt() {
 
 **Steps:**
 
-1. Create an original neutral black/white Fuwa icon and verify it at 16–1024 px.
+1. Create an original Fuwa mascot within the established Kiri/mimi product family and verify its transparent master and derived icon at 16–1024 px.
 2. Package a universal2 app with localized resources and icon.
-3. Support ad-hoc preview signing and optional Developer ID signing/notarization through explicit environment inputs.
+3. Require a persistent private-key-backed signing identity for every runnable preview or package; support optional Developer ID signing/notarization through explicit environment inputs.
 4. Verify plist, architecture, signature, minimum OS, permissions text and absence of quarantine in the build directory.
 5. Write concise bilingual usage, permission, limitations, architecture and build documentation.
 6. Document independent provenance from commits `dcb0a62`, `d473418`, `c834316` and public Apple APIs.

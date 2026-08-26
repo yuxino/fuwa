@@ -1,6 +1,14 @@
-# Fuwa
+<div align="center">
+  <img src="Resources/AppIcon.png" width="112" alt="Fuwa 应用图标">
+  <h1>Fuwa</h1>
+  <p>让需要的窗口一直在手边。</p>
+  <p>
+    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>下载 Fuwa</strong></a>
+    · <a href="README_EN.md">English</a>
+  </p>
+</div>
 
-[English](README_EN.md)
+`Fuwa` 取自日语「ふわっと」——轻轻浮着。
 
 Fuwa 是一个本地优先的 macOS 菜单栏工具：把当前窗口变成始终可见的实时镜像，不修改其他 App 的窗口层级。
 
@@ -90,7 +98,9 @@ swift build --configuration release -Xswiftc -warnings-as-errors
 swift run --configuration release -Xswiftc -warnings-as-errors FuwaLogicTests
 ```
 
-`FuwaLogicTests` 是无第三方依赖的可执行逻辑测试入口。CI 只执行 package 检查、严格 Release 构建和逻辑测试；签名与公证不在 CI 中伪装执行。
+`FuwaLogicTests` 是无第三方依赖的可执行逻辑测试入口。CI 只执行 package 检查、严格 Release 构建、逻辑测试与图标一致性校验；签名与公证不在 CI 中伪装执行。
+
+`Resources/AppIcon.png` 是应用图标与 README 标识的唯一母版。修改后运行 `./scripts/generate-app-icon.sh`；CI 会核对透明通道、最小尺寸以及生成的 `.icns` 是否仍与母版一致。
 
 需要运行真实 `.app` 时使用 `./scripts/install-app.sh`，不要直接运行 `.build` 中的裸二进制或从不断变化的临时目录启动 App。`./scripts/package-app.sh` 同样要求稳定身份，但只生成 `dist/Fuwa.app`，不会替换固定安装版本。
 

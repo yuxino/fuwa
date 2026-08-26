@@ -1,6 +1,14 @@
-# Fuwa
+<div align="center">
+  <img src="Resources/AppIcon.png" width="112" alt="Fuwa app icon">
+  <h1>Fuwa</h1>
+  <p>Keep the window you need within reach.</p>
+  <p>
+    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>Download Fuwa</strong></a>
+    · <a href="README.md">简体中文</a>
+  </p>
+</div>
 
-[简体中文](README.md)
+`Fuwa` comes from the Japanese 「ふわっと」—lightly floating.
 
 Fuwa is a local-first macOS menu bar utility that keeps the current window visible as a live mirror without changing another app's window level.
 
@@ -90,7 +98,9 @@ swift build --configuration release -Xswiftc -warnings-as-errors
 swift run --configuration release -Xswiftc -warnings-as-errors FuwaLogicTests
 ```
 
-`FuwaLogicTests` is the dependency-free executable logic-test entry point. CI performs package validation, a strict Release build, and logic tests only. It does not pretend to perform signing or notarization.
+`FuwaLogicTests` is the dependency-free executable logic-test entry point. CI performs package validation, a strict Release build, logic tests, and icon-consistency checks only. It does not pretend to perform signing or notarization.
+
+`Resources/AppIcon.png` is the single source of truth for the app icon and README mark. Run `./scripts/generate-app-icon.sh` after changing it; CI verifies its transparency and minimum dimensions and checks that the generated `.icns` still matches the master.
 
 Use `./scripts/install-app.sh` whenever you need to run a real `.app`. Do not run the bare executable from `.build` or launch Fuwa from changing temporary paths. `./scripts/package-app.sh` also requires a stable identity, but only creates `dist/Fuwa.app`; it does not replace the canonical installation.
 

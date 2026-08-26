@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
+- Replaced the neutral prototype icon with an original Fuwa mascot that belongs to the same visual family as Kiri and mimi, and aligned both README headers with that product system.
+- Added a reproducible icon pipeline and CI freshness check so the committed `.icns` cannot drift from the transparent PNG master.
 
 ## [0.1.0] - 2026-08-26
 
