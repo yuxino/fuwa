@@ -55,6 +55,7 @@ struct FuwaAppActions {
     var openScreenRecordingSettings: @MainActor () -> Void = {}
     var openAccessibilitySettings: @MainActor () -> Void = {}
     var openLoginItemsSettings: @MainActor () -> Void = {}
+    var openLatestRelease: @MainActor () -> Void = {}
     var showAbout: @MainActor () -> Void = {}
     var quit: @MainActor () -> Void = {}
 }
@@ -209,6 +210,10 @@ final class AppModel: ObservableObject {
 
     func openLoginItemsSettings() {
         actions.openLoginItemsSettings()
+    }
+
+    func openLatestRelease() {
+        actions.openLatestRelease()
     }
 
     func showAbout() {

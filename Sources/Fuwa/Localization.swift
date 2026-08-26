@@ -61,6 +61,8 @@ enum FuwaString: String, CaseIterable, Sendable {
     case shortcutConflict
     case shortcutFailed
     case invalidShortcut
+    case viewLatestRelease
+    case viewLatestReleaseHint
     case about
     case moreActions
     case quit
@@ -148,6 +150,8 @@ struct FuwaCopy: Sendable {
         .shortcutConflict: "That shortcut is already used. The previous shortcut is still active.",
         .shortcutFailed: "The shortcut could not be changed. The previous shortcut is still active.",
         .invalidShortcut: "Include Command, Option, or Control with a key.",
+        .viewLatestRelease: "View Latest Release",
+        .viewLatestReleaseHint: "Opens the latest Fuwa release in your browser.",
         .about: "About Fuwa",
         .moreActions: "More Actions",
         .quit: "Quit Fuwa",
@@ -210,6 +214,8 @@ struct FuwaCopy: Sendable {
         .shortcutConflict: "这个快捷键已被占用，原快捷键仍然有效。",
         .shortcutFailed: "无法更改快捷键，原快捷键仍然有效。",
         .invalidShortcut: "请同时按下 Command、Option 或 Control。",
+        .viewLatestRelease: "查看最新版本",
+        .viewLatestReleaseHint: "在浏览器中打开 Fuwa 最新版本页面。",
         .about: "关于 Fuwa",
         .moreActions: "更多操作",
         .quit: "退出 Fuwa",

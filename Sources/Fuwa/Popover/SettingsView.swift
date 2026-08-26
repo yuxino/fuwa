@@ -55,28 +55,64 @@ struct SettingsView: View {
 
                 sectionDivider
 
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(copy.text(.appName))
-                            .font(.subheadline.weight(.semibold))
-                        Text("\(copy.text(.version)) \(model.version)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        appVersion
+                        Spacer(minLength: 8)
+                        latestReleaseButton
+                        aboutButton
+                        quitButton
                     }
 
-                    Spacer()
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 10) {
+                            appVersion
+                            Spacer(minLength: 8)
+                            latestReleaseButton
+                        }
 
-                    Button(copy.text(.about), action: model.showAbout)
-                        .buttonStyle(.borderless)
-
-                    Button(copy.text(.quit), action: model.quit)
-                        .buttonStyle(.borderless)
-                        .keyboardShortcut("q", modifiers: .command)
+                        HStack(spacing: 12) {
+                            Spacer()
+                            aboutButton
+                            quitButton
+                        }
+                    }
                 }
                 .padding(14)
             }
         }
         .scrollIndicators(.automatic)
+    }
+
+    private var appVersion: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(copy.text(.appName))
+                .font(.subheadline.weight(.semibold))
+            Text("\(copy.text(.version)) \(model.version)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var latestReleaseButton: some View {
+        Button(action: model.openLatestRelease) {
+            Label(copy.text(.viewLatestRelease), systemImage: "arrow.up.right")
+        }
+        .buttonStyle(FuwaQuietButtonStyle())
+        .help(copy.text(.viewLatestReleaseHint))
+        .accessibilityLabel(copy.text(.viewLatestRelease))
+        .accessibilityHint(copy.text(.viewLatestReleaseHint))
+    }
+
+    private var aboutButton: some View {
+        Button(copy.text(.about), action: model.showAbout)
+            .buttonStyle(.borderless)
+    }
+
+    private var quitButton: some View {
+        Button(copy.text(.quit), action: model.quit)
+            .buttonStyle(.borderless)
+            .keyboardShortcut("q", modifiers: .command)
     }
 
     private var shortcutDescription: some View {

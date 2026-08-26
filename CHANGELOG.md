@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added a Settings shortcut for opening the latest Fuwa release in the default browser.
+
 ### Fixed
 
 - Request Screen Recording only once instead of invoking the macOS permission request again after every denied pin attempt.

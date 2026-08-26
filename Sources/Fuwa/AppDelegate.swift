@@ -131,6 +131,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openLoginItemsSettings: { [weak self] in
                 self?.launchAtLoginController.openSettings()
             },
+            openLatestRelease: { [weak self] in
+                self?.openLatestRelease()
+            },
             showAbout: { [weak self] in
                 self?.showAboutPanel()
             },
@@ -290,6 +293,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)"
         ) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openLatestRelease() {
+        guard let url = URL(string: "https://github.com/yuxino/fuwa/releases/latest") else {
+            return
+        }
         NSWorkspace.shared.open(url)
     }
 
