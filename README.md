@@ -1,46 +1,46 @@
 <div align="center">
-  <img src="docs/images/app-icon.png" width="112" alt="Fuwa app icon">
+  <img src="docs/images/app-icon.png" width="112" alt="Fuwa 应用图标">
   <h1>Fuwa</h1>
-  <p>Keep the window you need in front.</p>
+  <p>把需要的窗口留在最前面。</p>
   <p>
-    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>Download Fuwa</strong></a>
-    · <a href="README_ZH.md">简体中文</a>
+    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>下载 Fuwa</strong></a>
+    · <a href="README_EN.md">English</a>
   </p>
 </div>
 
-Fuwa is a local macOS menu bar utility. It keeps a live mirror of a window visible above other apps and also supports Finder Quick Look previews.
+Fuwa 是一个本地运行的 macOS 菜单栏工具。它把窗口显示为始终可见的实时镜像，也支持 Finder 的空格预览。
 
-## Use
+## 使用
 
-1. Launch Fuwa and bring the target window to the front.
-2. Press `⌥⌘P` to pin it; repeat to unpin.
-3. Manage pins or switch between live and frozen views from the menu bar.
+1. 启动 Fuwa，把目标窗口置于前方。
+2. 按 `⌥⌘P` 固定窗口；再次操作即可取消。
+3. 从菜单栏管理 Pin，或切换实时与冻结画面。
 
-## Features
+## 功能
 
-- Pin multiple windows at once.
-- Supports regular windows and Finder Quick Look.
-- Customizable keyboard shortcut.
-- Mirrors are mouse-through by default; use `Interact` or `Reveal Source` when you need the source window.
-- No uploads, analytics, telemetry, or background network requests. `View Latest Release` only opens GitHub in your default browser. Window pixels stay in local memory.
+- 同时固定多个窗口。
+- 支持普通窗口与 Finder Quick Look。
+- 可自定义快捷键。
+- 默认不拦截鼠标；需要操作源窗口时可使用 `Interact` 或 `Reveal Source`。
+- 不上传数据，无分析、遥测或后台网络请求；`查看最新版本` 只会在明确点击后用默认浏览器打开 GitHub。窗口画面只在本机内存中处理。
 
-## Requirements
+## 要求
 
-- macOS 14 or later
-- Screen Recording permission
-- Accessibility permission only for `Interact` or `Reveal Source`
+- macOS 14 或更高版本
+- 屏幕录制权限
+- 辅助功能权限仅在使用 `Interact` 或 `Reveal Source` 时需要
 
-## Install
+## 安装
 
-Download the app archive and matching `.sha256` file from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Fuwa 0.1.1 and later developer previews use the project's persistent local signing certificate; the earlier 0.1.0 archive is ad-hoc signed. None are signed with Apple Developer ID or notarized.
+从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载应用压缩包和对应的 `.sha256` 文件。Fuwa 0.1.1 及之后的开发者预览版使用项目持续维护的本地签名证书；较早的 0.1.0 压缩包为 ad-hoc 签名。它们都没有 Apple Developer ID 签名，也未经过 Apple 公证。
 
-Verify the archive before opening it:
+打开前先校验压缩包：
 
 ```sh
 shasum -a 256 -c Fuwa-*.zip.sha256
 ```
 
-After moving `Fuwa.app` to `/Applications`, follow [Apple's instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) if macOS blocks it. Developers may instead verify the code seal and remove quarantine only after the checksum succeeds:
+把 `Fuwa.app` 移到 `/Applications` 后，如果 macOS 阻止打开，可参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。开发者也可以在校验和通过后验证代码封印并移除隔离属性：
 
 ```sh
 codesign --verify --deep --strict /Applications/Fuwa.app
@@ -48,7 +48,7 @@ xattr -dr com.apple.quarantine /Applications/Fuwa.app
 open /Applications/Fuwa.app
 ```
 
-To install from source:
+从源码安装：
 
 ```sh
 git clone https://github.com/yuxino/fuwa.git
@@ -57,12 +57,12 @@ cd fuwa
 ./scripts/install-app.sh
 ```
 
-## Notes
+## 说明
 
-Fuwa displays a mirror; it does not change another app's real window level. DRM content, secure system windows, and some specialized GPU windows may not be capturable.
+Fuwa 显示的是镜像，不会修改其他 App 的真实窗口层级。DRM 内容、系统安全窗口和部分特殊 GPU 窗口可能无法捕获。
 
-[Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Independent implementation](docs/independent-implementation.md)
+[隐私](PRIVACY.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [独立实现说明](docs/independent-implementation.md)
 
-## License
+## 许可证
 
 [MIT](LICENSE) © 2026 yuxino and Fuwa contributors
