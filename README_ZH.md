@@ -22,7 +22,7 @@ Fuwa 是一个本地运行的 macOS 菜单栏工具。它把窗口显示为始�
 - 支持普通窗口与 Finder Quick Look。
 - 可自定义快捷键。
 - 默认不拦截鼠标；需要操作源窗口时可使用 `Interact` 或 `Reveal Source`。
-- 无联网与遥测，窗口画面只在本机内存中处理。
+- 不上传数据，无分析、遥测或后台网络请求；`查看最新版本` 只会在明确点击后用默认浏览器打开 GitHub。窗口画面只在本机内存中处理。
 
 ## 要求
 
@@ -32,7 +32,21 @@ Fuwa 是一个本地运行的 macOS 菜单栏工具。它把窗口显示为始�
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载。当前公开预览版尚未经过 Apple 公证；首次打开时请参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。
+从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载应用压缩包和对应的 `.sha256` 文件。Fuwa 0.1.1 及之后的开发者预览版使用项目持续维护的本地签名证书；较早的 0.1.0 压缩包为 ad-hoc 签名。它们都没有 Apple Developer ID 签名，也未经过 Apple 公证。
+
+打开前先校验压缩包：
+
+```sh
+shasum -a 256 -c Fuwa-*.zip.sha256
+```
+
+把 `Fuwa.app` 移到 `/Applications` 后，如果 macOS 阻止打开，可参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。开发者也可以在校验和通过后验证代码封印并移除隔离属性：
+
+```sh
+codesign --verify --deep --strict /Applications/Fuwa.app
+xattr -dr com.apple.quarantine /Applications/Fuwa.app
+open /Applications/Fuwa.app
+```
 
 从源码安装：
 

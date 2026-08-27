@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-27
+
 ### Added
 
 - Added a Settings shortcut for opening the latest Fuwa release in the default browser.
@@ -22,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
 - Replaced the neutral prototype icon with an original Fuwa mascot that belongs to the same visual family as Kiri and mimi, and aligned both README headers with that product system.
 - Added a reproducible icon pipeline and CI freshness check so the committed `.icns` cannot drift from the transparent PNG master.
-- Collapse the empty Pins area into a compact popover while keeping the full management list for active pins.
+- Collapsed the empty Pins area into a compact popover while keeping the full management list for active pins.
 
 ## [0.1.0] - 2026-08-26
 
@@ -39,5 +41,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yuxino/fuwa/releases/tag/v0.1.0

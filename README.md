@@ -22,7 +22,7 @@ Fuwa is a local macOS menu bar utility. It keeps a live mirror of a window visib
 - Supports regular windows and Finder Quick Look.
 - Customizable keyboard shortcut.
 - Mirrors are mouse-through by default; use `Interact` or `Reveal Source` when you need the source window.
-- No network access or telemetry. Window pixels stay in local memory.
+- No uploads, analytics, telemetry, or background network requests. `View Latest Release` only opens GitHub in your default browser. Window pixels stay in local memory.
 
 ## Requirements
 
@@ -32,7 +32,21 @@ Fuwa is a local macOS menu bar utility. It keeps a live mirror of a window visib
 
 ## Install
 
-Download Fuwa from [GitHub Releases](https://github.com/yuxino/fuwa/releases). The current public preview is not Apple-notarized; follow [Apple's official instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) if macOS blocks the first launch.
+Download the app archive and matching `.sha256` file from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Fuwa 0.1.1 and later developer previews use the project's persistent local signing certificate; the earlier 0.1.0 archive is ad-hoc signed. None are signed with Apple Developer ID or notarized.
+
+Verify the archive before opening it:
+
+```sh
+shasum -a 256 -c Fuwa-*.zip.sha256
+```
+
+After moving `Fuwa.app` to `/Applications`, follow [Apple's instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) if macOS blocks it. Developers may instead verify the code seal and remove quarantine only after the checksum succeeds:
+
+```sh
+codesign --verify --deep --strict /Applications/Fuwa.app
+xattr -dr com.apple.quarantine /Applications/Fuwa.app
+open /Applications/Fuwa.app
+```
 
 To install from source:
 

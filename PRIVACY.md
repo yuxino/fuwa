@@ -1,8 +1,8 @@
 # Fuwa Privacy Policy
 
-Last updated: August 26, 2026
+Last updated: August 27, 2026
 
-Fuwa is a local-first macOS utility. It has no network service, analytics, advertising, telemetry, or user account system.
+Fuwa is a local-first macOS utility. It has no in-app network client, analytics, advertising, telemetry, or user account system. Choosing `View Latest Release` asks macOS to open the Fuwa releases page in your default browser; Fuwa does not send window data with that request.
 
 ## Data Fuwa processes
 
