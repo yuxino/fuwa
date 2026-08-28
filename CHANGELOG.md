@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Upgrading from 0.1.0 changes Fuwa's code identity and may require granting Screen Recording and Accessibility once more.
 - Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
 - Live capture surfaces are capped at four megapixels per pin, and universal packaging now validates both requested architectures.
 - Replaced the neutral prototype icon with an original Fuwa mascot that belongs to the same visual family as Kiri and mimi, and aligned both README headers with that product system.
