@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-28
+
 ### Added
 
 - Added a Settings shortcut for opening the latest Fuwa release in the default browser.
@@ -43,5 +45,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yuxino/fuwa/releases/tag/v0.1.0
