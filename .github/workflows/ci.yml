@@ -53,6 +53,10 @@ jobs:
             echo "ad-hoc signing was accepted" >&2
             exit 1
           fi
+          if FUWA_BUILD_UNIVERSAL=unexpected scripts/package-app.sh; then
+            echo "an invalid universal-build mode was accepted" >&2
+            exit 1
+          fi
           if grep -R 'FUWA_ALLOW_AD_HOC_SIGNING' scripts README.md README_EN.md; then
             echo "an ad-hoc signing escape hatch was reintroduced" >&2
             exit 1

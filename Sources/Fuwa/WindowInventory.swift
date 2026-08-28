@@ -62,12 +62,6 @@ struct WindowInventory: Sendable {
         return descriptor
     }
 
-    /// Explicit visual lookup for diagnostics. Selection itself consumes the
-    /// ordered array so z-order remains meaningful.
-    func onScreenDescriptor(for windowID: CGWindowID) -> WindowDescriptor? {
-        orderedWindows.first(where: { $0.id == windowID })
-    }
-
     /// Captures visual intent before any asynchronous ScreenCaptureKit work can
     /// allow z-order or a transient Quick Look window to change.
     @MainActor

@@ -9,6 +9,23 @@ FUWA_MACOS_DIR="${FUWA_CONTENTS_DIR}/MacOS"
 FUWA_RESOURCES_DIR="${FUWA_CONTENTS_DIR}/Resources"
 FUWA_SDK_15="/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
 FUWA_BUILD_UNIVERSAL="${FUWA_BUILD_UNIVERSAL:-1}"
+
+verify_universal_binary() {
+    local FUWA_BINARY="$1"
+    if ! /usr/bin/lipo "${FUWA_BINARY}" -verify_arch arm64 x86_64; then
+        print -u2 -r -- "error: expected an arm64 and x86_64 universal binary: ${FUWA_BINARY}"
+        exit 1
+    fi
+}
+
+case "${FUWA_BUILD_UNIVERSAL}" in
+    0|1) ;;
+    *)
+        print -u2 -r -- "error: FUWA_BUILD_UNIVERSAL must be 0 or 1"
+        exit 2
+        ;;
+esac
+
 FUWA_CODESIGN_IDENTITY="$("${FUWA_SCRIPT_DIR}/codesign-identity.sh")"
 
 if [[ -d "${FUWA_SDK_15}" ]]; then
@@ -42,7 +59,10 @@ if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
 
     FUWA_UNIVERSAL_DIR="${FUWA_PROJECT_DIR}/.build/package-universal"
     mkdir -p "${FUWA_UNIVERSAL_DIR}"
-    lipo -create "${FUWA_ARCH_BINARIES[@]}" -output "${FUWA_UNIVERSAL_DIR}/Fuwa"
+    /usr/bin/lipo -create \
+        "${FUWA_ARCH_BINARIES[@]}" \
+        -output "${FUWA_UNIVERSAL_DIR}/Fuwa"
+    verify_universal_binary "${FUWA_UNIVERSAL_DIR}/Fuwa"
     FUWA_BINARY_SOURCE="${FUWA_UNIVERSAL_DIR}/Fuwa"
 else
     swift build \
@@ -73,6 +93,10 @@ cp "${FUWA_PROJECT_DIR}/Resources/AppIcon.icns" "${FUWA_RESOURCES_DIR}/AppIcon.i
 cp -R "${FUWA_PROJECT_DIR}/Resources/en.lproj" "${FUWA_RESOURCES_DIR}/en.lproj"
 cp -R "${FUWA_PROJECT_DIR}/Resources/zh-Hans.lproj" "${FUWA_RESOURCES_DIR}/zh-Hans.lproj"
 chmod +x "${FUWA_MACOS_DIR}/Fuwa"
+
+if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
+    verify_universal_binary "${FUWA_MACOS_DIR}/Fuwa"
+fi
 
 plutil -lint "${FUWA_CONTENTS_DIR}/Info.plist"
 

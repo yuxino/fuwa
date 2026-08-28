@@ -10,4 +10,13 @@ public enum SystemPermissionRequestPolicy {
     public static func action(hasRequestedBefore: Bool) -> SystemPermissionRequestAction {
         hasRequestedBefore ? .showSettingsGuidance : .requestSystemPrompt
     }
+
+    /// A successful request result or a newly granted preflight check permits
+    /// one retry of the exact operation that triggered the system prompt.
+    public static func shouldRetryAfterRequest(
+        requestReturnedGranted: Bool,
+        preflightGranted: Bool
+    ) -> Bool {
+        requestReturnedGranted || preflightGranted
+    }
 }

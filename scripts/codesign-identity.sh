@@ -14,7 +14,9 @@ fail() {
 
 typeset -a FUWA_IDENTITY_FINGERPRINTS
 typeset -a FUWA_IDENTITY_NAMES
-FUWA_IDENTITY_LIST="$(/usr/bin/security find-identity -v -p codesigning 2>/dev/null || true)"
+if ! FUWA_IDENTITY_LIST="$(/usr/bin/security find-identity -v -p codesigning)"; then
+    fail "the macOS Keychain code-signing identity query failed"
+fi
 
 for FUWA_IDENTITY_LINE in "${(@f)FUWA_IDENTITY_LIST}"; do
     FUWA_IDENTITY_FINGERPRINT="$(
@@ -47,7 +49,10 @@ resolve_exact_identity() {
 
     case "${#FUWA_MATCHES}" in
         0)
-            fail "the requested code-signing identity is not valid: ${FUWA_REQUESTED_IDENTITY}"
+            print -u2 -r -- "error: the requested code-signing identity was not found: ${FUWA_REQUESTED_IDENTITY}"
+            # Exit 4 means the Keychain query itself succeeded and the exact
+            # requested identity is simply absent.
+            exit 4
             ;;
         1)
             print -r -- "${FUWA_MATCHES[1]}"
@@ -78,17 +83,6 @@ for (( FUWA_INDEX = 1; FUWA_INDEX <= ${#FUWA_IDENTITY_FINGERPRINTS}; FUWA_INDEX+
     fi
 done
 
-case "${#FUWA_APPLE_DEVELOPMENT_IDENTITIES}" in
-    1)
-        print -r -- "${FUWA_APPLE_DEVELOPMENT_IDENTITIES[1]}"
-        exit 0
-        ;;
-    0) ;;
-    *)
-        fail "multiple Apple Development identities are valid; set FUWA_CODESIGN_IDENTITY to the intended fingerprint"
-        ;;
-esac
-
 case "${#FUWA_SHARED_LOCAL_IDENTITIES}" in
     1)
         print -r -- "${FUWA_SHARED_LOCAL_IDENTITIES[1]}"
@@ -100,6 +94,17 @@ case "${#FUWA_SHARED_LOCAL_IDENTITIES}" in
         ;;
 esac
 
+case "${#FUWA_APPLE_DEVELOPMENT_IDENTITIES}" in
+    1)
+        print -r -- "${FUWA_APPLE_DEVELOPMENT_IDENTITIES[1]}"
+        exit 0
+        ;;
+    0) ;;
+    *)
+        fail "multiple Apple Development identities are valid; set FUWA_CODESIGN_IDENTITY to the intended fingerprint"
+        ;;
+esac
+
 cat >&2 <<'EOF'
 error: no stable macOS code-signing identity is available.
 
@@ -108,4 +113,6 @@ identity, or set FUWA_CODESIGN_IDENTITY to an existing certificate fingerprint.
 Fuwa refuses to create a normal ad-hoc build because doing so would make macOS
 ask for Screen Recording and Accessibility permission again after a rebuild.
 EOF
-exit 1
+# Exit 3 is reserved for the one safe setup condition: the Keychain query
+# succeeded, but no default stable identity exists yet.
+exit 3

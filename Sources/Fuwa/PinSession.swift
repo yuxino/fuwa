@@ -11,6 +11,7 @@ enum PinSessionError: LocalizedError {
     case captureStartFailed(String)
     case captureStartInterrupted
     case captureFailed(String)
+    case captureResumeTimedOut
     case freezeFailed(String)
 
     var errorDescription: String? {
@@ -23,6 +24,8 @@ enum PinSessionError: LocalizedError {
             "The capture stopped while Fuwa was starting it."
         case .captureFailed(let message):
             "Window capture failed: \(message)"
+        case .captureResumeTimedOut:
+            "Fuwa could not resume live capture. The previous frozen frame is still visible."
         case .freezeFailed(let message):
             "Fuwa could not preserve the last frame: \(message)"
         }
@@ -46,13 +49,12 @@ struct PinSnapshot: Identifiable, Equatable {
         state == .frozen(.manual) || state == .frozen(.captureInterrupted)
     }
 
-    var isActivelyCapturing: Bool {
-        state == .starting || state == .live
-    }
 }
 
 @MainActor
 final class PinSession {
+    private static let firstCompleteFrameTimeout: Duration = .seconds(8)
+
     let id: UUID
 
     var onChange: (() -> Void)?
@@ -73,6 +75,7 @@ final class PinSession {
     private var captureView: CaptureView?
     private var currentCycle: CaptureCycle?
     private var nextGeneration: UInt64 = 0
+    private var firstFrameWatchdogTask: Task<Void, Never>?
     private var resizeTask: Task<Void, Never>?
     private var teardownTask: Task<Void, Never>?
     private var missingObservationCount = 0
@@ -128,7 +131,11 @@ final class PinSession {
         do {
             try transition(.targetResolved)
             createPresentationIfNeeded()
-            try await beginCapture(with: target, preservingFrozenImage: false)
+            try await beginCapture(
+                with: target,
+                preservingFrozenImage: false,
+                resumingFrom: nil
+            )
         } catch {
             await handleStartFailure(error)
             throw error
@@ -183,7 +190,11 @@ final class PinSession {
             errorMessage = nil
             captureView?.prepareForResumeKeepingFrozenImage()
             notifyChange()
-            try await beginCapture(with: target, preservingFrozenImage: true)
+            try await beginCapture(
+                with: target,
+                preservingFrozenImage: true,
+                resumingFrom: previousFreezeReason
+            )
         } catch {
             if state == .starting {
                 let detachedCycle = detachCurrentCycle()
@@ -255,6 +266,8 @@ final class PinSession {
     /// panel is hidden, every retained frame is cleared, and all callbacks are
     /// detached before any potentially slow ScreenCaptureKit stop is awaited.
     func prepareForStop() {
+        cancelFirstFrameWatchdog()
+
         if state == .stopped {
             panel?.orderOut(nil)
             captureView?.clearAllPixels()
@@ -315,6 +328,7 @@ final class PinSession {
             return
         }
 
+        cancelFirstFrameWatchdog()
         errorMessage = nil
         notifyChange()
         Task { @MainActor [weak self] in
@@ -363,7 +377,8 @@ final class PinSession {
 
     private func beginCapture(
         with target: ResolvedTarget,
-        preservingFrozenImage: Bool
+        preservingFrozenImage: Bool,
+        resumingFrom previousFreezeReason: PinFreezeReason?
     ) async throws {
         updateTarget(target)
         createPresentationIfNeeded()
@@ -399,7 +414,8 @@ final class PinSession {
             stream: stream,
             bridge: bridge,
             filter: filter,
-            pointScale: pointScale
+            pointScale: pointScale,
+            previousFreezeReason: previousFreezeReason
         )
         currentCycle = cycle
 
@@ -424,6 +440,71 @@ final class PinSession {
         guard currentCycle === cycle else {
             throw PinSessionError.captureStartInterrupted
         }
+        scheduleFirstFrameWatchdog(for: cycle)
+    }
+
+    private func scheduleFirstFrameWatchdog(for cycle: CaptureCycle) {
+        guard currentCycle === cycle, state == .starting else { return }
+
+        cancelFirstFrameWatchdog()
+        let streamID = cycle.streamID
+        let generation = cycle.generation
+        let previousFreezeReason = cycle.previousFreezeReason
+        firstFrameWatchdogTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: Self.firstCompleteFrameTimeout)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, let self else { return }
+            await self.handleFirstFrameTimeout(
+                streamID: streamID,
+                generation: generation,
+                resumingFrom: previousFreezeReason
+            )
+        }
+    }
+
+    private func handleFirstFrameTimeout(
+        streamID: ObjectIdentifier,
+        generation: UInt64,
+        resumingFrom previousFreezeReason: PinFreezeReason?
+    ) async {
+        guard isCurrent(streamID: streamID, generation: generation),
+              state == .starting else {
+            return
+        }
+
+        let timeoutEvent = PinStartTimeoutPolicy.event(
+            resumingFrom: previousFreezeReason
+        )
+        do {
+            try transition(timeoutEvent)
+        } catch {
+            await failAndHide(
+                reason: .captureFailed,
+                message: error.localizedDescription
+            )
+            return
+        }
+
+        let failure: PinSessionError
+        if previousFreezeReason == nil {
+            let message = "Window capture failed before the first complete frame arrived."
+            errorMessage = message
+            failure = .captureFailed(message)
+            panel?.orderOut(nil)
+            captureView?.clearAllPixels()
+        } else {
+            // The restored frozen state already supplies the row detail. Keep
+            // its diagnostic language-neutral and localize the typed notice.
+            errorMessage = nil
+            failure = .captureResumeTimedOut
+        }
+        let detachedCycle = detachCurrentCycle()
+        notifyChange()
+        onFailure?(failure)
+        await Self.stopCaptureCycle(detachedCycle)
     }
 
     private func handleStartFailure(_ error: Error) async {
@@ -569,6 +650,7 @@ final class PinSession {
         panel.contentView = view
         panel.level = .floating
         panel.collectionBehavior = [
+            .canJoinAllApplications,
             .canJoinAllSpaces,
             .fullScreenAuxiliary,
             .stationary,
@@ -646,8 +728,13 @@ final class PinSession {
         pointScale: CGFloat
     ) -> SCStreamConfiguration {
         let configuration = SCStreamConfiguration()
-        configuration.width = max(2, Int(ceil(pointSize.width * pointScale)))
-        configuration.height = max(2, Int(ceil(pointSize.height * pointScale)))
+        let dimensions = LiveCaptureSizing.fittedDimensions(
+            pointWidth: Double(pointSize.width),
+            pointHeight: Double(pointSize.height),
+            pointScale: Double(pointScale)
+        ) ?? PixelDimensions(width: 2, height: 2)
+        configuration.width = dimensions.width
+        configuration.height = dimensions.height
         configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         configuration.queueDepth = 3
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
@@ -667,6 +754,7 @@ final class PinSession {
     }
 
     private func detachCurrentCycle() -> CaptureTeardown? {
+        cancelFirstFrameWatchdog()
         let detachedResizeTask = resizeTask
         detachedResizeTask?.cancel()
         resizeTask = nil
@@ -677,6 +765,11 @@ final class PinSession {
             cycle: detachedCycle,
             resizeTask: detachedResizeTask
         )
+    }
+
+    private func cancelFirstFrameWatchdog() {
+        firstFrameWatchdogTask?.cancel()
+        firstFrameWatchdogTask = nil
     }
 
     private static func stopCaptureCycle(_ teardown: CaptureTeardown?) async {
@@ -730,6 +823,7 @@ private final class CaptureCycle {
     let streamID: ObjectIdentifier
     let bridge: StreamCallbackBridge
     let filter: SCContentFilter
+    let previousFreezeReason: PinFreezeReason?
     var pointScale: CGFloat
 
     init(
@@ -737,7 +831,8 @@ private final class CaptureCycle {
         stream: SCStream,
         bridge: StreamCallbackBridge,
         filter: SCContentFilter,
-        pointScale: CGFloat
+        pointScale: CGFloat,
+        previousFreezeReason: PinFreezeReason?
     ) {
         self.generation = generation
         self.stream = stream
@@ -745,6 +840,7 @@ private final class CaptureCycle {
         self.bridge = bridge
         self.filter = filter
         self.pointScale = pointScale
+        self.previousFreezeReason = previousFreezeReason
     }
 }
 

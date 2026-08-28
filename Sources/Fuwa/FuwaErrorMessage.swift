@@ -88,6 +88,8 @@ enum FuwaErrorMessage {
                 return "Capture stopped while Fuwa was starting it."
             case .captureFailed:
                 return "Window capture stopped, so Fuwa stopped displaying that frame."
+            case .captureResumeTimedOut:
+                return "Fuwa could not resume live capture. The previous frozen frame is still visible."
             case .freezeFailed:
                 return "Fuwa could not preserve the last frame."
             }
@@ -173,6 +175,8 @@ enum FuwaErrorMessage {
                 return "捕获在启动过程中被中断。"
             case .captureFailed:
                 return "窗口捕获已中断，Fuwa 已停止显示相关画面。"
+            case .captureResumeTimedOut:
+                return "Fuwa 无法恢复实时捕获，之前的冻结画面仍然保留。"
             case .freezeFailed:
                 return "Fuwa 无法保留最后一帧画面。"
             }
@@ -198,6 +202,12 @@ enum FuwaErrorMessage {
             return "有多个相似窗口，Fuwa 无法安全确认原窗口，因此没有切换。"
         case .sourceActivationRejected:
             return "macOS 没有允许 Fuwa 激活源应用。"
+        case .sourceActivationTimedOut:
+            return "源应用未能及时切换到前台，这个画面会保持仅查看。"
+        case .sourceRestoreUnsupported:
+            return "这个最小化的源窗口不支持通过辅助功能恢复。"
+        case .sourceRestoreFailed(let code):
+            return "macOS 无法恢复最小化的源窗口（辅助功能错误 \(code)）。"
         case .raiseUnsupported:
             return "这个源窗口不支持通过辅助功能显示。"
         case .raiseFailed(let code):
@@ -219,6 +229,12 @@ enum FuwaErrorMessage {
             return "Several windows look alike, so Fuwa did not switch to a possibly wrong source."
         case .sourceActivationRejected:
             return "macOS did not allow Fuwa to activate the source app."
+        case .sourceActivationTimedOut:
+            return "The source app did not become active in time, so this pin remains view-only."
+        case .sourceRestoreUnsupported:
+            return "This minimized source window cannot be restored through Accessibility."
+        case .sourceRestoreFailed(let code):
+            return "macOS could not restore the minimized source window (Accessibility error \(code))."
         case .raiseUnsupported:
             return "This source window cannot be revealed through Accessibility."
         case .raiseFailed(let code):

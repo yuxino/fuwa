@@ -39,3 +39,54 @@ public enum FrozenFrameSizing {
         return PixelDimensions(width: scaledWidth, height: budgetedHeight)
     }
 }
+
+/// Bounds live ScreenCaptureKit surfaces before they reach the per-stream
+/// frame queue. Window geometry is reported in points, while stream dimensions
+/// are configured in pixels.
+public enum LiveCaptureSizing {
+    public static let maximumPixelCount = 4_000_000
+
+    public static func fittedDimensions(
+        pointWidth: Double,
+        pointHeight: Double,
+        pointScale: Double,
+        maxPixels: Int = 4_000_000
+    ) -> PixelDimensions? {
+        guard pointWidth.isFinite,
+              pointHeight.isFinite,
+              pointScale.isFinite,
+              pointWidth > 0,
+              pointHeight > 0,
+              maxPixels >= 4 else {
+            return nil
+        }
+
+        let effectiveScale = max(1, pointScale)
+        let requestedWidth = ceil(pointWidth * effectiveScale)
+        let requestedHeight = ceil(pointHeight * effectiveScale)
+        guard requestedWidth.isFinite,
+              requestedHeight.isFinite,
+              requestedWidth > 0,
+              requestedHeight > 0,
+              requestedWidth < Double(Int.max),
+              requestedHeight < Double(Int.max) else {
+            return nil
+        }
+
+        guard let fitted = FrozenFrameSizing.fittedDimensions(
+            sourceWidth: max(2, Int(requestedWidth)),
+            sourceHeight: max(2, Int(requestedHeight)),
+            maxPixels: maxPixels
+        ) else {
+            return nil
+        }
+
+        // ScreenCaptureKit requires useful non-zero surfaces. Keep both axes at
+        // least two pixels without letting an extreme aspect ratio escape the
+        // total pixel budget after that adjustment.
+        let maximumLongDimension = maxPixels / 2
+        let width = min(maximumLongDimension, max(2, fitted.width))
+        let height = min(maxPixels / width, max(2, fitted.height))
+        return PixelDimensions(width: width, height: height)
+    }
+}

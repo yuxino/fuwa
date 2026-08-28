@@ -212,15 +212,6 @@ final class CaptureView: NSView {
         CATransaction.commit()
     }
 
-    @discardableResult
-    func enqueue(_ sampleBuffer: CMSampleBuffer) -> FrameReceipt? {
-        consume(sampleBuffer)
-    }
-
-    func clear() {
-        clearAllPixels()
-    }
-
     /// Called only after the panel has been ordered front and another main-run-
     /// loop turn has completed. The bridge remains until a subsequent complete
     /// frame is also available, so the renderer always has a real frame behind it.
@@ -238,10 +229,10 @@ final class CaptureView: NSView {
         CATransaction.commit()
     }
 
-    /// `enqueue` is asynchronous: revealing an empty display layer immediately
-    /// can flash transparent on initial pin and Resume. A lightweight CGImage of
-    /// the same first complete frame stays above the renderer until a later
-    /// complete frame proves the live layer has had time to present.
+    /// Display-layer rendering is asynchronous: revealing an empty layer
+    /// immediately can flash transparent on initial pin and Resume. A lightweight
+    /// CGImage of the same first complete frame stays above the renderer until a
+    /// later complete frame proves the live layer has had time to present.
     private func setShowingFirstFrameBridge(_ image: CGImage?) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)

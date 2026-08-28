@@ -32,7 +32,9 @@ Fuwa is a local macOS menu bar utility. It keeps a live mirror of a window visib
 
 ## Install
 
-Download the app archive and matching `.sha256` file from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Fuwa 0.1.1 and later developer previews use the project's persistent local signing certificate; the earlier 0.1.0 archive is ad-hoc signed. None are signed with Apple Developer ID or notarized.
+Download the app archive and matching `.sha256` file from [GitHub Releases](https://github.com/yuxino/fuwa/releases). The latest public release is still the ad-hoc-signed 0.1.0; the 0.1.1 candidate on `main`, which uses the project's persistent signing certificate, has not been published. None are signed with Apple Developer ID or notarized.
+
+The first upgrade from 0.1.0 to a stably signed build changes Fuwa's code identity, so macOS may ask for Screen Recording and Accessibility permission once more. Later updates with the same bundle ID, signing certificate, and install path should not normally need another authorization solely because the build changed.
 
 Verify the archive before opening it:
 

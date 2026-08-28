@@ -116,11 +116,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             interact: { [weak self] id in
                 guard let self else { throw FuwaApplicationError.unavailable }
-                try engageSource(for: id, isInteract: true)
+                try await engageSource(for: id, isInteract: true)
             },
             revealSource: { [weak self] id in
                 guard let self else { throw FuwaApplicationError.unavailable }
-                try engageSource(for: id, isInteract: false)
+                try await engageSource(for: id, isInteract: false)
             },
             unpin: { [weak self] id in
                 guard let self else { throw FuwaApplicationError.unavailable }
@@ -222,26 +222,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let requestAction = SystemPermissionRequestPolicy.action(
                 hasRequestedBefore: settingsStore.didRequestScreenRecording
             )
+            var shouldRetryOriginalIntent = false
             if requestAction == .requestSystemPrompt {
                 settingsStore.didRequestScreenRecording = true
-                _ = CGRequestScreenCaptureAccess()
+                let requestReturnedGranted = CGRequestScreenCaptureAccess()
+                shouldRetryOriginalIntent = SystemPermissionRequestPolicy.shouldRetryAfterRequest(
+                    requestReturnedGranted: requestReturnedGranted,
+                    preflightGranted: CGPreflightScreenCaptureAccess()
+                )
             }
             refreshPermissions()
+            if shouldRetryOriginalIntent {
+                try await pinCoordinator.toggle(intent)
+                return
+            }
             throw TargetResolutionError.screenRecordingPermissionDenied
         }
     }
 
-    private func engageSource(for id: UUID, isInteract: Bool) throws {
+    private func engageSource(for id: UUID, isInteract: Bool) async throws {
         try ensureAccessibilityPermission()
         let target = try pinCoordinator.interactionTarget(for: id)
 
         if isInteract {
-            _ = try interactionCoordinator.interact(
+            _ = try await interactionCoordinator.interact(
                 with: target.descriptor,
                 expectedTitle: target.windowTitle
             )
         } else {
-            _ = try interactionCoordinator.revealSource(
+            _ = try await interactionCoordinator.revealSource(
                 matching: target.descriptor,
                 expectedTitle: target.windowTitle
             )

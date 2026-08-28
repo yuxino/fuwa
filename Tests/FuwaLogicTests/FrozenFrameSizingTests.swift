@@ -68,4 +68,48 @@ func runFrozenFrameSizingTests(runner: inout LogicTestRunner) {
         ) == nil,
         "a non-positive pixel budget is rejected"
     )
+
+    runner.expect(
+        LiveCaptureSizing.fittedDimensions(
+            pointWidth: 1_920,
+            pointHeight: 1_080,
+            pointScale: 1
+        ) == PixelDimensions(width: 1_920, height: 1_080),
+        "a live capture inside the pixel budget keeps its requested dimensions"
+    )
+
+    let reducedLiveCapture = LiveCaptureSizing.fittedDimensions(
+        pointWidth: 3_840,
+        pointHeight: 2_160,
+        pointScale: 2
+    )
+    runner.expect(
+        reducedLiveCapture == PixelDimensions(width: 2_666, height: 1_500),
+        "an 8K live capture is reduced proportionally"
+    )
+    runner.expect(
+        (reducedLiveCapture?.pixelCount ?? .max) <= LiveCaptureSizing.maximumPixelCount,
+        "a live capture never exceeds the shared four-megapixel budget"
+    )
+
+    let extremeLiveCapture = LiveCaptureSizing.fittedDimensions(
+        pointWidth: 1,
+        pointHeight: 10_000_000,
+        pointScale: 2
+    )
+    runner.expect(
+        extremeLiveCapture?.width == 2
+            && (extremeLiveCapture?.pixelCount ?? .max)
+                <= LiveCaptureSizing.maximumPixelCount,
+        "extreme live-capture aspect ratios keep usable axes inside the budget"
+    )
+
+    runner.expect(
+        LiveCaptureSizing.fittedDimensions(
+            pointWidth: .infinity,
+            pointHeight: 1_080,
+            pointScale: 2
+        ) == nil,
+        "non-finite live-capture geometry is rejected"
+    )
 }

@@ -15,6 +15,9 @@ enum InteractionViewOnlyReason: Equatable, Sendable {
     case sourceWindowUnavailable
     case sourceWindowAmbiguous
     case sourceActivationRejected
+    case sourceActivationTimedOut
+    case sourceRestoreUnsupported
+    case sourceRestoreFailed(code: Int32)
     case raiseUnsupported
     case raiseFailed(code: Int32)
 }
@@ -32,6 +35,12 @@ extension InteractionViewOnlyReason: LocalizedError {
             "Several source windows look alike, so Fuwa left this pin view-only."
         case .sourceActivationRejected:
             "macOS did not allow Fuwa to activate the source application."
+        case .sourceActivationTimedOut:
+            "The source application did not become active in time."
+        case .sourceRestoreUnsupported:
+            "The minimized source window does not support being restored through Accessibility."
+        case .sourceRestoreFailed(let code):
+            "macOS could not restore the minimized source window (Accessibility error \(code))."
         case .raiseUnsupported:
             "The source window does not support being raised through Accessibility."
         case .raiseFailed(let code):
@@ -98,8 +107,8 @@ final class InteractionCoordinator {
     func interact(
         with descriptor: WindowDescriptor,
         expectedTitle: String? = nil
-    ) throws -> InteractionEngagement {
-        try revealAndEngage(descriptor: descriptor, expectedTitle: expectedTitle)
+    ) async throws -> InteractionEngagement {
+        try await revealAndEngage(descriptor: descriptor, expectedTitle: expectedTitle)
     }
 
     /// Uses the same safe activation-and-raise path as Interact.
@@ -107,14 +116,14 @@ final class InteractionCoordinator {
     func revealSource(
         matching descriptor: WindowDescriptor,
         expectedTitle: String? = nil
-    ) throws -> InteractionEngagement {
-        try revealAndEngage(descriptor: descriptor, expectedTitle: expectedTitle)
+    ) async throws -> InteractionEngagement {
+        try await revealAndEngage(descriptor: descriptor, expectedTitle: expectedTitle)
     }
 
     private func revealAndEngage(
         descriptor: WindowDescriptor,
         expectedTitle: String?
-    ) throws -> InteractionEngagement {
+    ) async throws -> InteractionEngagement {
         guard permissionCenter.accessibilityStatus == .granted else {
             throw fail(.accessibilityPermissionRequired)
         }
@@ -150,9 +159,8 @@ final class InteractionCoordinator {
         if sourceApplication.isHidden {
             _ = sourceApplication.unhide()
         }
-        guard sourceApplication.activate(options: []) else {
-            throw fail(.sourceActivationRejected)
-        }
+        try await activateAndConfirm(sourceApplication)
+        try restoreIfMinimized(match.window)
 
         let raiseResult = AXUIElementPerformAction(
             match.window,
@@ -171,6 +179,83 @@ final class InteractionCoordinator {
         )
         let engagement = InteractionEngagement(source: source)
         return engagement
+    }
+
+    private func activateAndConfirm(
+        _ sourceApplication: NSRunningApplication
+    ) async throws {
+        guard !sourceApplication.isActive else { return }
+
+        let activationAccepted: Bool
+        if NSApp.isActive {
+            NSApp.yieldActivation(to: sourceApplication)
+            if sourceApplication.isActive {
+                return
+            }
+            activationAccepted = sourceApplication.activate(
+                from: .current,
+                options: []
+            )
+        } else {
+            activationAccepted = sourceApplication.activate(options: [])
+        }
+        guard activationAccepted || sourceApplication.isActive else {
+            throw fail(.sourceActivationRejected)
+        }
+
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(2))
+        while !sourceApplication.isActive {
+            guard !sourceApplication.isTerminated else {
+                throw fail(.sourceApplicationUnavailable)
+            }
+            guard clock.now < deadline else {
+                throw fail(.sourceActivationTimedOut)
+            }
+            try await Task.sleep(for: .milliseconds(25))
+        }
+    }
+
+    private func restoreIfMinimized(_ window: AXUIElement) throws {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            window,
+            kAXMinimizedAttribute as CFString,
+            &value
+        ) == .success,
+        let value,
+        CFGetTypeID(value) == CFBooleanGetTypeID(),
+        CFBooleanGetValue((value as! CFBoolean))
+        else {
+            return
+        }
+
+        var isSettable = DarwinBoolean(false)
+        let settableResult = AXUIElementIsAttributeSettable(
+            window,
+            kAXMinimizedAttribute as CFString,
+            &isSettable
+        )
+        if settableResult == .attributeUnsupported
+            || (settableResult == .success && !isSettable.boolValue)
+        {
+            throw fail(.sourceRestoreUnsupported)
+        }
+        guard settableResult == .success else {
+            throw fail(.sourceRestoreFailed(code: Int32(settableResult.rawValue)))
+        }
+
+        let restoreResult = AXUIElementSetAttributeValue(
+            window,
+            kAXMinimizedAttribute as CFString,
+            kCFBooleanFalse
+        )
+        if restoreResult == .attributeUnsupported {
+            throw fail(.sourceRestoreUnsupported)
+        }
+        guard restoreResult == .success else {
+            throw fail(.sourceRestoreFailed(code: Int32(restoreResult.rawValue)))
+        }
     }
 
     private func fail(_ reason: InteractionViewOnlyReason) -> InteractionError {

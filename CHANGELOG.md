@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-08-27
-
 ### Added
 
 - Added a Settings shortcut for opening the latest Fuwa release in the default browser.
@@ -16,12 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Removed the app icon's extra outer matte and included every standard and Retina ICNS size.
 - Request Screen Recording only once instead of invoking the macOS permission request again after every denied pin attempt.
+- Retry the original pin once when that first Screen Recording request is granted, instead of reporting a false denial.
 - Require one stable signing identity and verify the full designated requirement before replacing the canonical local installation, preventing rebuilt apps from repeatedly losing Screen Recording and Accessibility grants.
 - Preserve transient Finder Quick Look targets before the menu-bar popover takes focus, including system-hosted previews whose ScreenCaptureKit owner PID differs from WindowServer metadata.
+- Keep overlays available across Stage Manager app sets, confirm source-app activation before raising it, and restore explicitly minimized source windows.
+- Stop captures that never produce a complete first frame while preserving an existing frozen frame after a failed Resume.
 
 ### Changed
 
 - Source builds now fail closed when no stable signing identity exists; runnable ad-hoc bundles are not produced.
+- Live capture surfaces are capped at four megapixels per pin, and universal packaging now validates both requested architectures.
 - Replaced the neutral prototype icon with an original Fuwa mascot that belongs to the same visual family as Kiri and mimi, and aligned both README headers with that product system.
 - Added a reproducible icon pipeline and CI freshness check so the committed `.icns` cannot drift from the transparent PNG master.
 - Collapsed the empty Pins area into a compact popover while keeping the full management list for active pins.
@@ -41,6 +43,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yuxino/fuwa/releases/tag/v0.1.0

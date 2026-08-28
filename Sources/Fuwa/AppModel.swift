@@ -272,7 +272,14 @@ final class AppModel: ObservableObject {
                 try await actions.interact(id)
                 self?.setEngagedPin(id)
             } catch {
-                self?.interactionStates[id] = .unavailable(error.localizedDescription)
+                if let self {
+                    interactionStates[id] = .unavailable(
+                        FuwaErrorMessage.localizedDescription(
+                            for: error,
+                            language: copy.language
+                        )
+                    )
+                }
                 throw error
             }
         }
@@ -281,6 +288,7 @@ final class AppModel: ObservableObject {
     func revealSource(_ id: UUID) {
         performPinAction(id) { [weak self] actions in
             try await actions.revealSource(id)
+            self?.interactionStates[id] = .viewOnly
             self?.setEngagedPin(nil)
         }
     }

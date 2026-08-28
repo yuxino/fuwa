@@ -63,6 +63,17 @@ public enum PinTransitionError: Error, Equatable, Hashable, Sendable {
     case invalidTransition(from: PinState, event: PinEvent)
 }
 
+/// Maps a first-frame deadline to the existing state-machine event that
+/// preserves the correct initial-capture or Resume behavior.
+public enum PinStartTimeoutPolicy {
+    public static func event(resumingFrom previousReason: PinFreezeReason?) -> PinEvent {
+        guard let previousReason else {
+            return .fail(.captureFailed)
+        }
+        return .resumeFailed(previousReason)
+    }
+}
+
 /// A small value-type state machine shared by capture sessions and their tests.
 ///
 /// `apply(_:)` computes the whole transition before mutating `state`, so rejected

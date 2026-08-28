@@ -125,6 +125,37 @@ func runPinStateTests(runner: inout LogicTestRunner) {
         runner.expect(false, "source disappearance should be a defined transition: \(error)")
     }
 
+    var initialStartTimeout = PinStateMachine(initialState: .starting)
+    do {
+        let timeoutEvent = PinStartTimeoutPolicy.event(resumingFrom: nil)
+        _ = try initialStartTimeout.apply(timeoutEvent)
+        runner.expect(
+            timeoutEvent == .fail(.captureFailed)
+                && initialStartTimeout.state == .failed(.captureFailed),
+            "an initial first-frame timeout fails and releases its blank presentation"
+        )
+    } catch {
+        runner.expect(false, "an initial first-frame timeout should be a valid failure: \(error)")
+    }
+
+    for previousReason in [PinFreezeReason.manual, .captureInterrupted] {
+        var resumedStartTimeout = PinStateMachine(initialState: .starting)
+        do {
+            let timeoutEvent = PinStartTimeoutPolicy.event(resumingFrom: previousReason)
+            _ = try resumedStartTimeout.apply(timeoutEvent)
+            runner.expect(
+                timeoutEvent == .resumeFailed(previousReason)
+                    && resumedStartTimeout.state == .frozen(previousReason),
+                "a Resume first-frame timeout preserves the previous frozen frame"
+            )
+        } catch {
+            runner.expect(
+                false,
+                "a Resume first-frame timeout should restore its frozen state: \(error)"
+            )
+        }
+    }
+
     var invalid = PinStateMachine()
     do {
         _ = try invalid.apply(.firstCompleteFrame)

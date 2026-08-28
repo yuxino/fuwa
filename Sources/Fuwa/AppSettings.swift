@@ -87,10 +87,6 @@ final class LaunchAtLoginController {
         }
     }
 
-    var isEnabled: Bool {
-        state == .enabled
-    }
-
     @discardableResult
     func setEnabled(_ enabled: Bool) throws -> FuwaLaunchAtLoginState {
         let service = SMAppService.mainApp

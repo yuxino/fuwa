@@ -15,30 +15,41 @@ fail() {
     exit 1
 }
 
-FUWA_EXISTING_IDENTITY="$(
+if FUWA_EXISTING_IDENTITY="$(
     FUWA_CODESIGN_IDENTITY="${FUWA_IDENTITY_NAME}" \
-        "${FUWA_SCRIPT_DIR}/codesign-identity.sh" 2>/dev/null || true
-)"
-if [[ -n "${FUWA_EXISTING_IDENTITY}" ]]; then
+        "${FUWA_SCRIPT_DIR}/codesign-identity.sh" 2>&1
+)"; then
     print -r -- "Stable local signing identity already exists: ${FUWA_EXISTING_IDENTITY}"
     exit 0
+else
+    FUWA_IDENTITY_RESOLUTION_STATUS=$?
+fi
+if (( FUWA_IDENTITY_RESOLUTION_STATUS != 4 )); then
+    [[ -z "${FUWA_EXISTING_IDENTITY}" ]] \
+        || print -u2 -r -- "${FUWA_EXISTING_IDENTITY}"
+    fail "refusing to create a certificate because identity resolution did not complete safely"
 fi
 
+if ! FUWA_DEFAULT_KEYCHAIN_OUTPUT="$(/usr/bin/security default-keychain -d user)"; then
+    fail "the user default keychain query failed"
+fi
 FUWA_DEFAULT_KEYCHAIN="$(
-    /usr/bin/security default-keychain -d user 2>/dev/null \
+    print -r -- "${FUWA_DEFAULT_KEYCHAIN_OUTPUT}" \
         | /usr/bin/tr -d '"' \
         | /usr/bin/xargs
 )"
 [[ -n "${FUWA_DEFAULT_KEYCHAIN}" && -f "${FUWA_DEFAULT_KEYCHAIN}" ]] \
     || fail "the user default keychain could not be located"
 
-FUWA_EXISTING_CERTIFICATES="$(
+if ! FUWA_EXISTING_CERTIFICATES="$(
     /usr/bin/security find-certificate \
         -a \
         -c "${FUWA_IDENTITY_NAME}" \
         -Z \
-        "${FUWA_DEFAULT_KEYCHAIN}" 2>/dev/null || true
-)"
+        "${FUWA_DEFAULT_KEYCHAIN}"
+)"; then
+    fail "the existing local signing certificate query failed"
+fi
 if [[ -n "${FUWA_EXISTING_CERTIFICATES}" ]]; then
     cat >&2 <<EOF
 error: a certificate named '${FUWA_IDENTITY_NAME}' exists, but it is not a
