@@ -1,36 +1,70 @@
-# Fuwa
+<div align="center">
+  <img src="docs/images/app-icon.png" width="112" alt="Fuwa 应用图标">
+  <h1>Fuwa</h1>
+  <p>把需要的窗口留在最前面。</p>
+  <p>
+    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>下载 Fuwa</strong></a>
+    · <a href="README_EN.md">English</a>
+  </p>
+</div>
 
-Fuwa 是一款本地运行的 macOS 14+ 菜单栏工具，通过实时镜像让应用窗口和 Finder 空格预览保持可见，而不是改变源窗口的真实窗口层级。
+Fuwa 是一个本地运行的 macOS 菜单栏工具。它把应用窗口和 Finder 空格预览显示为保持在前方的实时镜像，不改变源窗口的真实窗口层级。
 
-[English](README_EN.md) · [下载最新版本](https://github.com/yuxino/fuwa/releases/latest)
+## 使用
 
-## 核心能力
+1. 启动 Fuwa，把目标窗口置于前方。
+2. 按 `⌥⌘P` 固定窗口；让同一源窗口再次置于前方并按下即可取消。
+3. 从菜单栏管理 Pin，或切换实时与冻结画面。
 
-- 按 `⌥⌘P` 固定当前最前方窗口；让同一源窗口处于最前方并再次按下即可取消。快捷键可自定义。
-- 同时管理多个固定窗口。
-- 在实时画面与冻结画面之间切换。
-- 支持普通窗口与 Finder 空格预览。
+## 功能
 
-## 开始使用
+- 同时固定多个窗口。
+- 支持普通窗口与 Finder Quick Look。
+- 可自定义快捷键。
+- 镜像始终穿透鼠标；“交互”或“显示源窗口”只会激活并抬升真实源窗口。
+- 窗口画面和元数据只在本机处理，无上传、分析、遥测或后台网络请求；“查看最新版本”仅在点击后用默认浏览器打开 GitHub。
 
-1. 从 [最新版本](https://github.com/yuxino/fuwa/releases/latest) 下载 `Fuwa-*.zip` 和同版本的 `.sha256` 文件。
-2. 在两个文件所在的文件夹中验证压缩包：
+## 要求
 
-   ```sh
-   shasum -a 256 -c Fuwa-*.zip.sha256
-   ```
+- macOS 14 或更高版本
+- 屏幕录制权限，仅在第一次尝试固定时请求
+- 辅助功能权限，仅在使用“交互”或“显示源窗口”时请求
 
-3. 解压并将 `Fuwa.app` 移到 `/Applications`。当前发行包未使用 Apple Developer ID 签名，也未经过 Apple 公证；如果 macOS 阻止首次打开，请按 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) 操作。
-4. 启动 Fuwa，把目标窗口置于最前方，然后按 `⌥⌘P`。菜单栏中可冻结、恢复或取消固定。
+## 安装
 
-从源码构建与安装请参阅 [贡献指南](CONTRIBUTING.md)。
+从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载应用压缩包和同版本的 `.sha256` 文件。发行包未使用 Apple Developer ID 签名，也未经过 Apple 公证。
 
-## 权限、隐私与限制
+从 0.1.0 升级时，macOS 可能要求重新授予一次屏幕录制和辅助功能权限；后续稳定签名更新通常不会重复请求。
 
-- **屏幕录制**：固定窗口所必需，仅在第一次尝试固定时请求。
-- **辅助功能**：可选，仅在你选择“交互”或“显示源窗口”时请求。
-- 窗口画面和元数据只在本机处理；Fuwa 没有上传、分析、遥测或后台网络请求。“查看最新版本”只会在明确点击后用默认浏览器打开 GitHub。
-- Fuwa 创建的是不接收输入的只读镜像，不会改变其他 App 的真实窗口层级。“交互”或“显示源窗口”只会激活并抬升真实源窗口。
-- DRM 内容、系统安全窗口和部分特殊 GPU 窗口可能无法捕获。
+打开前先校验压缩包：
 
-[隐私](PRIVACY.md) · [安全](SECURITY.md) · [独立实现说明](docs/independent-implementation.md) · [MIT 许可证](LICENSE) · © 2026 yuxino and Fuwa contributors
+```sh
+shasum -a 256 -c Fuwa-*.zip.sha256
+```
+
+把 `Fuwa.app` 移到 `/Applications` 后，如果 macOS 阻止打开，请参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。熟悉命令行的用户也可在校验和通过后验证代码封印并移除隔离属性：
+
+```sh
+codesign --verify --deep --strict /Applications/Fuwa.app
+xattr -dr com.apple.quarantine /Applications/Fuwa.app
+open /Applications/Fuwa.app
+```
+
+从源码安装：
+
+```sh
+git clone https://github.com/yuxino/fuwa.git
+cd fuwa
+./scripts/setup-local-signing.sh
+./scripts/install-app.sh
+```
+
+## 说明
+
+Fuwa 显示的是镜像，不会修改其他 App 的真实窗口层级。DRM 内容、系统安全窗口和部分特殊 GPU 窗口可能无法捕获。
+
+[隐私](PRIVACY.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [独立实现说明](docs/independent-implementation.md)
+
+## 许可证
+
+[MIT](LICENSE) © 2026 yuxino and Fuwa contributors
