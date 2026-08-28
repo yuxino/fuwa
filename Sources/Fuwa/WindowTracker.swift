@@ -1,4 +1,5 @@
 import Foundation
+import FuwaCore
 
 /// Maintains one WindowServer inventory clock for every pin that is currently
 /// starting or live.
@@ -10,7 +11,7 @@ import Foundation
 /// consume the same, internally consistent WindowServer snapshot.
 @MainActor
 final class WindowTracker {
-    typealias InventoryHandler = @MainActor (WindowInventory) -> Void
+    typealias InventoryHandler = @MainActor (WindowTrackingSnapshot) -> Void
     typealias ErrorHandler = @MainActor (WindowInventoryError) -> Void
 
     /// A short burst at 10 Hz catches interactive moves and resizes without
@@ -130,7 +131,7 @@ final class WindowTracker {
         do {
             // One snapshot is deliberately shared by every interested session.
             // Do not move this call into a per-session callback.
-            let inventory = try WindowInventory.capture()
+            let inventory = try WindowInventory.captureTrackingSnapshot()
             lastReportedError = nil
             onInventory?(inventory)
         } catch let error as WindowInventoryError {

@@ -14,17 +14,9 @@ struct PinsView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 12)
 
-            if showsContentArea {
+            if !model.pins.isEmpty {
                 Divider()
-
-                switch model.contentState {
-                case .loading:
-                    scrollableState { loadingState }
-                case .failed(let message):
-                    scrollableState { errorState(message) }
-                case .ready:
-                    pinsList
-                }
+                pinsList
             }
         }
         .onAppear {
@@ -98,66 +90,11 @@ struct PinsView: View {
         }
     }
 
-    private var loadingState: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-                .controlSize(.small)
-            Text(copy.text(.loadingPins))
-                .font(.body)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func errorState(_ message: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.title2)
-                .foregroundStyle(Color.red)
-                .accessibilityHidden(true)
-
-            Text(copy.text(.error))
-                .font(.body.weight(.semibold))
-
-            Text(message)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 270)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button(copy.text(.tryAgain), action: model.pinFrontWindow)
-                .buttonStyle(FuwaQuietButtonStyle())
-                .padding(.top, 3)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .contain)
-    }
-
     private var pinButtonTitle: String {
         model.isPinningFrontWindow ? copy.text(.pinning) : copy.text(.pinFrontWindow)
     }
 
     private var pinButtonHint: String {
         model.shortcutIsActive ? copy.text(.noPinsBody) : copy.text(.shortcutInactive)
-    }
-
-    private var showsContentArea: Bool {
-        model.contentState != .ready || !model.pins.isEmpty
-    }
-
-    private func scrollableState<Content: View>(
-        @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        GeometryReader { geometry in
-            ScrollView {
-                content()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .frame(minHeight: geometry.size.height)
-            }
-            .scrollIndicators(.automatic)
-        }
     }
 }

@@ -94,6 +94,10 @@ cp -R "${FUWA_PROJECT_DIR}/Resources/en.lproj" "${FUWA_RESOURCES_DIR}/en.lproj"
 cp -R "${FUWA_PROJECT_DIR}/Resources/zh-Hans.lproj" "${FUWA_RESOURCES_DIR}/zh-Hans.lproj"
 chmod +x "${FUWA_MACOS_DIR}/Fuwa"
 
+# Strip only the distributable copy. Keep SwiftPM's build output intact so
+# local crash reports and profiling sessions retain their diagnostic symbols.
+/usr/bin/strip -x "${FUWA_MACOS_DIR}/Fuwa"
+
 if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
     verify_universal_binary "${FUWA_MACOS_DIR}/Fuwa"
 fi

@@ -4,15 +4,13 @@ import SwiftUI
 enum FuwaPopoverLayout {
     static func isCompactEmpty(
         route: FuwaPopoverRoute,
-        contentState: FuwaContentState,
         hasPins: Bool
     ) -> Bool {
-        route == .pins && contentState == .ready && !hasPins
+        route == .pins && !hasPins
     }
 
     static func preferredContentSize(
         route: FuwaPopoverRoute,
-        contentState: FuwaContentState,
         hasPins: Bool,
         hasNotice: Bool,
         hasPermissionWarning: Bool,
@@ -20,7 +18,6 @@ enum FuwaPopoverLayout {
     ) -> NSSize {
         let compact = isCompactEmpty(
             route: route,
-            contentState: contentState,
             hasPins: hasPins
         )
 
@@ -57,7 +54,6 @@ enum FuwaPopoverLayout {
 
 private struct FuwaPopoverLayoutSignature: Equatable {
     let route: FuwaPopoverRoute
-    let contentState: FuwaContentState
     let hasPins: Bool
     let noticeID: UUID?
     let hasPermissionWarning: Bool
@@ -259,7 +255,6 @@ struct FuwaPopoverView: View {
     private var preferredContentSize: NSSize {
         FuwaPopoverLayout.preferredContentSize(
             route: model.route,
-            contentState: model.contentState,
             hasPins: !model.pins.isEmpty,
             hasNotice: model.notice != nil,
             hasPermissionWarning: model.hasPermissionWarning,
@@ -270,7 +265,6 @@ struct FuwaPopoverView: View {
     private var isCompactEmpty: Bool {
         FuwaPopoverLayout.isCompactEmpty(
             route: model.route,
-            contentState: model.contentState,
             hasPins: !model.pins.isEmpty
         )
     }
@@ -278,7 +272,6 @@ struct FuwaPopoverView: View {
     private var layoutSignature: FuwaPopoverLayoutSignature {
         FuwaPopoverLayoutSignature(
             route: model.route,
-            contentState: model.contentState,
             hasPins: !model.pins.isEmpty,
             noticeID: model.notice?.id,
             hasPermissionWarning: model.hasPermissionWarning,

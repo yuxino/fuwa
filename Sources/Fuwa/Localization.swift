@@ -18,10 +18,7 @@ enum FuwaString: String, CaseIterable, Sendable {
     case pinFrontWindow
     case pinning
     case pins
-    case noPinsTitle
     case noPinsBody
-    case loadingPins
-    case tryAgain
     case live
     case starting
     case resolving
@@ -67,10 +64,8 @@ enum FuwaString: String, CaseIterable, Sendable {
     case moreActions
     case quit
     case version
-    case error
     case dismiss
     case cancel
-    case pinsCount
     case statusPinned
     case statusNoPins
     case permissionAttention
@@ -107,10 +102,7 @@ struct FuwaCopy: Sendable {
         .pinFrontWindow: "Pin Front Window",
         .pinning: "Pinning…",
         .pins: "Pins",
-        .noPinsTitle: "Nothing pinned",
         .noPinsBody: "Bring a window to the front, then use the shortcut.",
-        .loadingPins: "Loading pins…",
-        .tryAgain: "Try Again",
         .live: "Live",
         .starting: "Starting…",
         .resolving: "Finding window…",
@@ -156,10 +148,8 @@ struct FuwaCopy: Sendable {
         .moreActions: "More Actions",
         .quit: "Quit Fuwa",
         .version: "Version",
-        .error: "Something went wrong",
         .dismiss: "Dismiss",
         .cancel: "Cancel",
-        .pinsCount: "Pinned windows",
         .statusPinned: "Fuwa has pinned windows",
         .statusNoPins: "Fuwa, no pinned windows",
         .permissionAttention: "Permission needs attention"
@@ -171,10 +161,7 @@ struct FuwaCopy: Sendable {
         .pinFrontWindow: "固定最前方窗口",
         .pinning: "正在固定…",
         .pins: "已固定",
-        .noPinsTitle: "还没有固定窗口",
         .noPinsBody: "把窗口放到最前面，然后按快捷键。",
-        .loadingPins: "正在载入…",
-        .tryAgain: "再试一次",
         .live: "实时",
         .starting: "正在启动…",
         .resolving: "正在查找窗口…",
@@ -220,10 +207,8 @@ struct FuwaCopy: Sendable {
         .moreActions: "更多操作",
         .quit: "退出 Fuwa",
         .version: "版本",
-        .error: "出现了一点问题",
         .dismiss: "关闭",
         .cancel: "取消",
-        .pinsCount: "固定窗口",
         .statusPinned: "Fuwa 有已固定窗口",
         .statusNoPins: "Fuwa，没有固定窗口",
         .permissionAttention: "权限需要处理"

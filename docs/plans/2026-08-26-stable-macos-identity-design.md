@@ -17,13 +17,14 @@ the existing error and Settings flow; they do not call the system request
 again. Accessibility keeps the same request-once behavior it already had.
 
 Runnable local bundles must use a stable signing identity and a stable bundle
-identifier. Fuwa selects an explicit `FUWA_CODESIGN_IDENTITY`, then a unique
-Apple Development identity, then the existing shared local identity named
-`mimi Local Development`. The legacy name is retained because mimi, kiri, and
-satori already use that certificate; rotating it merely for naming would force
-one more identity migration. With no stable identity, packaging fails closed
-without creating a runnable app or archive. There is no ad-hoc escape hatch
-for a program whose normal behavior can request macOS privacy access.
+identifier. Fuwa selects an explicit `FUWA_CODESIGN_IDENTITY`, then the existing
+shared local identity named `mimi Local Development`, then a unique Apple
+Development identity. The legacy name is retained because mimi, kiri, and
+satori already use that certificate; selecting an unrelated identity or
+rotating it merely for naming would force one more identity migration. With no
+stable identity, packaging fails closed without creating a runnable app or
+archive. There is no ad-hoc escape hatch for a program whose normal behavior
+can request macOS privacy access.
 
 Manual testing uses `/Applications/Fuwa.app`. The installer verifies the
 bundle identifier and full designated requirement before replacement and
@@ -36,7 +37,8 @@ and must not start with `cdhash`.
 
 This is the default for every current and future macOS app: stable bundle ID,
 stable signing root, canonical `.app` path, request-once permission UX, and an
-update-in-place identity test. Apple Development or Developer ID is preferred
-because a Team ID also gives Keychain stronger continuity. A self-signed root
+update-in-place identity test. Developer ID remains the distribution target;
+for local builds, preserving an established identity takes priority over
+silently switching to another available certificate. A self-signed root
 stabilizes TCC permissions, but it cannot promise password-free Keychain access
 after every native rebuild.

@@ -39,8 +39,7 @@ final class CaptureView: NSView {
     private let frozenLayer = CALayer()
     private var latestCompletePixelBuffer: CVPixelBuffer?
     private var hasReceivedCompleteFrame = false
-    private var hasSubsequentCompleteFrame = false
-    private var firstPresentationCompleted = false
+    private var firstFrameBridgeLifecycle = FirstFrameBridgeLifecycle()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -98,10 +97,10 @@ final class CaptureView: NSView {
 
         renderer.enqueue(sampleBuffer)
         if isFirstCompleteFrame {
+            firstFrameBridgeLifecycle.begin()
             setShowingFirstFrameBridge(Self.transientImage(from: pixelBuffer))
-        } else {
-            hasSubsequentCompleteFrame = true
-            releaseFirstFrameBridgeIfReady()
+        } else if firstFrameBridgeLifecycle.receiveSubsequentCompleteFrame() {
+            setShowingLiveFrame()
         }
         return receipt
     }
@@ -216,8 +215,9 @@ final class CaptureView: NSView {
     /// loop turn has completed. The bridge remains until a subsequent complete
     /// frame is also available, so the renderer always has a real frame behind it.
     func completeFirstPresentation() {
-        firstPresentationCompleted = true
-        releaseFirstFrameBridgeIfReady()
+        if firstFrameBridgeLifecycle.completeFirstPresentation() {
+            setShowingLiveFrame()
+        }
     }
 
     private func setShowingLiveFrame() {
@@ -247,14 +247,8 @@ final class CaptureView: NSView {
         CATransaction.commit()
     }
 
-    private func releaseFirstFrameBridgeIfReady() {
-        guard firstPresentationCompleted, hasSubsequentCompleteFrame else { return }
-        setShowingLiveFrame()
-    }
-
     private func resetFirstPresentationState() {
-        hasSubsequentCompleteFrame = false
-        firstPresentationCompleted = false
+        firstFrameBridgeLifecycle.reset()
     }
 
     private static func transientImage(from pixelBuffer: CVPixelBuffer) -> CGImage? {

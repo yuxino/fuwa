@@ -95,6 +95,27 @@ struct WindowInventory: Sendable {
         )
     }
 
+    /// Captures only the WindowServer state required to reconcile existing pins.
+    /// `.optionAll` is essential here: minimized, off-Space, and other Stage
+    /// Manager application-set windows must remain live tracking candidates.
+    @MainActor
+    static func captureTrackingSnapshot() throws -> WindowTrackingSnapshot {
+        guard let allWindowInfo = CGWindowListCopyWindowInfo(
+            .optionAll,
+            kCGNullWindowID
+        ) as? [[String: Any]] else {
+            throw WindowInventoryError.windowListUnavailable
+        }
+
+        return WindowTrackingSnapshot(
+            descriptors: descriptors(
+                from: allWindowInfo,
+                resolvesBundleIdentifiers: false
+            ),
+            coordinateSpace: try activeDisplayCoordinateSpace()
+        )
+    }
+
     /// A narrow liveness check used only to classify an exact-ID confirmation
     /// failure. It never participates in selecting a replacement target.
     @MainActor
@@ -125,7 +146,10 @@ struct WindowInventory: Sendable {
     }
 
     @MainActor
-    private static func descriptors(from windowInfo: [[String: Any]]) -> [WindowDescriptor] {
+    private static func descriptors(
+        from windowInfo: [[String: Any]],
+        resolvesBundleIdentifiers: Bool = true
+    ) -> [WindowDescriptor] {
         var bundleIdentifiers: [pid_t: String] = [:]
         var resolvedProcessIDs = Set<pid_t>()
         var result: [WindowDescriptor] = []
@@ -137,7 +161,8 @@ struct WindowInventory: Sendable {
             }
 
             let processID = rawDescriptor.ownerPID
-            if resolvedProcessIDs.insert(processID).inserted,
+            if resolvesBundleIdentifiers,
+               resolvedProcessIDs.insert(processID).inserted,
                let bundleIdentifier = NSRunningApplication(
                    processIdentifier: processID
                )?.bundleIdentifier,

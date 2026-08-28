@@ -258,7 +258,7 @@ final class PinCoordinator {
         }
     }
 
-    private func reconcileSessions(with inventory: WindowInventory) {
+    private func reconcileSessions(with inventory: WindowTrackingSnapshot) {
         for session in sessionsByID.values where session.needsWindowTracking {
             session.reconcile(
                 descriptor: inventory.descriptor(for: session.sourceWindowID),

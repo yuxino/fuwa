@@ -6,10 +6,6 @@ import ApplicationServices
 enum AccessibilityPermissionStatus: Equatable, Sendable {
     case granted
     case notGranted
-
-    var isGranted: Bool {
-        self == .granted
-    }
 }
 
 /// Keeps Accessibility permission checks explicit and prompt-free by default.

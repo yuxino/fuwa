@@ -2,12 +2,6 @@ import Combine
 import Foundation
 import FuwaCore
 
-enum FuwaContentState: Equatable {
-    case loading
-    case ready
-    case failed(String)
-}
-
 enum FuwaPopoverRoute: Equatable {
     case pins
     case settings
@@ -73,7 +67,6 @@ final class AppModel: ObservableObject {
     @Published private(set) var pins: [PinSnapshot] = [] {
         didSet { onStatusPresentationChanged?() }
     }
-    @Published private(set) var contentState: FuwaContentState = .ready
     @Published private(set) var route: FuwaPopoverRoute = .pins
     @Published private(set) var notice: FuwaNotice?
     @Published private(set) var shortcut: KeyboardShortcut {
@@ -134,17 +127,8 @@ final class AppModel: ObservableObject {
         self.actions = actions
     }
 
-    func setLoading() {
-        contentState = .loading
-    }
-
-    func setContentError(_ message: String) {
-        contentState = .failed(message)
-    }
-
     func updatePins(_ snapshots: [PinSnapshot]) {
         pins = snapshots
-        contentState = .ready
 
         let activeIDs = Set(snapshots.map(\.id))
         interactionStates = interactionStates.filter { activeIDs.contains($0.key) }

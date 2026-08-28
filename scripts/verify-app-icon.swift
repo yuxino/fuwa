@@ -13,6 +13,17 @@ struct DecodedImage {
     let width: Int
     let height: Int
     let pixels: [UInt8]
+
+    func alpha(x: Int, y: Int) -> UInt8 {
+        pixels[((y * width) + x) * 4 + 3]
+    }
+
+    func sampledAlpha(xRatio: Double, yRatio: Double) -> UInt8 {
+        alpha(
+            x: Int((Double(width - 1) * xRatio).rounded()),
+            y: Int((Double(height - 1) * yRatio).rounded())
+        )
+    }
 }
 
 func decode(_ url: URL) -> DecodedImage? {
@@ -41,12 +52,68 @@ func decode(_ url: URL) -> DecodedImage? {
     return DecodedImage(width: image.width, height: image.height, pixels: pixels)
 }
 
-guard CommandLine.arguments.count == 3 else {
-    fail("usage: verify-icon-roundtrip.swift SOURCE.iconset EXTRACTED.iconset")
+guard CommandLine.arguments.count == 4 else {
+    fail("usage: verify-app-icon.swift MASTER.png SOURCE.iconset EXTRACTED.iconset")
 }
 
-let sourceDirectory = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
-let extractedDirectory = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+let masterURL = URL(fileURLWithPath: CommandLine.arguments[1])
+let sourceDirectory = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+let extractedDirectory = URL(fileURLWithPath: CommandLine.arguments[3], isDirectory: true)
+
+guard let master = decode(masterURL) else {
+    fail("unable to decode \(masterURL.path)")
+}
+
+let cornerAlpha = [
+    master.alpha(x: 0, y: 0),
+    master.alpha(x: master.width - 1, y: 0),
+    master.alpha(x: 0, y: master.height - 1),
+    master.alpha(x: master.width - 1, y: master.height - 1),
+]
+guard cornerAlpha.allSatisfy({ $0 <= 8 }) else {
+    fail("AppIcon.png corners must be genuinely transparent, not painted black or checkerboard")
+}
+
+let roundedCornerAlpha = [
+    master.sampledAlpha(xRatio: 0.10, yRatio: 0.10),
+    master.sampledAlpha(xRatio: 0.90, yRatio: 0.10),
+    master.sampledAlpha(xRatio: 0.10, yRatio: 0.90),
+    master.sampledAlpha(xRatio: 0.90, yRatio: 0.90),
+]
+guard roundedCornerAlpha.allSatisfy({ $0 <= 8 }) else {
+    fail("AppIcon.png must not contain an opaque outer matte around its rounded-square face")
+}
+
+let innerCornerAlpha = [
+    master.sampledAlpha(xRatio: 0.15, yRatio: 0.15),
+    master.sampledAlpha(xRatio: 0.85, yRatio: 0.15),
+    master.sampledAlpha(xRatio: 0.15, yRatio: 0.85),
+    master.sampledAlpha(xRatio: 0.85, yRatio: 0.85),
+]
+guard innerCornerAlpha.allSatisfy({ $0 >= 247 }) else {
+    fail("AppIcon.png rounded-square face is too small or clipped")
+}
+
+var edgeTranslucentPixels = 0
+for y in 0..<master.height {
+    for x in 0..<master.width {
+        let value = master.alpha(x: x, y: y)
+        let isOuterBand = x < master.width / 5
+            || x >= master.width - master.width / 5
+            || y < master.height / 5
+            || y >= master.height - master.height / 5
+        if isOuterBand, value > 0, value < 255 {
+            edgeTranslucentPixels += 1
+        }
+    }
+}
+guard edgeTranslucentPixels > 0 else {
+    fail("AppIcon.png rounded edge must keep anti-aliasing")
+}
+guard master.alpha(x: master.width / 2, y: master.height / 2) >= 247 else {
+    fail("AppIcon.png center must remain opaque")
+}
+
 let expectedFiles = [
     ("icon_16x16.png", 16),
     ("icon_16x16@2x.png", 32),
@@ -98,4 +165,4 @@ for (filename, expectedSize) in expectedFiles {
     }
 }
 
-print("All standard and Retina ICNS representations survive a pixel round trip.")
+print("App icon alpha geometry and all standard and Retina representations are valid.")

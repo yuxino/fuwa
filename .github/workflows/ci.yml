@@ -25,11 +25,6 @@ jobs:
       - name: Show Swift toolchain
         run: swift --version
 
-      - name: Validate package manifest
-        run: |
-          swift package dump-package > /dev/null
-          swift package describe --type json > /dev/null
-
       - name: Build Fuwa in Release mode
         run: >-
           swift build --configuration release --product Fuwa

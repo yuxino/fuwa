@@ -7,6 +7,8 @@ runPinStateTests(runner: &runner)
 runKeyboardShortcutTests(runner: &runner)
 runDisplayCoordinateSpaceTests(runner: &runner)
 runFrozenFrameSizingTests(runner: &runner)
+runFirstFrameBridgeLifecycleTests(runner: &runner)
+runWindowTrackingSnapshotTests(runner: &runner)
 runSystemPermissionRequestPolicyTests(runner: &runner)
 runPreparedIntentSlotTests(runner: &runner)
 

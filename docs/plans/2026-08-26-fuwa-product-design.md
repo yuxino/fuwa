@@ -68,7 +68,7 @@ GlobalHotKey
     │
     ▼
 TargetResolver
- ├─ CGWindowInventory (z-order, bounds, PID, layer)
+ ├─ WindowInventory (z-order, bounds, PID, layer)
  ├─ SCShareableContent (capturable window map)
  └─ SelectionPolicy (self/system/visibility exclusions)
     │
@@ -115,7 +115,7 @@ Popover 保持单列、低密度、黑白与中性灰：
 - 每项提供 Freeze/Resume、Interact/Reveal、Unpin。
 - 底部提供权限状态、Launch at Login、快捷键设置、About 与 Quit。
 
-不使用渐变、玻璃拟态、彩色背景、重阴影或卡片墙。状态色只用于错误和权限警告。镜像面板默认无装饰；选中时才出现 1px 中性边框。
+不使用渐变、玻璃拟态、彩色背景、重阴影或卡片墙。状态色只用于错误和权限警告。镜像面板保持无装饰与鼠标穿透，并加入全空间、全屏辅助和 Stage Manager 应用集。
 
 ### 品牌资产
 
@@ -134,7 +134,7 @@ Fuwa 与 Kiri、mimi 属于同一产品家族。应用图标与 README 标识沿
 ## 权限与隐私
 
 - Screen Recording：只在第一次固定时申请。
-- Accessibility：只在第一次 Interact 时申请。
+- Accessibility：只在第一次 Interact 或 Reveal Source 时申请。
 - 不申请 Input Monitoring、Automation、相机、麦克风或网络权限。
 - `NSScreenCaptureUsageDescription` 明确说明只捕获用户主动选择的窗口、画面只留在本机。
 - 锁屏、睡眠、退出时停止全部流；锁屏和用户切换时清除 Frozen 像素。
@@ -143,9 +143,9 @@ Fuwa 与 Kiri、mimi 属于同一产品家族。应用图标与 README 标识沿
 
 - GitHub：`yuxino/fuwa`，public，MIT。
 - 最低系统：macOS 14。
-- CI：Swift 6 严格并发、warnings-as-errors、单元测试、打包与签名结构检查。
-- Release：universal2 `.app` 压缩包、校验和、Release notes。
-- 有 Developer ID 与 notarization 凭据时自动签名、公证和 staple；首个版本若凭据仍缺失，发布明确标记为 ad-hoc preview 的 universal2 包，同时保留完整的正式签名工作流。
+- CI：验证 Swift 包结构、Swift 6 严格 Release 构建、可执行逻辑检查、图标一致性、脚本语法与签名护栏。
+- Release：维护者手动生成并验证 universal2 `.app` 压缩包、校验和与签名；仓库当前没有 tag 触发的发布或公证工作流。
+- 当前本地候选构建使用持久签名身份，但不是 Developer ID 签名，也未经 Apple 公证。
 - v1 不依赖第三方自动更新框架；用户从 GitHub Releases 更新。
 
 ## 明确不做
@@ -164,9 +164,9 @@ Fuwa 与 Kiri、mimi 属于同一产品家族。应用图标与 README 标识沿
 - 不可捕获或解析期间消失的目标不会回退固定下面的窗口。
 - 第一张完整帧前不显示面板；关闭临时源窗口后转 Frozen。
 - 支持多个 Pin、逐个 Freeze/Resume/Unpin 和全部清除。
-- 默认只需屏幕录制；Interact 才请求辅助功能。
-- 多显示器坐标、缩放和源窗口移动能正确同步。
+- 默认只需屏幕录制；Interact 或 Reveal Source 才请求辅助功能。
+- 多显示器坐标、缩放、源窗口移动与 Stage Manager 应用集能正确同步。
 - 快速 Pin/Unpin、窗口销毁、睡眠唤醒、锁屏和权限撤回不会崩溃或残留面板。
 - 中英文界面、VoiceOver 标签、Launch at Login 与可修改快捷键可用。
-- `swift test`、严格 release build、打包验证和 CI 全部通过。
-- public GitHub 仓库包含 MIT LICENSE、双语 README、隐私说明、贡献指南、来源说明、截图和首个 Release。
+- `swift run --configuration release FuwaLogicTests`、严格 Release 构建、手动打包验证和 CI 全部通过。
+- public GitHub 仓库包含 MIT LICENSE、双语 README、隐私说明、贡献指南、来源说明和首个 Release。

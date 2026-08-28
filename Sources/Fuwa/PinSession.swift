@@ -237,7 +237,7 @@ final class PinSession {
 
         missingObservationCount = 0
         let previousFrame = descriptor.bounds
-        descriptor = currentDescriptor
+        descriptor = currentDescriptor.preservingOwnerMetadata(from: descriptor)
         coordinateSpace = currentCoordinateSpace
         updatePanelFrame(to: currentDescriptor.bounds)
 
