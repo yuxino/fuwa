@@ -32,7 +32,7 @@ Fuwa 是一个本地运行的 macOS 菜单栏工具。它把窗口显示为始�
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载应用压缩包和对应的 `.sha256` 文件。当前公开的最新版本仍是使用 ad-hoc 签名的 0.1.0；`main` 中改用项目持续维护签名证书的 0.1.1 候选版尚未发布。它们都没有 Apple Developer ID 签名，也未经过 Apple 公证。
+从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载应用压缩包和对应的 `.sha256` 文件。当前公开的最新版本是 0.1.1，使用项目持续维护的本地签名证书；它没有 Apple Developer ID 签名，也未经过 Apple 公证。
 
 从 0.1.0 首次升级到稳定签名构建会迁移代码身份，macOS 可能要求再授予一次屏幕录制和辅助功能权限；之后保持相同 Bundle ID、签名证书和安装路径的更新，通常不需要仅因构建变化而再次授权。
 
