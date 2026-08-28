@@ -39,13 +39,6 @@ FUWA_ICONSET_DIR="${FUWA_ICON_TEMP_DIR}/AppIcon.iconset"
 FUWA_ICON_GENERATED="${FUWA_ICON_TEMP_DIR}/AppIcon.icns"
 mkdir -p "${FUWA_ICONSET_DIR}"
 
-FUWA_ICON_SDK_15="/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
-if [[ -d "${FUWA_ICON_SDK_15}" ]]; then
-    export SDKROOT="${FUWA_ICON_SDK_15}"
-fi
-export CLANG_MODULE_CACHE_PATH="${FUWA_ICON_TEMP_DIR}/clang-cache"
-export SWIFTPM_MODULECACHE_OVERRIDE="${FUWA_ICON_TEMP_DIR}/swift-cache"
-
 FUWA_ICON_VARIANTS=(
     "16:icon_16x16.png"
     "32:icon_16x16@2x.png"
@@ -73,7 +66,16 @@ iconutil -c icns "${FUWA_ICONSET_DIR}" -o "${FUWA_ICON_GENERATED}"
 
 FUWA_ICON_EXTRACTED_DIR="${FUWA_ICON_TEMP_DIR}/Verified.iconset"
 iconutil -c iconset "${FUWA_ICON_GENERATED}" -o "${FUWA_ICON_EXTRACTED_DIR}"
-swift "${FUWA_ICON_SCRIPT_DIR}/verify-app-icon.swift" \
+cd "${FUWA_ICON_PROJECT_DIR}"
+swift build \
+    --configuration release \
+    --product FuwaLogicTests \
+    -Xswiftc -strict-concurrency=complete \
+    -Xswiftc -warnings-as-errors
+FUWA_ICON_BIN_DIR="$(swift build \
+    --configuration release \
+    --show-bin-path)"
+"${FUWA_ICON_BIN_DIR}/FuwaLogicTests" --verify-app-icon \
     "${FUWA_ICON_SOURCE}" \
     "${FUWA_ICONSET_DIR}" \
     "${FUWA_ICON_EXTRACTED_DIR}"

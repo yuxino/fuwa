@@ -1,6 +1,10 @@
 import Darwin
 import FuwaCore
 
+if CommandLine.arguments.dropFirst().first == "--verify-app-icon" {
+    verifyAppIconCommand(arguments: Array(CommandLine.arguments.dropFirst()))
+}
+
 private var runner = LogicTestRunner()
 runSelectionPolicyTests(runner: &runner)
 runPinStateTests(runner: &runner)
