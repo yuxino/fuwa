@@ -26,7 +26,7 @@ Fuwa is a local macOS menu bar utility. It keeps app windows and Finder Quick Lo
 
 ## Requirements
 
-- macOS 14 or later (Apple silicon and Intel)
+- macOS 14 or later; the release package includes arm64 (Apple silicon) and x86_64 (Intel), but installation, permissions, and core functionality have not yet been validated on physical Intel Mac hardware
 - Screen Recording permission, requested only on the first pin attempt
 - Accessibility permission, requested only for `Interact` or `Reveal Source`
 
