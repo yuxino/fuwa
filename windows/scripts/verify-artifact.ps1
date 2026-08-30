@@ -27,6 +27,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'manifest-policy.ps1')
+
 function Assert-Condition {
     param(
         [Parameter(Mandatory = $true)]
@@ -132,96 +134,6 @@ function Get-FixedVersionEvidence {
         productVersionString = [string]$versionInfo.ProductVersion
         originalFilename = [string]$versionInfo.OriginalFilename
     }
-}
-
-function Read-ManifestPolicy {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    $settings = New-Object System.Xml.XmlReaderSettings
-    $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
-    $settings.XmlResolver = $null
-
-    $reader = [System.Xml.XmlReader]::Create($Path, $settings)
-    $document = New-Object System.Xml.XmlDocument
-    $document.XmlResolver = $null
-    try {
-        $document.Load($reader)
-    }
-    finally {
-        $reader.Dispose()
-    }
-
-    $privilegeNodes = $document.SelectNodes(
-        "//*[local-name()='requestedExecutionLevel']"
-    )
-    Assert-Condition `
-        -Condition ($privilegeNodes.Count -eq 1) `
-        -Message 'Manifest must contain exactly one requestedExecutionLevel element.'
-
-    $privilegeNode = $privilegeNodes.Item(0)
-    $level = $privilegeNode.GetAttribute('level')
-    $uiAccess = $privilegeNode.GetAttribute('uiAccess')
-    Assert-Condition `
-        -Condition ($level -ceq 'asInvoker') `
-        -Message "Manifest execution level must be asInvoker, found: $level"
-    Assert-Condition `
-        -Condition ($uiAccess -ceq 'false') `
-        -Message "Manifest uiAccess must be false, found: $uiAccess"
-
-    $identityNodes = $document.SelectNodes(
-        "/*[local-name()='assembly']/*[local-name()='assemblyIdentity']"
-    )
-    Assert-Condition `
-        -Condition ($identityNodes.Count -eq 1) `
-        -Message 'Manifest must contain exactly one root assemblyIdentity element.'
-
-    $autoElevateNodes = $document.SelectNodes("//*[local-name()='autoElevate']")
-    Assert-Condition `
-        -Condition ($autoElevateNodes.Count -eq 0) `
-        -Message 'Manifest must not contain an autoElevate element.'
-
-    $identityNode = $identityNodes.Item(0)
-    return [pscustomobject][ordered]@{
-        requestedExecutionLevel = $level
-        uiAccess = $uiAccess
-        autoElevate = $false
-        assemblyName = $identityNode.GetAttribute('name')
-        assemblyVersion = $identityNode.GetAttribute('version')
-    }
-}
-
-function Get-CanonicalManifestXml {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    $settings = New-Object System.Xml.XmlReaderSettings
-    $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
-    $settings.XmlResolver = $null
-
-    $reader = [System.Xml.XmlReader]::Create($Path, $settings)
-    $document = New-Object System.Xml.XmlDocument
-    $document.PreserveWhitespace = $false
-    $document.XmlResolver = $null
-    try {
-        $document.Load($reader)
-    }
-    finally {
-        $reader.Dispose()
-    }
-
-    Assert-Condition `
-        -Condition ($null -ne $document.DocumentElement) `
-        -Message 'Manifest does not contain a document element.'
-
-    # mt.exe may re-encode the resource or change its XML declaration when it
-    # extracts RT_MANIFEST. Compare the complete parsed document element so
-    # encoding, BOM and formatting differences do not weaken the policy gate.
-    return $document.DocumentElement.OuterXml
 }
 
 function Find-DumpBinPath {
@@ -685,13 +597,13 @@ try {
                 + $executableVersion.originalFilename
         )
 
-    $sourceManifestPolicy = Read-ManifestPolicy -Path $resolvedManifestPath
-    Assert-Condition `
-        -Condition ($sourceManifestPolicy.assemblyVersion -ceq $ExpectedVersion) `
-        -Message (
-            "Manifest assembly version must be $ExpectedVersion, found: " `
-                + $sourceManifestPolicy.assemblyVersion
-        )
+    $sourceManifestPolicy = Read-FuwaManifestPolicy `
+        -Path $resolvedManifestPath
+    Assert-FuwaManifestPolicyContract `
+        -Policy $sourceManifestPolicy `
+        -ExpectedArchitecture $normalizedArchitecture `
+        -ExpectedVersion $ExpectedVersion `
+        -Label 'Source'
 
     $mtPath = Find-MtPath
     $manifestToken = ([System.Guid]::NewGuid()).ToString('N')
@@ -703,41 +615,13 @@ try {
         -ExecutablePath $resolvedExecutablePath `
         -DestinationPath $embeddedManifestPath
     $embeddedManifestSha256 = Get-Sha256 -Path $embeddedManifestPath
-    $sourceManifestCanonicalXml = Get-CanonicalManifestXml `
-        -Path $resolvedManifestPath
-    $embeddedManifestCanonicalXml = Get-CanonicalManifestXml `
+    $embeddedManifestPolicy = Read-FuwaManifestPolicy `
         -Path $embeddedManifestPath
-    Assert-Condition `
-        -Condition ([System.String]::Equals(
-            $embeddedManifestCanonicalXml,
-            $sourceManifestCanonicalXml,
-            [System.StringComparison]::Ordinal
-        )) `
-        -Message 'Embedded RT_MANIFEST #1 is not structurally equivalent to the source manifest.'
-    $embeddedManifestPolicy = Read-ManifestPolicy -Path $embeddedManifestPath
-    Assert-Condition `
-        -Condition ($embeddedManifestPolicy.assemblyVersion -ceq $ExpectedVersion) `
-        -Message (
-            "Embedded manifest assembly version must be $ExpectedVersion, found: " `
-                + $embeddedManifestPolicy.assemblyVersion
-        )
-    foreach ($policyField in @(
-            'requestedExecutionLevel',
-            'uiAccess',
-            'autoElevate',
-            'assemblyName',
-            'assemblyVersion'
-        )) {
-        Assert-Condition `
-            -Condition (
-                $embeddedManifestPolicy.$policyField `
-                    -ceq $sourceManifestPolicy.$policyField
-            ) `
-            -Message (
-                "Embedded manifest differs from source policy field: " `
-                    + $policyField
-            )
-    }
+    Assert-FuwaManifestPoliciesEquivalent `
+        -SourcePolicy $sourceManifestPolicy `
+        -EmbeddedPolicy $embeddedManifestPolicy `
+        -ExpectedArchitecture $normalizedArchitecture `
+        -ExpectedVersion $ExpectedVersion
 
     $installerMachine = Get-PeMachine -Path $resolvedInstallerPath
     $dumpBinPath = Find-DumpBinPath
@@ -789,7 +673,7 @@ try {
         embedded = [ordered]@{
             resource = 'RT_MANIFEST #1'
             sha256 = $embeddedManifestSha256
-            comparison = 'Complete parsed XML document element; encoding, BOM, declaration and insignificant formatting are ignored.'
+            comparison = 'Strict behavior contract; target-safe processorArchitecture normalization permits mt.exe resource rewrites.'
             policy = $embeddedManifestPolicy
             extractionTool = $mtPath
         }
