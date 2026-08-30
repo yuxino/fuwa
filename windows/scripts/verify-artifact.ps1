@@ -193,6 +193,37 @@ function Read-ManifestPolicy {
     }
 }
 
+function Get-CanonicalManifestXml {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $settings = New-Object System.Xml.XmlReaderSettings
+    $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+    $settings.XmlResolver = $null
+
+    $reader = [System.Xml.XmlReader]::Create($Path, $settings)
+    $document = New-Object System.Xml.XmlDocument
+    $document.PreserveWhitespace = $false
+    $document.XmlResolver = $null
+    try {
+        $document.Load($reader)
+    }
+    finally {
+        $reader.Dispose()
+    }
+
+    Assert-Condition `
+        -Condition ($null -ne $document.DocumentElement) `
+        -Message 'Manifest does not contain a document element.'
+
+    # mt.exe may re-encode the resource or change its XML declaration when it
+    # extracts RT_MANIFEST. Compare the complete parsed document element so
+    # encoding, BOM and formatting differences do not weaken the policy gate.
+    return $document.DocumentElement.OuterXml
+}
+
 function Find-DumpBinPath {
     $commands = @(Get-Command dumpbin.exe -CommandType Application -ErrorAction SilentlyContinue)
     if ($commands.Count -gt 0) {
@@ -672,9 +703,17 @@ try {
         -ExecutablePath $resolvedExecutablePath `
         -DestinationPath $embeddedManifestPath
     $embeddedManifestSha256 = Get-Sha256 -Path $embeddedManifestPath
+    $sourceManifestCanonicalXml = Get-CanonicalManifestXml `
+        -Path $resolvedManifestPath
+    $embeddedManifestCanonicalXml = Get-CanonicalManifestXml `
+        -Path $embeddedManifestPath
     Assert-Condition `
-        -Condition ($embeddedManifestSha256 -ceq $initialManifestSha256) `
-        -Message 'Embedded RT_MANIFEST #1 is not byte-identical to the source manifest.'
+        -Condition ([System.String]::Equals(
+            $embeddedManifestCanonicalXml,
+            $sourceManifestCanonicalXml,
+            [System.StringComparison]::Ordinal
+        )) `
+        -Message 'Embedded RT_MANIFEST #1 is not structurally equivalent to the source manifest.'
     $embeddedManifestPolicy = Read-ManifestPolicy -Path $embeddedManifestPath
     Assert-Condition `
         -Condition ($embeddedManifestPolicy.assemblyVersion -ceq $ExpectedVersion) `
@@ -750,6 +789,7 @@ try {
         embedded = [ordered]@{
             resource = 'RT_MANIFEST #1'
             sha256 = $embeddedManifestSha256
+            comparison = 'Complete parsed XML document element; encoding, BOM, declaration and insignificant formatting are ignored.'
             policy = $embeddedManifestPolicy
             extractionTool = $mtPath
         }
