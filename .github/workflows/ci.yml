@@ -135,13 +135,13 @@ jobs:
       - name: Verify desktop shortcut packaging
         shell: pwsh
         run: |
-          $scripts = @(Get-ChildItem build/windows -Recurse -File -Filter ISScript.iss)
-          if ($scripts.Count -ne 1) {
-            throw "Expected one generated Inno Setup script, found $($scripts.Count)."
+          $config = Get-Content -LiteralPath build/windows/CPackConfig.cmake -Raw
+          if ($config -cnotmatch 'CPACK_INNOSETUP_EXTRA_SCRIPTS.+FuwaDesktopShortcut\.iss') {
+            throw "CPack is not configured to include the Fuwa desktop shortcut script."
           }
-          $script = Get-Content -LiteralPath $scripts[0].FullName -Raw
-          if ($script -cnotmatch 'Name: "\{autodesktop\}\\Fuwa"; Filename: "\{app\}\\Fuwa\.exe"') {
-            throw "The generated installer does not create the exact Fuwa desktop shortcut."
+          $shortcut = Get-Content -LiteralPath windows/installer/FuwaDesktopShortcut.iss -Raw
+          if ($shortcut -cnotmatch 'Name: "\{autodesktop\}\\Fuwa"; Filename: "\{app\}\\Fuwa\.exe"') {
+            throw "The included installer script does not create the exact Fuwa desktop shortcut."
           }
 
       - name: Verify executable and installer
