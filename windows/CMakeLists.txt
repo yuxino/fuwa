@@ -139,6 +139,9 @@ set(CPACK_INNOSETUP_USE_MODERN_WIZARD ON)
 set(CPACK_INNOSETUP_ICON_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/Fuwa.ico"
 )
+set(CPACK_INNOSETUP_EXTRA_SCRIPTS
+    "${CMAKE_CURRENT_SOURCE_DIR}/installer/FuwaDesktopShortcut.iss"
+)
 set(CPACK_INNOSETUP_SETUP_AppId "app.yuxino.fuwa.windows")
 set(CPACK_INNOSETUP_SETUP_AppMutex "Local\\app.yuxino.fuwa.windows")
 set(CPACK_INNOSETUP_SETUP_CloseApplications ON)

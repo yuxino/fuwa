@@ -132,6 +132,18 @@ jobs:
           cpack --config build/windows/CPackConfig.cmake
           -C Release -G INNOSETUP -B dist/windows
 
+      - name: Verify desktop shortcut packaging
+        shell: pwsh
+        run: |
+          $scripts = @(Get-ChildItem build/windows -Recurse -File -Filter ISScript.iss)
+          if ($scripts.Count -ne 1) {
+            throw "Expected one generated Inno Setup script, found $($scripts.Count)."
+          }
+          $script = Get-Content -LiteralPath $scripts[0].FullName -Raw
+          if ($script -cnotmatch 'Name: "\{autodesktop\}\\Fuwa"; Filename: "\{app\}\\Fuwa\.exe"') {
+            throw "The generated installer does not create the exact Fuwa desktop shortcut."
+          }
+
       - name: Verify executable and installer
         shell: powershell
         run: |
