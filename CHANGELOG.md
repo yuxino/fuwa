@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added a native Windows 11 control-window and system-tray app that mirrors one selected ordinary top-level window through the public DWM thumbnail API, with `Ctrl+Alt+P`, composite source-identity revalidation, click-through topmost presentation, source reveal, and lock/suspend cleanup.
+- Added strict native x64 and ARM64 Windows builds, deterministic core tests, per-user Inno Setup installers, SHA-256 files, and static artifact/import verification in CI without publishing a Release.
+
+### Changed
+
+- Defined Finder Quick Look as macOS-only. Windows Explorer and preview applications are supported only when they expose an ordinary eligible top-level window.
+- Documented Windows topmost, secure-desktop, virtual-desktop, protected-content, minimized-window, signing, permission, and privacy boundaries separately from macOS behavior.
+
 ## [0.1.1] - 2026-08-28
 
 ### Added
