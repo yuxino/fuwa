@@ -39,7 +39,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 10
     permissions:
-      contents: read
+      # GitHub hides draft Releases from tokens without push-level repository access.
+      contents: write
 
     steps:
       - name: Check out the exact tag
