@@ -425,28 +425,9 @@ jobs:
             local package_name="$1"
             local accepted_hash="${2,,}"
             local checksum_name="${package_name}.sha256"
-            local line_count
-            local recorded_hash
-            local recorded_name
-            local actual_hash
 
-            line_count="$(awk 'NF { count += 1 } END { print count + 0 }' "$checksum_name")"
-            if [[ "$line_count" != "1" ]]; then
-              echo "$checksum_name must contain exactly one non-empty checksum record." >&2
-              exit 1
-            fi
-            read -r recorded_hash recorded_name < "$checksum_name"
-            recorded_hash="${recorded_hash,,}"
-            recorded_name="${recorded_name#\*}"
-            if [[ "$recorded_hash" != "$accepted_hash" || "$recorded_name" != "$package_name" ]]; then
-              echo "$checksum_name does not record the accepted package bytes." >&2
-              exit 1
-            fi
-            actual_hash="$(sha256sum "$package_name" | awk '{ print tolower($1) }')"
-            if [[ "$actual_hash" != "$accepted_hash" ]]; then
-              echo "$package_name does not match its independently accepted SHA-256." >&2
-              exit 1
-            fi
+            bash "$GITHUB_WORKSPACE/scripts/verify-release-checksum.sh" \
+              "$package_name" "$checksum_name" "$accepted_hash"
           }
 
           verify_package "$macos_zip" "$ACCEPTED_MACOS_SHA256"

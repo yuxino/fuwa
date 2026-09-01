@@ -152,6 +152,9 @@ Assert-TextMatch $ci `
 Assert-TextMatch $ci `
     ('Fuwa-' + $escapedMarketingVersion + '-windows-\$\{\{ matrix\.arch \}\}') `
     'CI artifact paths differ from the public marketing version.'
+Assert-TextMatch $ci `
+    'bash scripts/test-verify-release-checksum\.sh' `
+    'CI does not run the CRLF checksum parser regression tests.'
 
 $changelog = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'CHANGELOG.md') `
@@ -200,7 +203,8 @@ $promotionGuards = @(
     @('final_draft_snapshot', 'Promotion has no final in-step draft snapshot.'),
     @('published_json=', 'Promotion does not publish in the verification step.'),
     @('post_publish_snapshot', 'Promotion does not recheck assets after publication.'),
-    @('/releases/latest', 'Promotion does not verify latest-release state.')
+    @('/releases/latest', 'Promotion does not verify latest-release state.'),
+    @('verify-release-checksum\.sh', 'Promotion does not use the tested checksum parser.')
 )
 foreach ($guard in $promotionGuards) {
     Assert-TextMatch $promotion $guard[0] $guard[1]
