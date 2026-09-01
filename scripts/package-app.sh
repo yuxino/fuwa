@@ -46,6 +46,7 @@ if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
             --configuration release \
             --product Fuwa \
             --arch "${FUWA_ARCH}" \
+            -Xswiftc -Osize \
             -Xswiftc -strict-concurrency=complete \
             -Xswiftc -warnings-as-errors
         FUWA_ARCH_BIN_DIR="$(swift build \
@@ -69,6 +70,7 @@ else
         --disable-sandbox \
         --configuration release \
         --product Fuwa \
+        -Xswiftc -Osize \
         -Xswiftc -strict-concurrency=complete \
         -Xswiftc -warnings-as-errors
     FUWA_BIN_DIR="$(swift build \

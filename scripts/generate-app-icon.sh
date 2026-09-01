@@ -63,6 +63,7 @@ for FUWA_ICON_VARIANT in "${FUWA_ICON_VARIANTS[@]}"; do
 done
 
 iconutil -c icns "${FUWA_ICONSET_DIR}" -o "${FUWA_ICON_GENERATED}"
+python3 "${FUWA_ICON_SCRIPT_DIR}/optimize-icns.py" "${FUWA_ICON_GENERATED}"
 
 FUWA_ICON_EXTRACTED_DIR="${FUWA_ICON_TEMP_DIR}/Verified.iconset"
 iconutil -c iconset "${FUWA_ICON_GENERATED}" -o "${FUWA_ICON_EXTRACTED_DIR}"

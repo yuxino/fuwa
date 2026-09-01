@@ -53,7 +53,7 @@ param(
 
     [Parameter()]
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
-    [string]$ExpectedVersion = '0.1.3.4',
+    [string]$ExpectedVersion = '0.1.4.5',
 
     [Parameter()]
     [ValidateRange(10, 600)]

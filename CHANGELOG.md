@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-02
+
+### Changed
+
+- Reduced the universal macOS archive and installed app footprint with size-optimized Swift release builds and lossless ICNS recompression, while preserving every standard and Retina icon representation.
+
 ## [0.1.3] - 2026-09-01
 
 ### Fixed
@@ -70,7 +76,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/yuxino/fuwa/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/yuxino/fuwa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yuxino/fuwa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
