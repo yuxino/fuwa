@@ -233,11 +233,17 @@ $installDirectory = Join-Path $env:LOCALAPPDATA 'Programs\Fuwa'
 $applicationPath = Join-Path $installDirectory 'Fuwa.exe'
 $uninstallerPath = Join-Path $installDirectory 'unins000.exe'
 $startMenuLink = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Fuwa\Fuwa.lnk'
+$desktopLink = Join-Path `
+    ([Environment]::GetFolderPath(
+        [Environment+SpecialFolder]::DesktopDirectory
+    )) `
+    'Fuwa.lnk'
 $uninstallRegistryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\app.yuxino.fuwa.windows_is1'
 $declaredArtifacts = @(
     $applicationPath,
     $uninstallerPath,
     $startMenuLink,
+    $desktopLink,
     $uninstallRegistryPath
 )
 
@@ -445,6 +451,6 @@ $summary = [ordered]@{
 }
 Write-Evidence -Name 'finalize-summary.json' -Value $summary
 if (-not $passed) {
-    throw 'Uninstall left a declared process, executable, install directory, Start-menu entry, or registry entry.'
+    throw 'Uninstall left a declared process, executable, install directory, shortcut, or registry entry.'
 }
 $summary | ConvertTo-Json -Depth 12

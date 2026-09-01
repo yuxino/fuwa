@@ -3,25 +3,6 @@
 #include <cstdint>
 
 namespace fuwa::core {
-namespace {
-
-SessionTransition acceptedTransition(
-    SessionState from,
-    SessionEvent event,
-    SessionState to
-) noexcept {
-    return SessionTransition{from, event, to, true};
-}
-
-SessionTransition rejectedTransition(
-    SessionState state,
-    SessionEvent event
-) noexcept {
-    return SessionTransition{state, event, state, false};
-}
-
-} // namespace
-
 bool MatchesWindowIdentity(
     const WindowIdentity& expected,
     const WindowIdentity& current
@@ -128,102 +109,6 @@ PixelRect CalculateAspectFitRect(
         fittedWidth,
         fittedHeight
     };
-}
-
-SessionTransition TransitionSession(
-    SessionState state,
-    SessionEvent event
-) noexcept {
-    switch (state) {
-    case SessionState::idle:
-        switch (event) {
-        case SessionEvent::startRequested:
-            return acceptedTransition(
-                state,
-                event,
-                SessionState::starting
-            );
-        case SessionEvent::startFailed:
-        case SessionEvent::stopRequested:
-        case SessionEvent::stopCompleted:
-        case SessionEvent::sourceLost:
-            return acceptedTransition(state, event, state);
-        case SessionEvent::startSucceeded:
-            return rejectedTransition(state, event);
-        default:
-            return rejectedTransition(state, event);
-        }
-
-    case SessionState::starting:
-        switch (event) {
-        case SessionEvent::startRequested:
-            return acceptedTransition(state, event, state);
-        case SessionEvent::startSucceeded:
-            return acceptedTransition(state, event, SessionState::live);
-        case SessionEvent::startFailed:
-            return acceptedTransition(state, event, SessionState::idle);
-        case SessionEvent::stopRequested:
-        case SessionEvent::sourceLost:
-            return acceptedTransition(
-                state,
-                event,
-                SessionState::stopping
-            );
-        case SessionEvent::stopCompleted:
-            return rejectedTransition(state, event);
-        default:
-            return rejectedTransition(state, event);
-        }
-
-    case SessionState::live:
-        switch (event) {
-        case SessionEvent::startSucceeded:
-            return acceptedTransition(state, event, state);
-        case SessionEvent::stopRequested:
-        case SessionEvent::sourceLost:
-            return acceptedTransition(
-                state,
-                event,
-                SessionState::stopping
-            );
-        case SessionEvent::startRequested:
-        case SessionEvent::startFailed:
-        case SessionEvent::stopCompleted:
-            return rejectedTransition(state, event);
-        default:
-            return rejectedTransition(state, event);
-        }
-
-    case SessionState::stopping:
-        switch (event) {
-        case SessionEvent::stopCompleted:
-            return acceptedTransition(state, event, SessionState::idle);
-        case SessionEvent::startSucceeded:
-        case SessionEvent::startFailed:
-        case SessionEvent::stopRequested:
-        case SessionEvent::sourceLost:
-            return acceptedTransition(state, event, state);
-        case SessionEvent::startRequested:
-            return rejectedTransition(state, event);
-        default:
-            return rejectedTransition(state, event);
-        }
-    default:
-        return rejectedTransition(state, event);
-    }
-}
-
-SessionStateMachine::SessionStateMachine(SessionState initialState) noexcept
-    : state_(initialState) {}
-
-SessionState SessionStateMachine::state() const noexcept {
-    return state_;
-}
-
-SessionTransition SessionStateMachine::apply(SessionEvent event) noexcept {
-    const SessionTransition transition = TransitionSession(state_, event);
-    state_ = transition.to;
-    return transition;
 }
 
 } // namespace fuwa::core

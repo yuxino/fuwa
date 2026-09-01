@@ -14,7 +14,6 @@ struct WindowCandidate {
     DWORD processId = 0;
     DWORD threadId = 0;
     std::uint64_t processCreationTime = 0U;
-    RECT bounds{};
     std::wstring title;
     std::wstring applicationName;
     std::wstring className;

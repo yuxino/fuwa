@@ -47,7 +47,6 @@ private:
     HWND mirrorWindow_ = nullptr;
     HTHUMBNAIL thumbnail_ = nullptr;
     WindowCandidate source_{};
-    core::SessionStateMachine state_{};
 };
 
 } // namespace fuwa::windows

@@ -66,14 +66,11 @@ bool MirrorSession::start(
     std::wstring& error
 ) {
     stop();
-    (void)state_.apply(core::SessionEvent::startRequested);
     if (!WindowCatalog::revalidate(source, ownProcessId)) {
         error = L"The selected window is no longer available.";
-        (void)state_.apply(core::SessionEvent::startFailed);
         return false;
     }
     if (!registerWindowClass(error)) {
-        (void)state_.apply(core::SessionEvent::startFailed);
         return false;
     }
 
@@ -82,7 +79,6 @@ bool MirrorSession::start(
     const LONG height = bounds.bottom - bounds.top;
     if (width <= 0 || height <= 0) {
         error = L"The selected window has no visible area.";
-        (void)state_.apply(core::SessionEvent::startFailed);
         return false;
     }
 
@@ -109,7 +105,6 @@ bool MirrorSession::start(
             L"Could not create the mirror window ({:d}).",
             GetLastError()
         );
-        (void)state_.apply(core::SessionEvent::startFailed);
         return false;
     }
 
@@ -138,7 +133,6 @@ bool MirrorSession::start(
     }
 
     source_ = source;
-    (void)state_.apply(core::SessionEvent::startSucceeded);
     if (!refresh(ownProcessId, error)) {
         stop();
         return false;
@@ -153,7 +147,6 @@ bool MirrorSession::refresh(DWORD ownProcessId, std::wstring& error) {
     }
     if (!WindowCatalog::revalidate(source_, ownProcessId)) {
         error = L"The source window closed or changed identity.";
-        (void)state_.apply(core::SessionEvent::sourceLost);
         stop();
         return false;
     }
@@ -244,7 +237,6 @@ bool MirrorSession::refresh(DWORD ownProcessId, std::wstring& error) {
 }
 
 void MirrorSession::stop() noexcept {
-    (void)state_.apply(core::SessionEvent::stopRequested);
     if (mirrorWindow_ != nullptr) {
         ShowWindow(mirrorWindow_, SW_HIDE);
     }
@@ -257,12 +249,10 @@ void MirrorSession::stop() noexcept {
         mirrorWindow_ = nullptr;
     }
     source_ = {};
-    (void)state_.apply(core::SessionEvent::stopCompleted);
 }
 
 bool MirrorSession::active() const noexcept {
-    return state_.state() == core::SessionState::live
-        && mirrorWindow_ != nullptr
+    return mirrorWindow_ != nullptr
         && thumbnail_ != nullptr;
 }
 

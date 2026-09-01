@@ -82,11 +82,6 @@ enum class WindowEligibility : std::uint8_t {
 struct PixelSize final {
     std::uint32_t width = 0U;
     std::uint32_t height = 0U;
-
-    friend constexpr bool operator==(
-        const PixelSize&,
-        const PixelSize&
-    ) noexcept = default;
 };
 
 // Client-coordinate destination rectangle. Width and height are kept separate
@@ -96,10 +91,6 @@ struct PixelRect final {
     std::uint32_t y = 0U;
     std::uint32_t width = 0U;
     std::uint32_t height = 0U;
-
-    [[nodiscard]] constexpr bool isEmpty() const noexcept {
-        return width == 0U || height == 0U;
-    }
 
     friend constexpr bool operator==(
         const PixelRect&,
@@ -114,52 +105,5 @@ struct PixelRect final {
     PixelSize sourceSize,
     PixelSize destinationSize
 ) noexcept;
-
-enum class SessionState : std::uint8_t {
-    idle,
-    starting,
-    live,
-    stopping
-};
-
-enum class SessionEvent : std::uint8_t {
-    startRequested,
-    startSucceeded,
-    startFailed,
-    stopRequested,
-    stopCompleted,
-    sourceLost
-};
-
-struct SessionTransition final {
-    SessionState from = SessionState::idle;
-    SessionEvent event = SessionEvent::stopCompleted;
-    SessionState to = SessionState::idle;
-    bool accepted = false;
-
-    [[nodiscard]] constexpr bool didChange() const noexcept {
-        return from != to;
-    }
-};
-
-// Repeated lifecycle callbacks are accepted as no-ops where they are safe.
-// Out-of-order callbacks are rejected without changing state.
-[[nodiscard]] SessionTransition TransitionSession(
-    SessionState state,
-    SessionEvent event
-) noexcept;
-
-class SessionStateMachine final {
-public:
-    explicit SessionStateMachine(
-        SessionState initialState = SessionState::idle
-    ) noexcept;
-
-    [[nodiscard]] SessionState state() const noexcept;
-    [[nodiscard]] SessionTransition apply(SessionEvent event) noexcept;
-
-private:
-    SessionState state_;
-};
 
 } // namespace fuwa::core

@@ -206,7 +206,6 @@ std::optional<WindowCandidate> WindowCatalog::inspect(
         .processId = processId,
         .threadId = threadId,
         .processCreationTime = creationTime,
-        .bounds = bounds,
         .title = std::move(title),
         .applicationName = applicationName(processId),
         .className = std::move(className)

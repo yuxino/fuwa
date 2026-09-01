@@ -9,7 +9,7 @@ fi
 
 package_path="$1"
 checksum_path="$2"
-accepted_hash="${3,,}"
+accepted_hash="$(printf '%s' "$3" | tr '[:upper:]' '[:lower:]')"
 package_name="$(basename -- "$package_path")"
 
 if [[ ! -f "$package_path" || ! -f "$checksum_path" ]]; then
@@ -30,7 +30,7 @@ if [[ "$line_count" != "1" ]]; then
 fi
 
 read -r recorded_hash recorded_name < "$checksum_path"
-recorded_hash="${recorded_hash,,}"
+recorded_hash="$(printf '%s' "$recorded_hash" | tr '[:upper:]' '[:lower:]')"
 # CPack writes checksum files with the native Windows CRLF ending. Bash read
 # removes LF but intentionally retains CR, so remove exactly one terminal CR.
 # Any additional byte (including a second CR) remains and fails the exact-name
@@ -43,7 +43,14 @@ if [[ "$recorded_hash" != "$accepted_hash" \
   exit 1
 fi
 
-actual_hash="$(sha256sum "$package_path" | awk '{ print tolower($1) }')"
+if command -v sha256sum >/dev/null 2>&1; then
+  actual_hash="$(sha256sum "$package_path" | awk '{ print tolower($1) }')"
+elif command -v shasum >/dev/null 2>&1; then
+  actual_hash="$(shasum -a 256 "$package_path" | awk '{ print tolower($1) }')"
+else
+  echo "No SHA-256 tool is available; install sha256sum or shasum." >&2
+  exit 1
+fi
 if [[ "$actual_hash" != "$accepted_hash" ]]; then
   echo "$package_path does not match its independently accepted SHA-256." >&2
   exit 1

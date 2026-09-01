@@ -11,7 +11,11 @@ package_name="Fuwa-0.1.2-windows-arm64-setup.exe"
 package_path="$fixture_dir/$package_name"
 checksum_path="$fixture_dir/${package_name}.sha256"
 printf 'Fuwa checksum parser fixture\n' > "$package_path"
-package_hash="$(sha256sum "$package_path" | awk '{ print tolower($1) }')"
+if command -v sha256sum >/dev/null 2>&1; then
+  package_hash="$(sha256sum "$package_path" | awk '{ print tolower($1) }')"
+else
+  package_hash="$(shasum -a 256 "$package_path" | awk '{ print tolower($1) }')"
+fi
 
 expect_failure() {
   if bash "$verifier" \

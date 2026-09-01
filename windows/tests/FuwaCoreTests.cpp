@@ -10,8 +10,6 @@ namespace {
 
 using fuwa::core::PixelRect;
 using fuwa::core::PixelSize;
-using fuwa::core::SessionEvent;
-using fuwa::core::SessionState;
 using fuwa::core::WindowEligibility;
 using fuwa::core::WindowEligibilityFacts;
 using fuwa::core::WindowEligibilityPolicy;
@@ -366,124 +364,12 @@ void runAspectFitTests() {
     );
 }
 
-void runSessionStateTests() {
-    fuwa::core::SessionStateMachine machine{};
-    expect(machine.state() == SessionState::idle, "sessions start idle");
-
-    auto transition = machine.apply(SessionEvent::startRequested);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::starting,
-        "start requests enter the starting state"
-    );
-
-    transition = machine.apply(SessionEvent::startRequested);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::starting,
-        "duplicate start requests are idempotent while starting"
-    );
-
-    transition = machine.apply(SessionEvent::startSucceeded);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::live,
-        "successful setup enters the live state"
-    );
-
-    transition = machine.apply(SessionEvent::startSucceeded);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::live,
-        "duplicate setup completion is idempotent"
-    );
-
-    transition = machine.apply(SessionEvent::startRequested);
-    expect(
-        !transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::live,
-        "a second source cannot replace a live session implicitly"
-    );
-
-    transition = machine.apply(SessionEvent::stopRequested);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::stopping,
-        "stop requests enter the stopping state"
-    );
-
-    transition = machine.apply(SessionEvent::stopRequested);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::stopping,
-        "duplicate stop requests are idempotent"
-    );
-
-    transition = machine.apply(SessionEvent::sourceLost);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::stopping,
-        "source loss cannot restart teardown"
-    );
-
-    transition = machine.apply(SessionEvent::stopCompleted);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::idle,
-        "completed teardown returns to idle"
-    );
-
-    transition = machine.apply(SessionEvent::stopCompleted);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::idle,
-        "duplicate teardown completion is idempotent"
-    );
-
-    transition = machine.apply(SessionEvent::startSucceeded);
-    expect(
-        !transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::idle,
-        "out-of-order setup completion cannot resurrect a session"
-    );
-
-    transition = machine.apply(SessionEvent::startRequested);
-    expect(transition.accepted, "a new session can start after teardown");
-    transition = machine.apply(SessionEvent::startFailed);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::idle,
-        "failed setup rolls back to idle"
-    );
-    transition = machine.apply(SessionEvent::startFailed);
-    expect(
-        transition.accepted && !transition.didChange(),
-        "duplicate setup failure is idempotent"
-    );
-
-    transition = machine.apply(SessionEvent::startRequested);
-    expect(transition.accepted, "source-loss path starts a session");
-    transition = machine.apply(SessionEvent::sourceLost);
-    expect(
-        transition.accepted && transition.didChange()
-            && machine.state() == SessionState::stopping,
-        "source loss during setup initiates teardown"
-    );
-    transition = machine.apply(SessionEvent::startSucceeded);
-    expect(
-        transition.accepted && !transition.didChange()
-            && machine.state() == SessionState::stopping,
-        "a late setup callback cannot resurrect a stopping session"
-    );
-}
-
 } // namespace
 
 int main() {
     runWindowEligibilityTests();
     runWindowIdentityTests();
     runAspectFitTests();
-    runSessionStateTests();
 
     if (failureCount != 0) {
         std::cerr << failureCount << " FuwaCore test(s) failed\n";

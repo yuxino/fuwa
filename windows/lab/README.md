@@ -61,9 +61,9 @@ Use the portable WinApp CLI only from the same unlocked desktop. Its UIA
 bounded test input for the safe Notepad window and the registered product
 shortcut.
 
-1. Confirm the Fuwa control window is a normal taskbar app and the Fuwa icon is
-   present in the notification area. Retain a host screenshot named
-   `01-control-taskbar-tray.png`.
+1. Confirm the Fuwa desktop shortcut exists, the control window is a normal
+   taskbar app, and the Fuwa icon is present in the notification area. Retain a
+   host screenshot named `01-control-taskbar-tray.png`.
 2. Bring the generated Notepad source to the front and send `Ctrl+Alt+P`:
 
    ```powershell
@@ -116,7 +116,8 @@ After the observed tray exit, run:
 ```
 
 `finalize-summary.json` must report `passed`, no Fuwa process, no executable or
-install directory, no Start-menu shortcut, and no uninstall-registry entry.
+install directory, no Start-menu or desktop shortcut, and no uninstall-registry
+entry.
 
 ## Acceptance result
 
@@ -125,8 +126,9 @@ Only mark the product accepted when all of these agree:
 - `prepare-summary.json` and `finalize-summary.json` pass;
 - the staged installer and installed executable hashes match the CI evidence
   and acceptance manifest;
-- host screenshots prove install/launch, ordinary-window selection, live change,
-  topmost behavior, taskbar/tray, source-loss error, and tray quit;
+- host screenshots prove the desktop shortcut, install/launch, ordinary-window
+  selection, live change, topmost behavior, taskbar/tray, source-loss error,
+  and tray quit;
 - Explorer is described only as an ordinary window and Quick Look remains N/A;
 - no security setting was changed and no Release was published.
 

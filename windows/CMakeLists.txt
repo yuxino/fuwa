@@ -38,6 +38,7 @@ target_include_directories(Fuwa PRIVATE
 )
 target_compile_features(Fuwa PRIVATE cxx_std_20)
 target_compile_definitions(Fuwa PRIVATE
+    FUWA_MARKETING_VERSION="${FUWA_MARKETING_VERSION}"
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
@@ -55,8 +56,8 @@ target_link_libraries(Fuwa PRIVATE
     Wtsapi32
 )
 
-if(MSVC)
-    foreach(target FuwaWindowsCore Fuwa)
+function(configure_fuwa_msvc_target target)
+    if(MSVC)
         target_compile_options(${target} PRIVATE
             "$<$<COMPILE_LANGUAGE:CXX>:/W4;/WX;/permissive-;/utf-8;/Zc:__cplusplus;/guard:cf>"
         )
@@ -65,7 +66,12 @@ if(MSVC)
             PROPERTY MSVC_RUNTIME_LIBRARY
                 "MultiThreaded$<$<CONFIG:Debug>:Debug>"
         )
-    endforeach()
+    endif()
+endfunction()
+
+configure_fuwa_msvc_target(FuwaWindowsCore)
+configure_fuwa_msvc_target(Fuwa)
+if(MSVC)
     target_link_options(Fuwa PRIVATE
         /DYNAMICBASE
         /GUARD:CF
@@ -80,19 +86,12 @@ add_executable(FuwaWindowsCoreTests
 )
 target_link_libraries(FuwaWindowsCoreTests PRIVATE FuwaWindowsCore)
 target_compile_features(FuwaWindowsCoreTests PRIVATE cxx_std_20)
+configure_fuwa_msvc_target(FuwaWindowsCoreTests)
 if(MSVC)
-    target_compile_options(FuwaWindowsCoreTests PRIVATE
-        "$<$<COMPILE_LANGUAGE:CXX>:/W4;/WX;/permissive-;/utf-8;/Zc:__cplusplus;/guard:cf>"
-    )
     target_link_options(FuwaWindowsCoreTests PRIVATE
         /DYNAMICBASE
         /GUARD:CF
         /NXCOMPAT
-    )
-    set_property(
-        TARGET FuwaWindowsCoreTests
-        PROPERTY MSVC_RUNTIME_LIBRARY
-            "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     )
 endif()
 add_test(NAME FuwaWindowsCoreTests COMMAND FuwaWindowsCoreTests)

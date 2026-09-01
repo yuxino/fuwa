@@ -24,6 +24,20 @@ constexpr UINT mirrorTimerIdentifier = 1;
 constexpr UINT globalHotKeyIdentifier = 1;
 constexpr UINT mirrorRefreshMilliseconds = 250;
 
+#define FUWA_WIDEN_VERSION_IMPL(value) L##value
+#define FUWA_WIDEN_VERSION(value) FUWA_WIDEN_VERSION_IMPL(value)
+constexpr wchar_t chineseAboutText[] =
+    L"Fuwa " FUWA_WIDEN_VERSION(FUWA_MARKETING_VERSION)
+    L"\n\nWindows 版本使用公开 DWM API 显示本地实时镜像，不读取、保存或上传窗口像素。"
+    L"\n\nFinder Quick Look 在 Windows 不适用。";
+constexpr wchar_t englishAboutText[] =
+    L"Fuwa " FUWA_WIDEN_VERSION(FUWA_MARKETING_VERSION)
+    L"\n\nThe Windows version uses the public DWM API for a local live mirror. "
+    L"It does not read, save, or upload window pixels."
+    L"\n\nFinder Quick Look is not applicable on Windows.";
+#undef FUWA_WIDEN_VERSION
+#undef FUWA_WIDEN_VERSION_IMPL
+
 constexpr int controlList = 1001;
 constexpr int controlRefresh = 1002;
 constexpr int controlPin = 1003;
@@ -61,7 +75,6 @@ struct UiCopy {
     const wchar_t* trayUnavailable;
     const wchar_t* sessionNotificationsUnavailable;
     const wchar_t* timerUnavailable;
-    const wchar_t* quickLookBoundary;
     const wchar_t* aboutText;
 };
 
@@ -89,8 +102,7 @@ UiCopy makeCopy(bool chinese) {
             L"系统托盘图标不可用；关闭此窗口将退出 Fuwa。",
             L"Windows 会话通知不可用；为保护隐私，镜像功能已停用。请刷新后重试。",
             L"无法启动镜像安全监测；镜像已移除。",
-            L"Finder Quick Look 仅适用于 macOS；Windows Explorer 只按普通窗口处理。",
-            L"Fuwa 0.1.1\n\nWindows 版本使用公开 DWM API 显示本地实时镜像，不读取、保存或上传窗口像素。\n\nFinder Quick Look 在 Windows 不适用。"
+            chineseAboutText
         };
     }
 
@@ -116,8 +128,7 @@ UiCopy makeCopy(bool chinese) {
         L"The system-tray icon is unavailable. Closing this window will quit Fuwa.",
         L"Windows session notifications are unavailable, so mirroring is disabled for privacy. Refresh to retry.",
         L"Mirror safety monitoring could not start, so the mirror was removed.",
-        L"Finder Quick Look is macOS-only; Windows Explorer is handled only as an ordinary window.",
-        L"Fuwa 0.1.1\n\nThe Windows version uses the public DWM API for a local live mirror. It does not read, save, or upload window pixels.\n\nFinder Quick Look is not applicable on Windows."
+        englishAboutText
     };
 }
 
@@ -739,7 +750,6 @@ private:
     void onTrayEvent(UINT event) {
         if (event == NIN_SELECT || event == NIN_KEYSELECT
             || event == WM_LBUTTONUP) {
-            trayForeground_ = WindowCatalog::foreground(processId_);
             showControlWindow();
             return;
         }

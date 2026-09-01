@@ -89,6 +89,19 @@ Assert-TextMatch $cmake `
 Assert-TextMatch $cmake `
     'Fuwa-\$\{FUWA_MARKETING_VERSION\}-windows-\$\{FUWA_PACKAGE_ARCHITECTURE\}-setup' `
     'CPack installer name must use the public marketing version.'
+Assert-TextMatch $cmake `
+    'FUWA_MARKETING_VERSION="\$\{FUWA_MARKETING_VERSION\}"' `
+    'The Windows UI must receive the canonical CMake marketing version.'
+
+$windowsSource = Get-Content `
+    -LiteralPath (Join-Path $repositoryRoot 'windows\src\FuwaWindows.cpp') `
+    -Raw
+Assert-TextMatch $windowsSource `
+    'FUWA_WIDEN_VERSION\(FUWA_MARKETING_VERSION\)' `
+    'The Windows About copy must use the canonical marketing version.'
+if ($windowsSource -cmatch 'L"Fuwa \d+\.\d+\.\d+') {
+    throw 'The Windows About copy contains a stale hard-coded marketing version.'
+}
 
 $resource = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'windows\resources\FuwaWindows.rc') `
@@ -145,6 +158,9 @@ $acceptance = Get-Content `
 Assert-TextMatch $acceptance `
     (('\$ExpectedVersion = ''{0}''' -f $escapedWindowsVersion)) `
     'Native acceptance file-version default differs from Info.plist.'
+Assert-TextMatch $acceptance `
+    '\[Environment\+SpecialFolder\]::DesktopDirectory' `
+    'Native acceptance does not verify the installed desktop shortcut.'
 
 foreach ($sourcePath in @(
         'Sources\Fuwa\AppModel.swift',
