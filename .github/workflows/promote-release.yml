@@ -74,8 +74,12 @@ jobs:
           pins="$GITHUB_WORKSPACE/scripts/release-signing-pins.json"
 
           release_json="$(
-            gh api --method GET \
-              "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+            gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | jq -cer --arg tag "$RELEASE_TAG" \
+                '[.[][] | select(.tag_name == $tag and .draft == true)] |
+                 if length == 1 then .[0]
+                 else error("expected exactly one matching draft Release") end'
           )"
           if [[ "$(jq -r '.draft' <<<"$release_json")" != "true" ]]; then
             echo "The target Release does not exist as a draft." >&2
@@ -83,10 +87,19 @@ jobs:
           fi
 
           asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-macos-release-assets.XXXXXX")"
-          gh release download "$RELEASE_TAG" \
-            --dir "$asset_dir" \
-            --pattern "$macos_zip" \
-            --pattern "${macos_zip}.sha256"
+          for asset_name in "$macos_zip" "${macos_zip}.sha256"; do
+            asset_id="$(
+              jq -er --arg name "$asset_name" \
+                '[.assets[] | select(.name == $name)] |
+                 if length == 1 then .[0].id
+                 else error("expected exactly one matching release asset") end' \
+                <<<"$release_json"
+            )"
+            gh api --method GET \
+              -H 'Accept: application/octet-stream' \
+              "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+              > "$asset_dir/$asset_name"
+          done
           cd "$asset_dir"
 
           if [[ ! -f "$macos_zip" || ! -f "${macos_zip}.sha256" ]]; then
@@ -318,8 +331,12 @@ jobs:
           fi
 
           release_json="$(
-            gh api --method GET \
-              "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+            gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | jq -cer --arg tag "$RELEASE_TAG" \
+                '[.[][] | select(.tag_name == $tag and .draft == true)] |
+                 if length == 1 then .[0]
+                 else error("expected exactly one matching draft Release") end'
           )"
           if [[ "$(jq -r '.draft' <<<"$release_json")" != "true" ]]; then
             echo "The target Release does not exist as a draft." >&2
@@ -358,7 +375,19 @@ jobs:
           )"
 
           asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-release-assets.XXXXXX")"
-          gh release download "$RELEASE_TAG" --dir "$asset_dir"
+          for asset_name in "${expected_assets[@]}"; do
+            asset_id="$(
+              jq -er --arg name "$asset_name" \
+                '[.assets[] | select(.name == $name)] |
+                 if length == 1 then .[0].id
+                 else error("expected exactly one matching release asset") end' \
+                <<<"$release_json"
+            )"
+            gh api --method GET \
+              -H 'Accept: application/octet-stream' \
+              "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+              > "$asset_dir/$asset_name"
+          done
           cd "$asset_dir"
 
           compare_ci_artifact() {
@@ -465,8 +494,12 @@ jobs:
           verify_windows_evidence arm64 "$windows_arm64" "$ACCEPTED_WINDOWS_ARM64_SHA256"
 
           final_draft_json="$(
-            gh api --method GET \
-              "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+            gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | jq -cer --argjson id "$release_id" \
+                '[.[][] | select(.id == $id and .draft == true)] |
+                 if length == 1 then .[0]
+                 else error("verified draft Release is no longer available") end'
           )"
           final_draft_snapshot="$(
             jq -c '[.assets[] | {id, name, size, updated_at, digest}] | sort_by(.name)' \
