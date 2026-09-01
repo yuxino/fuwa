@@ -45,6 +45,20 @@ jobs:
       - name: Check macOS scripts and signing guard
         run: |
           zsh -n scripts/*.sh
+          python3 - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          ast.parse(
+              Path("scripts/verify-macos-signature-pin.py").read_text(encoding="utf-8")
+          )
+          pins = json.loads(
+              Path("scripts/release-signing-pins.json").read_text(encoding="utf-8")
+          )
+          if pins.get("schemaVersion") != 1:
+              raise SystemExit("unsupported release signing pin schema")
+          PY
           if FUWA_CODESIGN_IDENTITY=- scripts/codesign-identity.sh; then
             echo "ad-hoc signing was accepted" >&2
             exit 1

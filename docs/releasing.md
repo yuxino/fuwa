@@ -52,11 +52,25 @@ previous stable package. Stop if the identity changes unexpectedly. Fuwa's
 current package is not signed with Apple Developer ID and is not notarized;
 the Release notes must say so.
 
+The promotion workflow independently repeats the bundle, universal-binary,
+code-seal, leaf-certificate, and designated-requirement checks on a hosted Mac.
+The stable pins live in `scripts/release-signing-pins.json`. They were extracted
+from the publicly released `v0.1.1` archive whose SHA-256 is recorded in that
+file. The designated-requirement pin is the SHA-256 of the embedded Requirement
+blob in each Mach-O slice, not a certificate display name. Changing any pin is
+an explicit signing-identity migration: document why the old identity cannot be
+retained and expect macOS privacy permissions to require one final migration.
+
 ## 3. Assemble, but do not publish, the draft
 
 Download both `Fuwa-windows-*` artifacts from the successful tag CI run. Each
 contains one installer, its CPack-generated checksum, and one JSON verification
 record. Confirm that both JSON records are successful and name the tag commit.
+The successful run must retain exactly two unexpired workflow artifacts named
+`Fuwa-windows-x64` and `Fuwa-windows-arm64`; each must contain exactly its three
+architecture-specific files. Promotion downloads those workflow artifacts
+again and requires every byte to match the corresponding draft asset, so a
+self-consistent evidence JSON uploaded from elsewhere is insufficient.
 
 Create a draft Release for the existing tag, then upload exactly these eight
 files:
@@ -90,12 +104,19 @@ for the tag and provide those three hashes plus the exact confirmation text.
 The workflow fails closed unless:
 
 - the tag commit is contained in `origin/main` and its tag CI succeeded;
+- that successful run retains exactly the two expected, unexpired Windows
+  workflow artifacts and all six files are byte-identical to the draft assets;
 - the Release exists and is still a draft;
 - the uploaded asset names are exactly the eight-file contract above;
 - all three accepted hashes match the packages and their checksum files;
+- the macOS archive contains only `Fuwa.app`, matches the tag version, contains
+  arm64 and x86_64, has a valid deep/strict code seal, and matches both the
+  pinned leaf certificate and designated requirement in every Mach-O slice;
 - both Windows evidence records match the tag commit, architecture, versions,
   installer names, and installer hashes;
-- no draft asset changes between verification and publication.
+- no draft asset changes between verification and publication. The protected
+  job performs its final snapshot read, publication PATCH, and post-publication
+  `/latest` verification in one shell step and fails if the assets changed.
 
 Configure the `release-promotion` GitHub environment with required reviewers.
 The workflow performs the final draft-to-published transition; it does not

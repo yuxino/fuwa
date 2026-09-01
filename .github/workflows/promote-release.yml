@@ -27,18 +27,176 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-promotion-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
+  verify-macos:
+    name: Verify stable-signed universal macOS asset
+    runs-on: macos-26
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the exact tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify the pinned macOS identity and universal archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          ACCEPTED_MACOS_SHA256: ${{ inputs.macos_sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must be v followed by three numeric components." >&2
+            exit 1
+          fi
+          if [[ ! "$ACCEPTED_MACOS_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo "Accepted macOS SHA-256 must contain 64 hexadecimal characters." >&2
+            exit 1
+          fi
+          accepted_macos_sha256="$(
+            printf '%s' "$ACCEPTED_MACOS_SHA256" | tr '[:upper:]' '[:lower:]'
+          )"
+          version="${RELEASE_TAG#v}"
+          macos_zip="Fuwa-${version}.zip"
+          pins="$GITHUB_WORKSPACE/scripts/release-signing-pins.json"
+
+          release_json="$(
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+          )"
+          if [[ "$(jq -r '.draft' <<<"$release_json")" != "true" ]]; then
+            echo "The target Release does not exist as a draft." >&2
+            exit 1
+          fi
+
+          asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-macos-release-assets.XXXXXX")"
+          gh release download "$RELEASE_TAG" \
+            --dir "$asset_dir" \
+            --pattern "$macos_zip" \
+            --pattern "${macos_zip}.sha256"
+          cd "$asset_dir"
+
+          if [[ ! -f "$macos_zip" || ! -f "${macos_zip}.sha256" ]]; then
+            echo "The macOS package and checksum must both be present." >&2
+            exit 1
+          fi
+          line_count="$(
+            awk 'NF { count += 1 } END { print count + 0 }' "${macos_zip}.sha256"
+          )"
+          if [[ "$line_count" != "1" ]]; then
+            echo "${macos_zip}.sha256 must contain exactly one checksum record." >&2
+            exit 1
+          fi
+          read -r recorded_hash recorded_name < "${macos_zip}.sha256"
+          recorded_hash="$(printf '%s' "$recorded_hash" | tr '[:upper:]' '[:lower:]')"
+          recorded_name="${recorded_name#\*}"
+          actual_hash="$(shasum -a 256 "$macos_zip" | awk '{ print tolower($1) }')"
+          if [[ "$recorded_hash" != "$accepted_macos_sha256" \
+              || "$recorded_name" != "$macos_zip" \
+              || "$actual_hash" != "$accepted_macos_sha256" ]]; then
+            echo "The macOS archive does not match its accepted SHA-256." >&2
+            exit 1
+          fi
+
+          while IFS= read -r archive_entry; do
+            case "$archive_entry" in
+              /*|../*|*/../*|*/..)
+                echo "The macOS archive contains an unsafe path: $archive_entry" >&2
+                exit 1
+                ;;
+            esac
+          done < <(/usr/bin/unzip -Z1 "$macos_zip")
+
+          unpack_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-macos-unpacked.XXXXXX")"
+          /usr/bin/ditto -x -k "$macos_zip" "$unpack_dir"
+          top_level_count="$(
+            find "$unpack_dir" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d ' '
+          )"
+          app="$unpack_dir/Fuwa.app"
+          binary="$app/Contents/MacOS/Fuwa"
+          if [[ "$top_level_count" != "1" || ! -d "$app" || ! -f "$binary" ]]; then
+            echo "The archive must contain exactly one top-level Fuwa.app bundle." >&2
+            exit 1
+          fi
+
+          bundle_identifier="$(
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \
+              "$app/Contents/Info.plist"
+          )"
+          bundle_version="$(
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+              "$app/Contents/Info.plist"
+          )"
+          if [[ "$bundle_identifier" != "app.yuxino.fuwa" \
+              || "$bundle_version" != "$version" ]]; then
+            echo "The macOS bundle identifier or public version is unexpected." >&2
+            exit 1
+          fi
+
+          /usr/bin/lipo "$binary" -verify_arch arm64 x86_64
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
+
+          certificate_dir="$(
+            mktemp -d "$RUNNER_TEMP/fuwa-release-certificate.XXXXXX"
+          )"
+          certificate_prefix="$certificate_dir/fuwa-certificate"
+          /usr/bin/codesign --display \
+            --extract-certificates "$certificate_prefix" "$app"
+          if [[ ! -f "${certificate_prefix}0" ]]; then
+            echo "codesign did not extract a leaf signing certificate." >&2
+            exit 1
+          fi
+          expected_leaf_sha1="$(
+            jq -er '.identity.leafCertificateSha1 |
+              select(test("^[0-9a-f]{40}$"))' "$pins"
+          )"
+          expected_leaf_sha256="$(
+            jq -er '.identity.leafCertificateSha256 |
+              select(test("^[0-9a-f]{64}$"))' "$pins"
+          )"
+          actual_leaf_sha1="$(
+            shasum -a 1 "${certificate_prefix}0" | awk '{ print tolower($1) }'
+          )"
+          actual_leaf_sha256="$(
+            shasum -a 256 "${certificate_prefix}0" | awk '{ print tolower($1) }'
+          )"
+          if [[ "$actual_leaf_sha1" != "$expected_leaf_sha1" \
+              || "$actual_leaf_sha256" != "$expected_leaf_sha256" ]]; then
+            echo "The macOS leaf signing certificate does not match the stable pin." >&2
+            exit 1
+          fi
+
+          /usr/bin/codesign --display --requirements - "$app" 2>&1 \
+            | tee "$RUNNER_TEMP/fuwa-designated-requirement.txt"
+          if grep -qi 'cdhash' "$RUNNER_TEMP/fuwa-designated-requirement.txt"; then
+            echo "The stable designated requirement must not contain cdhash." >&2
+            exit 1
+          fi
+          python3 "$GITHUB_WORKSPACE/scripts/verify-macos-signature-pin.py" \
+            --binary "$binary" \
+            --pins "$pins"
+
   promote:
     name: Verify exact assets and publish draft
+    needs: verify-macos
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release-promotion
+    permissions:
+      actions: read
+      contents: write
 
     steps:
       - name: Check out the exact tag
@@ -48,7 +206,6 @@ jobs:
           fetch-depth: 0
 
       - name: Verify draft and accepted bytes
-        id: verify
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
@@ -128,6 +285,36 @@ jobs:
             exit 1
           }
           tag_run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${tag_run_id}"
+          run_artifacts="$(
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${tag_run_id}/artifacts" \
+              -f per_page=100
+          )"
+          if [[ "$(jq -r '.total_count' <<<"$run_artifacts")" != "2" ]]; then
+            echo "Tag CI must retain exactly two workflow artifacts." >&2
+            exit 1
+          fi
+          windows_x64_artifact_id="$(
+            jq -er --arg name 'Fuwa-windows-x64' \
+              '[.artifacts[] | select(.name == $name and .expired == false)] |
+               if length == 1 then .[0].id else error("missing x64 artifact") end' \
+              <<<"$run_artifacts"
+          )"
+          windows_arm64_artifact_id="$(
+            jq -er --arg name 'Fuwa-windows-arm64' \
+              '[.artifacts[] | select(.name == $name and .expired == false)] |
+               if length == 1 then .[0].id else error("missing ARM64 artifact") end' \
+              <<<"$run_artifacts"
+          )"
+          mapfile -t retained_artifact_names < <(
+            jq -r '.artifacts[].name' <<<"$run_artifacts" | sort
+          )
+          if ! diff -u \
+            <(printf '%s\n' Fuwa-windows-arm64 Fuwa-windows-x64) \
+            <(printf '%s\n' "${retained_artifact_names[@]}"); then
+            echo "Tag CI artifact names do not match the exact two-artifact contract." >&2
+            exit 1
+          fi
 
           release_json="$(
             gh api --method GET \
@@ -169,10 +356,70 @@ jobs:
               <<<"$release_json"
           )"
 
-          asset_dir="$RUNNER_TEMP/fuwa-release-assets"
-          mkdir -p "$asset_dir"
+          asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-release-assets.XXXXXX")"
           gh release download "$RELEASE_TAG" --dir "$asset_dir"
           cd "$asset_dir"
+
+          compare_ci_artifact() {
+            local artifact_name="$1"
+            local artifact_id="$2"
+            local architecture="$3"
+            local artifact_zip="$ci_artifact_dir/${artifact_name}.zip"
+            local extracted_dir="$ci_artifact_dir/$artifact_name"
+            local installer_name="Fuwa-${version}-windows-${architecture}-setup.exe"
+            local evidence_name="Fuwa-${version}-windows-${architecture}-evidence.json"
+            local archive_entry
+            local expected_file
+            local -a expected_files=(
+              "$installer_name"
+              "${installer_name}.sha256"
+              "$evidence_name"
+            )
+            local -a actual_files
+
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+              > "$artifact_zip"
+            while IFS= read -r archive_entry; do
+              case "$archive_entry" in
+                /*|../*|*/../*|*/..)
+                  echo "CI artifact contains an unsafe path: $archive_entry" >&2
+                  exit 1
+                  ;;
+              esac
+            done < <(unzip -Z1 "$artifact_zip")
+            mkdir "$extracted_dir"
+            unzip -q "$artifact_zip" -d "$extracted_dir"
+
+            mapfile -t actual_files < <(
+              find "$extracted_dir" -type f -printf '%P\n' | sort
+            )
+            mapfile -t expected_files < <(
+              printf '%s\n' "${expected_files[@]}" | sort
+            )
+            if ! diff -u \
+              <(printf '%s\n' "${expected_files[@]}") \
+              <(printf '%s\n' "${actual_files[@]}"); then
+              echo "$artifact_name does not match the exact three-file contract." >&2
+              exit 1
+            fi
+            for expected_file in "${expected_files[@]}"; do
+              if ! cmp --silent \
+                "$extracted_dir/$expected_file" \
+                "$asset_dir/$expected_file"; then
+                echo "$expected_file differs between tag CI and the draft Release." >&2
+                exit 1
+              fi
+            done
+          }
+
+          ci_artifact_dir="$(
+            mktemp -d "$RUNNER_TEMP/fuwa-tag-ci-artifacts.XXXXXX"
+          )"
+          compare_ci_artifact \
+            Fuwa-windows-x64 "$windows_x64_artifact_id" x64
+          compare_ci_artifact \
+            Fuwa-windows-arm64 "$windows_arm64_artifact_id" arm64
 
           verify_package() {
             local package_name="$1"
@@ -235,33 +482,57 @@ jobs:
           verify_windows_evidence x64 "$windows_x64" "$ACCEPTED_WINDOWS_X64_SHA256"
           verify_windows_evidence arm64 "$windows_arm64" "$ACCEPTED_WINDOWS_ARM64_SHA256"
 
-          fresh_release_json="$(
+          final_draft_json="$(
             gh api --method GET \
               "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
           )"
-          fresh_snapshot="$(
+          final_draft_snapshot="$(
             jq -c '[.assets[] | {id, name, size, updated_at, digest}] | sort_by(.name)' \
-              <<<"$fresh_release_json"
+              <<<"$final_draft_json"
           )"
-          if [[ "$(jq -r '.draft' <<<"$fresh_release_json")" != "true" ]]; then
+          if [[ "$(jq -r '.draft' <<<"$final_draft_json")" != "true" ]]; then
             echo "Draft state changed during verification." >&2
             exit 1
           fi
-          if [[ "$fresh_snapshot" != "$asset_snapshot" ]]; then
+          if [[ "$final_draft_snapshot" != "$asset_snapshot" ]]; then
             echo "Draft assets changed during verification." >&2
             exit 1
           fi
+          published_json="$(
+            gh api --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+              -F draft=false \
+              -f make_latest=true
+          )"
+          if [[ "$(jq -r '.id' <<<"$published_json")" != "$release_id" \
+              || "$(jq -r '.tag_name' <<<"$published_json")" != "$RELEASE_TAG" \
+              || "$(jq -r '.draft' <<<"$published_json")" != "false" \
+              || "$(jq -r '.prerelease' <<<"$published_json")" != "false" ]]; then
+            echo "GitHub did not return the expected published stable Release." >&2
+            exit 1
+          fi
 
-          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          post_publish_json="$(
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+          )"
+          post_publish_snapshot="$(
+            jq -c '[.assets[] | {id, name, size, updated_at, digest}] | sort_by(.name)' \
+              <<<"$post_publish_json"
+          )"
+          if [[ "$(jq -r '.draft' <<<"$post_publish_json")" != "false" \
+              || "$(jq -r '.prerelease' <<<"$post_publish_json")" != "false" \
+              || "$(jq -r '.published_at != null' <<<"$post_publish_json")" != "true" \
+              || "$post_publish_snapshot" != "$asset_snapshot" ]]; then
+            echo "Published Release state or assets differ from the verified draft." >&2
+            exit 1
+          fi
 
-      - name: Publish the verified draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_ID: ${{ steps.verify.outputs.release_id }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh api --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-            -F draft=false \
-            -f make_latest=true >/dev/null
+          latest_json="$(
+            gh api --method GET "repos/${GITHUB_REPOSITORY}/releases/latest"
+          )"
+          if [[ "$(jq -r '.id' <<<"$latest_json")" != "$release_id" \
+              || "$(jq -r '.tag_name' <<<"$latest_json")" != "$RELEASE_TAG" ]]; then
+            echo "The promoted Release did not become the repository's latest Release." >&2
+            exit 1
+          fi

@@ -163,6 +163,59 @@ Assert-TextMatch $changelog `
     (('\[Unreleased\]: https://github\.com/yuxino/fuwa/compare/v{0}\.\.\.HEAD' -f $escapedMarketingVersion)) `
     'CHANGELOG Unreleased comparison does not start at the current version.'
 
+$signingPinsPath = Join-Path $repositoryRoot 'scripts\release-signing-pins.json'
+$signingPins = Get-Content -LiteralPath $signingPinsPath -Raw |
+    ConvertFrom-Json
+if (
+    $signingPins.schemaVersion -ne 1 -or
+    $signingPins.identity.leafCertificateSha1 -cne `
+        'c45731ee0170184a7542cbb1972420e319ac9d56' -or
+    $signingPins.identity.leafCertificateSha256 -cne `
+        'b138a53b12bcf7a6dfd09d092db8a7139aaecfd906237275e2ccf26d36550183' -or
+    $signingPins.identity.designatedRequirementSha256 -cne `
+        'f79cce9601f9721dd03bb9e876c149f5c4c36c7a54ecb5b087126656ed6f3b2b' -or
+    $signingPins.provenance.releaseTag -cne 'v0.1.1' -or
+    $signingPins.provenance.archiveName -cne 'Fuwa-0.1.1.zip' -or
+    $signingPins.provenance.archiveSha256 -cne `
+        'b138599a2ebe421c49396bdc7e610ca0df5819bfb7de00a8f87aa6e53043932a'
+) {
+    throw 'Stable macOS signing pins differ from the trusted v0.1.1 release evidence.'
+}
+
+$promotion = Get-Content `
+    -LiteralPath (Join-Path $repositoryRoot '.github\workflows\promote-release.yml') `
+    -Raw
+$promotionGuards = @(
+    @('runs-on: macos-26', 'Promotion has no hosted macOS verification job.'),
+    @('actions: read', 'Promotion cannot read tag CI artifacts.'),
+    @('Fuwa-windows-x64', 'Promotion does not require the x64 CI artifact.'),
+    @('Fuwa-windows-arm64', 'Promotion does not require the ARM64 CI artifact.'),
+    @('/actions/runs/\$\{tag_run_id\}/artifacts', 'Promotion does not enumerate tag-run artifacts.'),
+    @('/actions/artifacts/\$\{artifact_id\}/zip', 'Promotion does not download tag-run artifacts.'),
+    @('cmp --silent', 'Promotion does not byte-compare CI and draft assets.'),
+    @('lipo "\$binary" -verify_arch arm64 x86_64', 'Promotion does not verify both macOS architectures.'),
+    @('codesign --verify --deep --strict', 'Promotion does not verify the macOS code seal.'),
+    @('verify-macos-signature-pin\.py', 'Promotion does not verify the designated-requirement pin.'),
+    @('--extract-certificates', 'Promotion does not extract and compare the leaf certificate.'),
+    @('final_draft_snapshot', 'Promotion has no final in-step draft snapshot.'),
+    @('published_json=', 'Promotion does not publish in the verification step.'),
+    @('post_publish_snapshot', 'Promotion does not recheck assets after publication.'),
+    @('/releases/latest', 'Promotion does not verify latest-release state.')
+)
+foreach ($guard in $promotionGuards) {
+    Assert-TextMatch $promotion $guard[0] $guard[1]
+}
+
+$signaturePinVerifier = Get-Content `
+    -LiteralPath (Join-Path $repositoryRoot 'scripts\verify-macos-signature-pin.py') `
+    -Raw
+Assert-TextMatch $signaturePinVerifier `
+    'EXPECTED_ARCHITECTURES = \{"arm64", "x86_64"\}' `
+    'Signature-pin verifier must require exactly the two release architectures.'
+Assert-TextMatch $signaturePinVerifier `
+    'CSMAGIC_REQUIREMENT' `
+    'Signature-pin verifier must parse the embedded designated requirement.'
+
 Write-Host (
     'Fuwa release metadata tests passed: public {0}, build {1}, Windows {2}.' `
         -f $marketingVersion, $buildNumber, $windowsVersion
