@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-01
+
 ### Added
 
 - Added a native Windows 11 control-window and system-tray app that mirrors one selected ordinary top-level window through the public DWM thumbnail API, with `Ctrl+Alt+P`, composite source-identity revalidation, click-through topmost presentation, source reveal, and lock/suspend cleanup.
 - Added strict native x64 and ARM64 Windows builds, deterministic core tests, per-user Inno Setup installers, SHA-256 files, and static artifact/import verification in CI without publishing a Release.
+- Added a desktop shortcut to the per-user Windows installer alongside its Start-menu entry and uninstaller.
 
 ### Changed
 
@@ -55,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/yuxino/fuwa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yuxino/fuwa/releases/tag/v0.1.0

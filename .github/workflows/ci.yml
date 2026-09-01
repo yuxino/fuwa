@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*.*.*']
   pull_request:
 
 permissions:
@@ -92,7 +93,8 @@ jobs:
             'windows/scripts/manifest-policy.ps1',
             'windows/scripts/verify-artifact.ps1',
             'windows/lab/acceptance.ps1',
-            'windows/tests/ManifestPolicyTests.ps1'
+            'windows/tests/ManifestPolicyTests.ps1',
+            'windows/tests/ReleaseMetadataTests.ps1'
           )
           foreach ($script in $scripts) {
             $tokens = $null
@@ -111,6 +113,10 @@ jobs:
       - name: Test manifest policy verifier
         shell: powershell
         run: ./windows/tests/ManifestPolicyTests.ps1
+
+      - name: Test release metadata consistency
+        shell: powershell
+        run: ./windows/tests/ReleaseMetadataTests.ps1
 
       - name: Configure native Windows target
         shell: pwsh
@@ -155,16 +161,20 @@ jobs:
             -ExecutablePath build/windows/Release/Fuwa.exe `
             -InstallerPath $installer.FullName `
             -ExpectedArchitecture '${{ matrix.arch }}' `
-            -ExpectedVersion '0.1.1.2' `
+            -ExpectedVersion '0.1.2.3' `
+            -ExpectedPackageVersion '0.1.2' `
+            -SourceCommit '${{ github.sha }}' `
+            -WorkflowRunUrl '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
             -ManifestPath windows/resources/app.manifest `
-            -OutputPath "dist/windows/Fuwa-0.1.1.2-windows-${{ matrix.arch }}-evidence.json"
+            -OutputPath "dist/windows/Fuwa-0.1.2-windows-${{ matrix.arch }}-evidence.json"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
         with:
           name: Fuwa-windows-${{ matrix.arch }}
           if-no-files-found: error
+          retention-days: 14
           path: |
-            dist/windows/Fuwa-0.1.1.2-windows-${{ matrix.arch }}-setup.exe
-            dist/windows/Fuwa-0.1.1.2-windows-${{ matrix.arch }}-setup.exe.sha256
-            dist/windows/Fuwa-0.1.1.2-windows-${{ matrix.arch }}-evidence.json
+            dist/windows/Fuwa-0.1.2-windows-${{ matrix.arch }}-setup.exe
+            dist/windows/Fuwa-0.1.2-windows-${{ matrix.arch }}-setup.exe.sha256
+            dist/windows/Fuwa-0.1.2-windows-${{ matrix.arch }}-evidence.json

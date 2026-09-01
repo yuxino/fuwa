@@ -33,7 +33,9 @@ Fuwa 是一个本地运行的窗口置顶镜像工具。macOS 版在菜单栏工
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载 macOS 应用压缩包和同版本的 `.sha256` 文件。发行包未使用 Apple Developer ID 签名，也未经过 Apple 公证。Windows 安装包当前只作为 CI 工作流产物生成，本次改动不发布新的 Release；安装包也尚未使用 Authenticode 签名。
+从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载对应平台和架构的文件。从 0.1.2 起，每个完整正式版本应同时提供 macOS 的 `Fuwa-<版本>.zip`、Windows x64/ARM64 的 `Fuwa-<版本>-windows-<架构>-setup.exe`，以及各自的 `.sha256` 文件。
+
+macOS 压缩包只能由维护者在可信 Mac 上用项目的稳定本地身份构建；它未使用 Apple Developer ID 签名，也未经过 Apple 公证。Windows 安装包由对应架构的 GitHub Actions runner 构建并经过静态产物校验，但尚未使用 Authenticode 签名。正式发布流程不会在缺少任一平台产物时自动发布不完整版本。
 
 从 0.1.0 升级时，macOS 可能要求重新授予一次屏幕录制和辅助功能权限；后续稳定签名更新通常不会重复请求。
 

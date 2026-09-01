@@ -33,7 +33,9 @@ Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar
 
 ## Install
 
-Download the macOS app archive and matching `.sha256` file from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Release builds are not signed with Apple Developer ID or notarized. Windows installers are currently generated only as CI workflow artifacts; this change does not publish a new Release, and those installers are not yet Authenticode-signed.
+Download the files for your platform and architecture from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Starting with 0.1.2, each complete stable release is expected to contain `Fuwa-<version>.zip` for macOS, `Fuwa-<version>-windows-<architecture>-setup.exe` for Windows x64 and ARM64, and a matching `.sha256` file for each package.
+
+The macOS archive can only be built by a maintainer on a trusted Mac with the project's stable local identity; it is not signed with Apple Developer ID or notarized. Windows installers are built on matching GitHub Actions runners and pass static artifact verification, but are not yet Authenticode-signed. The release process does not automatically publish an incomplete version when either platform's assets are missing.
 
 When upgrading from 0.1.0, macOS may ask for Screen Recording and Accessibility permission once more. Later stably signed updates should not normally repeat the request.
 

@@ -52,6 +52,10 @@ param(
     [string]$WorkflowRunUrl,
 
     [Parameter()]
+    [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
+    [string]$ExpectedVersion = '0.1.2.3',
+
+    [Parameter()]
     [ValidateRange(10, 600)]
     [int]$TimeoutSeconds = 180
 )
@@ -299,8 +303,8 @@ if ($Phase -eq 'Prepare') {
         throw 'The installed executable does not match the CI-verified Fuwa.exe payload.'
     }
     $fileVersion = (Get-Item -LiteralPath $applicationPath).VersionInfo.FileVersion
-    if ($fileVersion -ne '0.1.1.2') {
-        throw "Installed file version is $fileVersion, expected 0.1.1.2."
+    if ($fileVersion -ne $ExpectedVersion) {
+        throw "Installed file version is $fileVersion, expected $ExpectedVersion."
     }
 
     $application = Start-Process -FilePath $applicationPath -PassThru
