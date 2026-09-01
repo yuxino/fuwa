@@ -94,9 +94,27 @@ $resource = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'windows\resources\FuwaWindows.rc') `
     -Raw
 foreach ($field in @('FILEVERSION', 'PRODUCTVERSION')) {
+    $numericVersionPattern = `
+        ('(?m)^ {0} {1}\r?$' -f $field, $escapedWindowsVersionCsv)
     Assert-TextMatch $resource `
-        (('(?m)^ {0} {1}$' -f $field, $escapedWindowsVersionCsv)) `
+        $numericVersionPattern `
         "$field differs from Info.plist marketing/build metadata."
+
+    foreach ($fixture in @(
+            " $field $windowsVersionCsv`n",
+            " $field $windowsVersionCsv`r`n"
+        )) {
+        Assert-TextMatch $fixture $numericVersionPattern `
+            "$field matching must accept both LF and CRLF."
+    }
+    foreach ($invalidFixture in @(
+            " $field 9,9,9,9`r`n",
+            " $field $windowsVersionCsv trailing`r`n"
+        )) {
+        if ($invalidFixture -cmatch $numericVersionPattern) {
+            throw "$field matching accepted invalid release metadata."
+        }
+    }
 }
 foreach ($field in @('FileVersion', 'ProductVersion')) {
     Assert-TextMatch $resource `
@@ -160,7 +178,7 @@ $changelog = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'CHANGELOG.md') `
     -Raw
 Assert-TextMatch $changelog `
-    (('(?m)^## \[{0}\] - \d{{4}}-\d{{2}}-\d{{2}}$' -f $escapedMarketingVersion)) `
+    (('(?m)^## \[{0}\] - \d{{4}}-\d{{2}}-\d{{2}}\r?$' -f $escapedMarketingVersion)) `
     'CHANGELOG does not contain the current release heading.'
 Assert-TextMatch $changelog `
     (('\[Unreleased\]: https://github\.com/yuxino/fuwa/compare/v{0}\.\.\.HEAD' -f $escapedMarketingVersion)) `
