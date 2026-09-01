@@ -3,7 +3,7 @@
   <h1>Fuwa</h1>
   <p>Keep the window you need in front.</p>
   <p>
-    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>Download Fuwa</strong></a>
+    <a href="https://github.com/yuxino/fuwa/releases"><strong>View releases</strong></a>
     · <a href="README.md">简体中文</a>
   </p>
 </div>
@@ -22,38 +22,28 @@ Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar
 - Finder Quick Look is macOS-only. Windows Explorer and other preview apps are handled only as ordinary top-level windows.
 - The macOS shortcut is customizable; Windows currently uses `Ctrl+Alt+P`.
 - Mirrors always pass mouse input through; `Interact` and `Reveal Source` only activate and raise the real source window.
-- Window pixels and metadata stay on your computer, with no uploads, analytics, telemetry, or background network requests. Windows displays a DWM live-thumbnail relationship without reading, saving, or uploading a pixel buffer. The macOS `View Latest Release` action opens GitHub in your default browser only after you click it.
+- Window pixels and metadata stay on your computer, with no uploads, analytics, telemetry, or background network requests.
 
 ## Requirements
 
-- macOS 14 or later; the release package includes arm64 (Apple silicon) and x86_64 (Intel), but installation, permissions, and core functionality have not yet been validated on physical Intel Mac hardware
+- macOS 14 or later; the package includes arm64 (Apple silicon) and x86_64 (Intel), with physical Intel Mac acceptance still pending
 - Windows 11 x64 or ARM64; the Windows app requests neither Screen Recording nor Accessibility permission and does not require administrator access
 - macOS Screen Recording permission, requested only on the first pin attempt
 - macOS Accessibility permission, requested only for `Interact` or `Reveal Source`
 
 ## Install
 
-Download the files for your platform and architecture from [GitHub Releases](https://github.com/yuxino/fuwa/releases). Starting with 0.1.2, each complete stable release is expected to contain `Fuwa-<version>.zip` for macOS, `Fuwa-<version>-windows-<architecture>-setup.exe` for Windows x64 and ARM64, and a matching `.sha256` file for each package.
+Fuwa supports Windows 11 on x64 and ARM64. Download public builds from [GitHub Releases](https://github.com/yuxino/fuwa/releases): `Fuwa-<version>.zip` for macOS, or, starting with v0.1.2, `Fuwa-<version>-windows-<architecture>-setup.exe` for Windows. Draft assets are not public until their Release is published; every public package has a matching `.sha256` file.
 
-The macOS archive can only be built by a maintainer on a trusted Mac with the project's stable local identity; it is not signed with Apple Developer ID or notarized. Windows installers are built on matching GitHub Actions runners and pass static artifact verification, but are not yet Authenticode-signed. The release process does not automatically publish an incomplete version when either platform's assets are missing.
+The macOS package uses the project's maintained local signing identity, not Apple Developer ID signing or notarization. Windows installers are not Authenticode-signed. If the operating system warns, verify the download source and SHA-256 instead of weakening system security.
 
-When upgrading from 0.1.0, macOS may ask for Screen Recording and Accessibility permission once more. Later stably signed updates should not normally repeat the request.
+To verify a download, use `shasum -a 256 -c Fuwa-*.sha256` on macOS. On Windows, run `Get-FileHash <installer> -Algorithm SHA256` and compare it with the matching `.sha256` file.
 
-Verify the archive before opening it:
+After moving `Fuwa.app` to `/Applications`, follow [Apple's instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) if macOS blocks it.
 
-```sh
-shasum -a 256 -c Fuwa-*.zip.sha256
-```
+## Build from source
 
-After moving `Fuwa.app` to `/Applications`, follow [Apple's instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) if macOS blocks it. Command-line users may instead verify the code seal and remove quarantine only after the checksum succeeds:
-
-```sh
-codesign --verify --deep --strict /Applications/Fuwa.app
-xattr -dr com.apple.quarantine /Applications/Fuwa.app
-open /Applications/Fuwa.app
-```
-
-To install from source:
+macOS:
 
 ```sh
 git clone https://github.com/yuxino/fuwa.git
@@ -62,7 +52,7 @@ cd fuwa
 ./scripts/install-app.sh
 ```
 
-To build and package on Windows:
+Windows:
 
 ```powershell
 cmake -S windows -B build/windows -A ARM64
@@ -71,11 +61,11 @@ ctest --test-dir build/windows -C Release --output-on-failure
 cpack --config build/windows/CPackConfig.cmake -C Release -G INNOSETUP -B dist/windows
 ```
 
-Replace `ARM64` with `x64` for an x64 build. The installer is per-user and does not elevate. If Windows warns about the unsigned app, stop and verify its source and SHA-256 instead of weakening system security.
+Replace `ARM64` with `x64` for an x64 build. The installer is per-user and does not elevate.
 
 ## Notes
 
-Fuwa displays a mirror; it does not change another app's real window level. On Windows, “topmost” means above ordinary non-topmost windows on the current virtual desktop; a minimized source is rejected or unpinned. UAC secure desktop, the lock screen, system UI, exclusive full-screen surfaces, other topmost windows, DRM/protected content, and some specialized GPU windows remain outside the guarantee.
+Fuwa displays a mirror; it does not change another app's real window level. Windows uses a DWM live thumbnail without reading or saving a pixel buffer, and “topmost” means above ordinary non-topmost windows on the current virtual desktop. Minimized windows, the UAC secure desktop, lock screen, system UI, exclusive full-screen surfaces, other topmost windows, protected content, and some specialized GPU windows are outside the supported scope.
 
 [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Independent implementation](docs/independent-implementation.md)
 

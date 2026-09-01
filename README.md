@@ -3,7 +3,7 @@
   <h1>Fuwa</h1>
   <p>把需要的窗口留在最前面。</p>
   <p>
-    <a href="https://github.com/yuxino/fuwa/releases/latest"><strong>下载 Fuwa</strong></a>
+    <a href="https://github.com/yuxino/fuwa/releases"><strong>查看发布版本</strong></a>
     · <a href="README_EN.md">English</a>
   </p>
 </div>
@@ -22,38 +22,28 @@ Fuwa 是一个本地运行的窗口置顶镜像工具。macOS 版在菜单栏工
 - Finder Quick Look 仅适用于 macOS；Windows Explorer 和其他预览应用只按普通顶层窗口处理。
 - macOS 可自定义快捷键；Windows 当前使用 `Ctrl+Alt+P`。
 - 镜像始终穿透鼠标；“交互”或“显示源窗口”只会激活并抬升真实源窗口。
-- 窗口画面和元数据只在本机处理，无上传、分析、遥测或后台网络请求。Windows 版通过 DWM 的实时缩略图关系显示窗口，不读取、保存或上传像素缓冲；macOS 的“查看最新版本”仅在点击后用默认浏览器打开 GitHub。
+- 窗口画面和元数据只在本机处理，无上传、分析、遥测或后台网络请求。
 
 ## 要求
 
-- macOS 14 或更高版本；发行包包含 arm64（Apple 芯片）和 x86_64（Intel）架构，但尚未在 Intel 真机上完成安装、权限与核心功能验收
+- macOS 14 或更高版本；发行包包含 arm64（Apple 芯片）和 x86_64（Intel），Intel 真机验收仍待完成
 - Windows 11 x64 或 ARM64；Windows 版不请求屏幕录制或辅助功能权限，也不要求管理员权限
 - macOS 屏幕录制权限，仅在第一次尝试固定时请求
 - macOS 辅助功能权限，仅在使用“交互”或“显示源窗口”时请求
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载对应平台和架构的文件。从 0.1.2 起，每个完整正式版本应同时提供 macOS 的 `Fuwa-<版本>.zip`、Windows x64/ARM64 的 `Fuwa-<版本>-windows-<架构>-setup.exe`，以及各自的 `.sha256` 文件。
+Fuwa 支持 Windows 11 x64 / ARM64。公开版本请从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载：macOS 使用 `Fuwa-<版本>.zip`，Windows 从 v0.1.2 起使用 `Fuwa-<版本>-windows-<架构>-setup.exe`。草稿资产在对应 Release 正式发布前不会对外显示；每个公开包都附有 `.sha256` 校验文件。
 
-macOS 压缩包只能由维护者在可信 Mac 上用项目的稳定本地身份构建；它未使用 Apple Developer ID 签名，也未经过 Apple 公证。Windows 安装包由对应架构的 GitHub Actions runner 构建并经过静态产物校验，但尚未使用 Authenticode 签名。正式发布流程不会在缺少任一平台产物时自动发布不完整版本。
+macOS 包使用项目维护的本地签名身份，未使用 Apple Developer ID 签名或 Apple 公证。Windows 安装包未使用 Authenticode 签名。遇到系统警告时请核对下载来源与 SHA-256，不要关闭系统安全功能。
 
-从 0.1.0 升级时，macOS 可能要求重新授予一次屏幕录制和辅助功能权限；后续稳定签名更新通常不会重复请求。
+校验下载文件时，macOS 可使用 `shasum -a 256 -c Fuwa-*.sha256`；Windows 可使用 `Get-FileHash <安装包> -Algorithm SHA256`，并与对应 `.sha256` 文件比较。
 
-打开前先校验压缩包：
+把 `Fuwa.app` 移到 `/Applications` 后，如果 macOS 阻止打开，请参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。
 
-```sh
-shasum -a 256 -c Fuwa-*.zip.sha256
-```
+## 从源码构建
 
-把 `Fuwa.app` 移到 `/Applications` 后，如果 macOS 阻止打开，请参考 [Apple 官方说明](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac)。熟悉命令行的用户也可在校验和通过后验证代码封印并移除隔离属性：
-
-```sh
-codesign --verify --deep --strict /Applications/Fuwa.app
-xattr -dr com.apple.quarantine /Applications/Fuwa.app
-open /Applications/Fuwa.app
-```
-
-从源码安装：
+macOS：
 
 ```sh
 git clone https://github.com/yuxino/fuwa.git
@@ -62,7 +52,7 @@ cd fuwa
 ./scripts/install-app.sh
 ```
 
-Windows 源码构建与安装包：
+Windows：
 
 ```powershell
 cmake -S windows -B build/windows -A ARM64
@@ -71,11 +61,11 @@ ctest --test-dir build/windows -C Release --output-on-failure
 cpack --config build/windows/CPackConfig.cmake -C Release -G INNOSETUP -B dist/windows
 ```
 
-x64 构建把 `ARM64` 替换为 `x64`。安装包按当前用户安装，不触发提权；遇到 Windows 对未签名应用的警告时请停止并核对来源和 SHA-256，不要关闭系统安全功能。
+x64 构建把 `ARM64` 替换为 `x64`。安装包按当前用户安装，不触发提权。
 
 ## 说明
 
-Fuwa 显示的是镜像，不会修改其他 App 的真实窗口层级。Windows 的“置顶”只覆盖当前虚拟桌面上的普通非置顶窗口；已最小化来源会被拒绝或取消镜像。UAC 安全桌面、锁屏、系统界面、独占全屏、其他置顶窗口、DRM/受保护内容和部分特殊 GPU 窗口不在保证范围内。
+Fuwa 显示的是镜像，不会修改其他 App 的真实窗口层级。Windows 通过 DWM 实时缩略图显示画面，不读取或保存像素缓冲；“置顶”只覆盖当前虚拟桌面上的普通非置顶窗口。已最小化窗口、UAC 安全桌面、锁屏、系统界面、独占全屏、其他置顶窗口、受保护内容和部分特殊 GPU 窗口不在支持范围内。
 
 [隐私](PRIVACY.md) · [贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [独立实现说明](docs/independent-implementation.md)
 
