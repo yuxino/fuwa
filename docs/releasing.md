@@ -44,7 +44,7 @@ git switch --detach v0.1.3
 ./scripts/package-app.sh
 codesign --verify --deep --strict --verbose=2 dist/Fuwa.app
 lipo dist/Fuwa.app/Contents/MacOS/Fuwa -verify_arch arm64 x86_64
-shasum -a 256 -c dist/Fuwa-0.1.3.zip.sha256
+(cd dist && shasum -a 256 -c Fuwa-0.1.3.zip.sha256)
 ```
 
 Also inspect the designated requirement and confirm that it matches the
