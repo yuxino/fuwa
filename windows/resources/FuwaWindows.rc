@@ -5,8 +5,8 @@ IDI_FUWA ICON "Fuwa.ico"
 1 RT_MANIFEST "app.manifest"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,1,2
- PRODUCTVERSION 0,1,1,2
+ FILEVERSION 0,1,2,3
+ PRODUCTVERSION 0,1,2,3
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -23,12 +23,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "yuxino and Fuwa contributors\0"
             VALUE "FileDescription", "Fuwa window mirror\0"
-            VALUE "FileVersion", "0.1.1.2\0"
+            VALUE "FileVersion", "0.1.2.3\0"
             VALUE "InternalName", "Fuwa\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 yuxino and Fuwa contributors\0"
             VALUE "OriginalFilename", "Fuwa.exe\0"
             VALUE "ProductName", "Fuwa\0"
-            VALUE "ProductVersion", "0.1.1.2\0"
+            VALUE "ProductVersion", "0.1.2.3\0"
         END
     END
     BLOCK "VarFileInfo"

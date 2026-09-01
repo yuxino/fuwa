@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.27)
 
+set(FUWA_MARKETING_VERSION "0.1.2")
+set(FUWA_BUILD_NUMBER "3")
+
 project(
     FuwaWindows
-    VERSION 0.1.1.2
+    VERSION "${FUWA_MARKETING_VERSION}.${FUWA_BUILD_NUMBER}"
     DESCRIPTION "A local live window mirror"
     LANGUAGES CXX RC
 )
@@ -119,13 +122,13 @@ endif()
 
 set(CPACK_GENERATOR "INNOSETUP")
 set(CPACK_PACKAGE_NAME "Fuwa")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VERSION "${FUWA_MARKETING_VERSION}")
 set(CPACK_PACKAGE_VENDOR "yuxino and Fuwa contributors")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Keep an ordinary application window visible as a local live mirror.")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/yuxino/fuwa")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Fuwa")
 set(CPACK_PACKAGE_FILE_NAME
-    "Fuwa-${PROJECT_VERSION}-windows-${FUWA_PACKAGE_ARCHITECTURE}-setup"
+    "Fuwa-${FUWA_MARKETING_VERSION}-windows-${FUWA_PACKAGE_ARCHITECTURE}-setup"
 )
 set(CPACK_PACKAGE_EXECUTABLES "Fuwa" "Fuwa")
 set(CPACK_PACKAGE_CHECKSUM "SHA256")

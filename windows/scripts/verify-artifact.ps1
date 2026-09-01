@@ -13,7 +13,16 @@ param(
     [string]$ExpectedArchitecture,
 
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
-    [string]$ExpectedVersion = '0.1.1.2',
+    [string]$ExpectedVersion = '0.1.2.3',
+
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$ExpectedPackageVersion = '0.1.2',
+
+    [Parameter()]
+    [string]$SourceCommit,
+
+    [Parameter()]
+    [string]$WorkflowRunUrl,
 
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
@@ -500,6 +509,21 @@ $evidence = [ordered]@{
     expected = [ordered]@{
         architecture = $normalizedArchitecture
         version = $ExpectedVersion
+        packageVersion = $ExpectedPackageVersion
+    }
+    provenance = [ordered]@{
+        sourceCommit = if ([string]::IsNullOrWhiteSpace($SourceCommit)) {
+            $null
+        }
+        else {
+            $SourceCommit.ToLowerInvariant()
+        }
+        workflowRunUrl = if ([string]::IsNullOrWhiteSpace($WorkflowRunUrl)) {
+            $null
+        }
+        else {
+            $WorkflowRunUrl
+        }
     }
     artifacts = [ordered]@{
         executable = $null
@@ -511,6 +535,19 @@ $evidence = [ordered]@{
 $embeddedManifestPath = $null
 
 try {
+    if (
+        -not [string]::IsNullOrWhiteSpace($SourceCommit) -and
+        $SourceCommit -cnotmatch '^[0-9a-fA-F]{40}$'
+    ) {
+        throw 'SourceCommit must be a full 40-character Git commit ID.'
+    }
+    if (
+        -not [string]::IsNullOrWhiteSpace($WorkflowRunUrl) -and
+        $WorkflowRunUrl -cnotmatch '^https://github\.com/[^/]+/[^/]+/actions/runs/\d+$'
+    ) {
+        throw 'WorkflowRunUrl must identify one GitHub Actions run.'
+    }
+
     $versionParts = @($ExpectedVersion.Split('.') | ForEach-Object { [int]$_ })
     Assert-Condition `
         -Condition ($versionParts.Count -eq 4) `
@@ -540,7 +577,7 @@ try {
         -Message 'Executable artifact must be named Fuwa.exe.'
 
     $expectedInstallerName = 'Fuwa-{0}-windows-{1}-setup.exe' -f `
-        $ExpectedVersion, `
+        $ExpectedPackageVersion, `
         $normalizedArchitecture
     $actualInstallerName = [System.IO.Path]::GetFileName($resolvedInstallerPath)
     Assert-Condition `

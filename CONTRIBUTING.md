@@ -68,4 +68,8 @@ Please keep each pull request reviewable and include:
 
 Avoid unrelated formatting or refactoring. CI validates warnings-as-errors Release builds and executable logic suites for both platforms, plus unsigned Windows installer artifacts; platform signing, notarization, and Release publication remain release-maintainer responsibilities.
 
+## Release boundary
+
+Tag CI builds and retains the exact unsigned Windows x64 and ARM64 installers, checksums, and verification evidence. It does not create or publish a GitHub Release. A trusted Mac must separately produce and verify the stable-identity universal archive. Maintainers then assemble one draft containing the complete asset set and use the protected manual promotion workflow only after accepting the three package hashes. See [the release runbook](docs/releasing.md).
+
 By submitting a contribution, you agree that it may be distributed under the repository's [MIT License](LICENSE), and you confirm that you have the right to contribute it.
