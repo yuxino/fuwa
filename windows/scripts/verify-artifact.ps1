@@ -13,10 +13,10 @@ param(
     [string]$ExpectedArchitecture,
 
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
-    [string]$ExpectedVersion = '0.1.2.3',
+    [string]$ExpectedVersion = '0.1.3.4',
 
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$ExpectedPackageVersion = '0.1.2',
+    [string]$ExpectedPackageVersion = '0.1.3',
 
     [Parameter()]
     [string]$SourceCommit,

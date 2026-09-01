@@ -28,8 +28,8 @@ On a clean `main` checkout:
    changed. Hosted compilation is not interactive acceptance.
 
 `windows/tests/ReleaseMetadataTests.ps1` is the fail-closed drift check for the
-version files. For 0.1.2, the public version is `0.1.2`, the build number is
-`3`, and the Windows file/assembly version is `0.1.2.3`.
+version files. For 0.1.3, the public version is `0.1.3`, the build number is
+`4`, and the Windows file/assembly version is `0.1.3.4`.
 
 Create and push the signed or annotated `v<public-version>` tag only after the
 release commit is on `main`. Wait for that tag's `CI` workflow to succeed. Do
@@ -40,11 +40,11 @@ not reuse artifacts from a branch or pull-request run.
 The Windows host cannot perform this step and must not claim that it did.
 
 ```sh
-git switch --detach v0.1.2
+git switch --detach v0.1.3
 ./scripts/package-app.sh
 codesign --verify --deep --strict --verbose=2 dist/Fuwa.app
 lipo dist/Fuwa.app/Contents/MacOS/Fuwa -verify_arch arm64 x86_64
-shasum -a 256 -c dist/Fuwa-0.1.2.zip.sha256
+shasum -a 256 -c dist/Fuwa-0.1.3.zip.sha256
 ```
 
 Also inspect the designated requirement and confirm that it matches the
@@ -75,14 +75,14 @@ self-consistent evidence JSON uploaded from elsewhere is insufficient.
 Create a draft Release for the existing tag, then upload exactly these eight
 files:
 
-- `Fuwa-0.1.2.zip`
-- `Fuwa-0.1.2.zip.sha256`
-- `Fuwa-0.1.2-windows-x64-setup.exe`
-- `Fuwa-0.1.2-windows-x64-setup.exe.sha256`
-- `Fuwa-0.1.2-windows-x64-evidence.json`
-- `Fuwa-0.1.2-windows-arm64-setup.exe`
-- `Fuwa-0.1.2-windows-arm64-setup.exe.sha256`
-- `Fuwa-0.1.2-windows-arm64-evidence.json`
+- `Fuwa-0.1.3.zip`
+- `Fuwa-0.1.3.zip.sha256`
+- `Fuwa-0.1.3-windows-x64-setup.exe`
+- `Fuwa-0.1.3-windows-x64-setup.exe.sha256`
+- `Fuwa-0.1.3-windows-x64-evidence.json`
+- `Fuwa-0.1.3-windows-arm64-setup.exe`
+- `Fuwa-0.1.3-windows-arm64-setup.exe.sha256`
+- `Fuwa-0.1.3-windows-arm64-evidence.json`
 
 The draft notes must distinguish these facts:
 
@@ -92,7 +92,7 @@ The draft notes must distinguish these facts:
 - Windows build/CTest/static artifact checks and native interactive acceptance
   are different evidence boundaries.
 
-Do not publish a Windows-only 0.1.2 draft: doing so would make the repository's
+Do not publish a Windows-only 0.1.3 draft: doing so would make the repository's
 `latest` download link silently drop the macOS package available in 0.1.1.
 
 ## 4. Promote the exact reviewed bytes

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-01
+
+### Fixed
+
+- Kept the Windows About dialog aligned with the canonical release version instead of displaying a stale hard-coded value.
+- Extended Windows native acceptance to verify that the per-user desktop shortcut is installed and removed cleanly.
+- Made release checksum verification compatible with the default macOS Bash while preserving strict LF and Windows CRLF parsing.
+
+### Changed
+
+- Removed redundant Windows mirror lifecycle state and its duplicate tests; the session now derives activity directly from its owned Win32 window and DWM thumbnail resources.
+
 ## [0.1.2] - 2026-09-01
 
 ### Added
@@ -58,7 +70,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/yuxino/fuwa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yuxino/fuwa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yuxino/fuwa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yuxino/fuwa/releases/tag/v0.1.0

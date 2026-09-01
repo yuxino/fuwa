@@ -93,7 +93,7 @@ final class AppModel: ObservableObject {
 
     init(
         copy: FuwaCopy = FuwaCopy(),
-        version: String = "0.1.2",
+        version: String = "0.1.3",
         shortcut: KeyboardShortcut = .defaultPin,
         shortcutIsActive: Bool = true,
         launchAtLoginState: FuwaLaunchAtLoginState = .disabled,
