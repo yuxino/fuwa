@@ -324,7 +324,7 @@ jobs:
             echo "Current-version release notes are missing from CHANGELOG.md." >&2
             exit 1
           fi
-          published_at="$(git show -s --format=%cD "$RELEASE_TAG")"
+          published_at="$(git show -s --format=%cD "${RELEASE_TAG}^{}")"
           python3 scripts/update-metadata.py generate \
             --version "$version" \
             --build "$build_number" \
@@ -348,7 +348,8 @@ jobs:
 
           python3 scripts/update-metadata.py verify \
             --asset-dir "$asset_dir" \
-            --metadata-dir "$metadata_dir"
+            --metadata-dir "$metadata_dir" \
+            --require-signed-feeds
           public_key='8qWUhz/r6J3c6fVw9NVEmqvWcF4oVKwAtLFm9AkA1ZA='
           for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
             swift scripts/verify-ed25519-signature.swift \
@@ -688,7 +689,8 @@ jobs:
 
           python3 "$GITHUB_WORKSPACE/scripts/update-metadata.py" verify \
             --asset-dir "$asset_dir" \
-            --metadata-dir "$asset_dir"
+            --metadata-dir "$asset_dir" \
+            --require-signed-feeds
 
           final_draft_json="$(
             gh api --method GET --paginate --slurp \

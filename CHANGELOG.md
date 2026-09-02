@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-02
+
+### Fixed
+
+- Kept signed `latest.json` and every platform appcast strictly machine-readable by resolving annotated tags to their commit before producing the single-line RFC 2822 publication date.
+- Made release verification reject multiline or timezone-free publication dates and require Sparkle's complete signed-feed comment on every production appcast.
+
 ## [0.1.5] - 2026-09-02
 
 ### Added
@@ -89,7 +96,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/yuxino/fuwa/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/yuxino/fuwa/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/yuxino/fuwa/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/yuxino/fuwa/compare/v0.1.2...v0.1.3

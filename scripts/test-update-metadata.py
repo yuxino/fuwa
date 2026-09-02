@@ -48,6 +48,24 @@ with tempfile.TemporaryDirectory(prefix="fuwa-update-metadata-tests-") as root_v
         "--asset-dir", str(assets),
         "--metadata-dir", str(metadata),
     )
+    run(
+        "python3", tool, "verify",
+        "--asset-dir", str(assets),
+        "--metadata-dir", str(metadata),
+        "--require-signed-feeds",
+        succeeds=False,
+    )
+
+    run(
+        "python3", tool, "generate",
+        "--version", version,
+        "--build", "42",
+        "--published-at", "tag v9.8.7\nWed, 02 Sep 2026 00:00:00 +0000",
+        "--release-notes", str(notes),
+        "--asset-dir", str(assets),
+        "--output-dir", str(metadata),
+        succeeds=False,
+    )
 
     latest_path = metadata / "latest.json"
     original_latest = latest_path.read_text(encoding="utf-8")

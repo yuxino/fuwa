@@ -10,6 +10,7 @@ import json
 import re
 import sys
 import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 SPARKLE_NAMESPACE = "http://www.andymatuschak.org/xml-namespaces/sparkle"
@@ -37,6 +38,36 @@ def signature(path: Path) -> str:
     if len(decoded) != 64:
         fail(f"Ed25519 signature in {path.name} must decode to 64 bytes")
     return value
+
+
+def published_at(value: object) -> str:
+    if not isinstance(value, str) or "\n" in value or "\r" in value:
+        fail("publishedAt must be one RFC 2822 date line")
+    try:
+        parsed = parsedate_to_datetime(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError("publishedAt is not a valid RFC 2822 date") from error
+    if parsed.tzinfo is None:
+        fail("publishedAt must include a timezone")
+    return value
+
+
+def verify_signed_feed_comment(path: Path) -> None:
+    payload = path.read_bytes()
+    match = re.search(
+        rb"<!-- sparkle-signatures:\s*"
+        rb"edSignature: ([A-Za-z0-9+/=]+)\s*"
+        rb"length: ([0-9]+)\s*-->\s*$",
+        payload,
+    )
+    if match is None:
+        fail(f"{path.name} has no Sparkle signed-feed comment")
+    try:
+        decoded = base64.b64decode(match.group(1), validate=True)
+    except ValueError as error:
+        raise ValueError(f"{path.name} has an invalid feed signature") from error
+    if len(decoded) != 64 or int(match.group(2)) != match.start():
+        fail(f"{path.name} has inconsistent signed-feed metadata")
 
 
 def asset_record(path: Path, url_prefix: str) -> dict[str, object]:
@@ -95,6 +126,7 @@ def generate(arguments: argparse.Namespace) -> None:
         fail("version must contain three numeric components")
     if not re.fullmatch(r"\d+", arguments.build):
         fail("build must be numeric")
+    normalized_published_at = published_at(arguments.published_at)
     asset_dir = arguments.asset_dir.resolve()
     output_dir = arguments.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -121,7 +153,7 @@ def generate(arguments: argparse.Namespace) -> None:
         title="Fuwa macOS Updates",
         version=arguments.version,
         build=arguments.build,
-        published_at=arguments.published_at,
+        published_at=normalized_published_at,
         notes=notes,
         minimum_system_version="14.0",
         asset=assets["macos"],
@@ -132,7 +164,7 @@ def generate(arguments: argparse.Namespace) -> None:
             title=f"Fuwa Windows {architecture} Updates",
             version=arguments.version,
             build=arguments.build,
-            published_at=arguments.published_at,
+            published_at=normalized_published_at,
             notes=notes,
             minimum_system_version=None,
             asset=assets[f"windows-{architecture}"],
@@ -143,7 +175,7 @@ def generate(arguments: argparse.Namespace) -> None:
         "version": arguments.version,
         "build": int(arguments.build),
         "tag": f"v{arguments.version}",
-        "publishedAt": arguments.published_at,
+        "publishedAt": normalized_published_at,
         "assets": {
             "macos-universal": assets["macos"],
             "windows-x64": assets["windows-x64"],
@@ -166,6 +198,7 @@ def verify(arguments: argparse.Namespace) -> None:
         raise ValueError("latest.json is missing or malformed") from error
     if latest.get("schemaVersion") != 1:
         fail("latest.json schemaVersion must be 1")
+    published_at(latest.get("publishedAt"))
     version = latest.get("version")
     build = latest.get("build")
     if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
@@ -200,8 +233,9 @@ def verify(arguments: argparse.Namespace) -> None:
         "appcast-windows-arm64.xml": "windows-arm64",
     }
     for feed_name, asset_key in feeds.items():
+        feed_path = metadata_dir / feed_name
         try:
-            root = ET.parse(metadata_dir / feed_name).getroot()
+            root = ET.parse(feed_path).getroot()
         except (OSError, ET.ParseError) as error:
             raise ValueError(f"{feed_name} is missing or malformed") from error
         items = root.findall("./channel/item")
@@ -226,6 +260,8 @@ def verify(arguments: argparse.Namespace) -> None:
             != record["edSignature"]
         ):
             fail(f"{feed_name} enclosure differs from latest.json")
+        if arguments.require_signed_feeds:
+            verify_signed_feed_comment(feed_path)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -241,6 +277,7 @@ def parse_arguments() -> argparse.Namespace:
     verifier = subparsers.add_parser("verify")
     verifier.add_argument("--asset-dir", type=Path, required=True)
     verifier.add_argument("--metadata-dir", type=Path, required=True)
+    verifier.add_argument("--require-signed-feeds", action="store_true")
     return parser.parse_args()
 
 

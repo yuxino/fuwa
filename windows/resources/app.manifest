@@ -4,7 +4,7 @@
     name="app.yuxino.fuwa.windows"
     processorArchitecture="*"
     type="win32"
-    version="0.1.5.6" />
+    version="0.1.6.7" />
   <description>Fuwa window mirror</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>

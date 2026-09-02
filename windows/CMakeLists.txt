@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 
-set(FUWA_MARKETING_VERSION "0.1.5")
-set(FUWA_BUILD_NUMBER "6")
+set(FUWA_MARKETING_VERSION "0.1.6")
+set(FUWA_BUILD_NUMBER "7")
 
 project(
     FuwaWindows

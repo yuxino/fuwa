@@ -30,8 +30,8 @@ On a clean `main` checkout:
    changed. Hosted compilation is not interactive acceptance.
 
 `windows/tests/ReleaseMetadataTests.ps1` is the fail-closed drift check for the
-version files. For 0.1.5, the public version is `0.1.5`, the build number is
-`6`, and the Windows file/assembly version is `0.1.5.6`.
+version files. For 0.1.6, the public version is `0.1.6`, the build number is
+`7`, and the Windows file/assembly version is `0.1.6.7`.
 
 Create and push the signed or annotated `v<public-version>` tag only after the
 release commit is on `main`. Wait for that tag's `CI` workflow to succeed. Do
@@ -42,11 +42,11 @@ not reuse artifacts from a branch or pull-request run.
 The Windows host cannot perform this step and must not claim that it did.
 
 ```sh
-git switch --detach v0.1.5
+git switch --detach v0.1.6
 ./scripts/package-app.sh
 codesign --verify --deep --strict --verbose=2 dist/Fuwa.app
 lipo dist/Fuwa.app/Contents/MacOS/Fuwa -verify_arch arm64 x86_64
-(cd dist && shasum -a 256 -c Fuwa-0.1.5.zip.sha256)
+(cd dist && shasum -a 256 -c Fuwa-0.1.6.zip.sha256)
 ```
 
 Also inspect the designated requirement and confirm that it matches the
@@ -77,14 +77,14 @@ self-consistent evidence JSON uploaded from elsewhere is insufficient.
 Create a draft Release for the existing tag, then upload exactly these eight
 files:
 
-- `Fuwa-0.1.5.zip`
-- `Fuwa-0.1.5.zip.sha256`
-- `Fuwa-0.1.5-windows-x64-setup.exe`
-- `Fuwa-0.1.5-windows-x64-setup.exe.sha256`
-- `Fuwa-0.1.5-windows-x64-evidence.json`
-- `Fuwa-0.1.5-windows-arm64-setup.exe`
-- `Fuwa-0.1.5-windows-arm64-setup.exe.sha256`
-- `Fuwa-0.1.5-windows-arm64-evidence.json`
+- `Fuwa-0.1.6.zip`
+- `Fuwa-0.1.6.zip.sha256`
+- `Fuwa-0.1.6-windows-x64-setup.exe`
+- `Fuwa-0.1.6-windows-x64-setup.exe.sha256`
+- `Fuwa-0.1.6-windows-x64-evidence.json`
+- `Fuwa-0.1.6-windows-arm64-setup.exe`
+- `Fuwa-0.1.6-windows-arm64-setup.exe.sha256`
+- `Fuwa-0.1.6-windows-arm64-evidence.json`
 
 The draft notes must distinguish these facts:
 
