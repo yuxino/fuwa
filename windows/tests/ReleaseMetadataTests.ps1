@@ -92,6 +92,21 @@ Assert-TextMatch $cmake `
 Assert-TextMatch $cmake `
     'FUWA_MARKETING_VERSION="\$\{FUWA_MARKETING_VERSION\}"' `
     'The Windows UI must receive the canonical CMake marketing version.'
+Assert-TextMatch $cmake `
+    'WinSparkle-0\.9\.4\.zip' `
+    'Windows updater must pin WinSparkle 0.9.4.'
+Assert-TextMatch $cmake `
+    'SHA256=6037df37fc263bd1650a1c4949681a9d40ffe991d01f35892a406cb5d103c976' `
+    'Windows updater dependency must pin the official archive SHA-256.'
+Assert-TextMatch $cmake `
+    'appcast-windows-\$\{FUWA_PACKAGE_ARCHITECTURE\}\.xml' `
+    'Windows updater must use an architecture-specific fixed feed.'
+Assert-TextMatch $cmake `
+    'CPACK_INNOSETUP_SETUP_CloseApplications ON' `
+    'Windows installer must close the running app before replacement.'
+Assert-TextMatch $cmake `
+    'CPACK_INNOSETUP_SETUP_RestartApplications ON' `
+    'Windows installer must restart the app after replacement.'
 
 $windowsSource = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'windows\src\FuwaWindows.cpp') `
@@ -102,6 +117,15 @@ Assert-TextMatch $windowsSource `
 if ($windowsSource -cmatch 'L"Fuwa \d+\.\d+\.\d+') {
     throw 'The Windows About copy contains a stale hard-coded marketing version.'
 }
+Assert-TextMatch $windowsSource `
+    'win_sparkle_set_eddsa_public_key\(updaterPublicKey\)' `
+    'Windows updater must enforce the embedded Ed25519 public key.'
+Assert-TextMatch $windowsSource `
+    'win_sparkle_set_automatic_check_for_updates\(0\)' `
+    'Windows updater must remain user initiated.'
+Assert-TextMatch $windowsSource `
+    'updateCheckInProgress_\.exchange\(true\)' `
+    'Windows updater must reject overlapping update checks.'
 
 $resource = Get-Content `
     -LiteralPath (Join-Path $repositoryRoot 'windows\resources\FuwaWindows.rc') `

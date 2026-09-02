@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import FuwaCore
@@ -54,6 +55,10 @@ struct FuwaAppActions {
     var openScreenRecordingSettings: @MainActor () -> Void = {}
     var openAccessibilitySettings: @MainActor () -> Void = {}
     var openLoginItemsSettings: @MainActor () -> Void = {}
+    var checkForUpdates: @MainActor () -> Void = {}
+    var downloadUpdate: @MainActor () -> Void = {}
+    var cancelUpdate: @MainActor () -> Void = {}
+    var installAndRelaunchUpdate: @MainActor () -> Void = {}
     var openLatestRelease: @MainActor () -> Void = {}
     var showAbout: @MainActor () -> Void = {}
     var quit: @MainActor () -> Void = {}
@@ -85,6 +90,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var isClearingAll = false
     @Published private(set) var isUpdatingShortcut = false
     @Published private(set) var isUpdatingLaunchAtLogin = false
+    @Published private(set) var softwareUpdate: SoftwareUpdateState
 
     var onStatusPresentationChanged: (() -> Void)?
     var onRequestDismissPopover: (() -> Void)?
@@ -93,7 +99,7 @@ final class AppModel: ObservableObject {
 
     init(
         copy: FuwaCopy = FuwaCopy(),
-        version: String = "0.1.4",
+        version: String = "0.1.5",
         shortcut: KeyboardShortcut = .defaultPin,
         shortcutIsActive: Bool = true,
         launchAtLoginState: FuwaLaunchAtLoginState = .disabled,
@@ -108,6 +114,7 @@ final class AppModel: ObservableObject {
         self.launchAtLoginState = launchAtLoginState
         self.screenRecordingPermission = screenRecordingPermission
         self.accessibilityPermission = accessibilityPermission
+        softwareUpdate = .idle(currentVersion: version)
         self.actions = actions
     }
 
@@ -203,6 +210,68 @@ final class AppModel: ObservableObject {
 
     func openLatestRelease() {
         actions.openLatestRelease()
+    }
+
+    func setSoftwareUpdateState(_ state: SoftwareUpdateState) {
+        let phaseChanged = softwareUpdate.phase != state.phase
+        softwareUpdate = state
+        if phaseChanged {
+            NSAccessibility.post(
+                element: NSApp as Any,
+                notification: .announcementRequested,
+                userInfo: [
+                    .announcement: softwareUpdateAnnouncement,
+                    .priority: NSAccessibilityPriorityLevel.medium.rawValue
+                ]
+            )
+        }
+    }
+
+    func checkForUpdates() {
+        guard !softwareUpdate.isBusy, softwareUpdate.phase != .ready else { return }
+        actions.checkForUpdates()
+    }
+
+    func downloadUpdate() {
+        guard softwareUpdate.phase == .available else { return }
+        actions.downloadUpdate()
+    }
+
+    func cancelUpdate() {
+        guard softwareUpdate.canCancel || softwareUpdate.phase == .available else { return }
+        actions.cancelUpdate()
+    }
+
+    func installAndRelaunchUpdate() {
+        guard softwareUpdate.phase == .ready else { return }
+        actions.installAndRelaunchUpdate()
+    }
+
+    private var softwareUpdateAnnouncement: String {
+        switch softwareUpdate.phase {
+        case .idle:
+            return "\(copy.text(.version)) \(version)"
+        case .checking:
+            return copy.text(.checkingForUpdates)
+        case .current:
+            return copy.text(.upToDate)
+        case .available:
+            return [copy.text(.updateAvailable), softwareUpdate.availableVersion]
+                .compactMap { $0 }
+                .joined(separator: " ")
+        case .downloading:
+            return copy.text(.downloadingUpdate)
+        case .extracting:
+            return copy.text(.extractingUpdate)
+        case .ready:
+            return copy.text(.readyToInstall)
+        case .installing:
+            return copy.text(.installingUpdate)
+        case .cancelled:
+            return copy.text(.updateCancelled)
+        case .failed:
+            return softwareUpdate.errorMessage ?? copy.text(.updateFailedMessage)
+        }
     }
 
     func showAbout() {

@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: GlobalHotKey?
     private var model: AppModel?
     private var statusBarController: StatusBarController?
+    private var softwareUpdateController: SoftwareUpdateController?
     private var preparedPopoverIntent = PreparedIntentSlot<
         Result<TargetIntentSnapshot, Error>
     >()
@@ -64,6 +65,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             accessibilityPermission: accessibilityPermissionState
         )
         self.model = model
+        do {
+            softwareUpdateController = try SoftwareUpdateController(model: model)
+        } catch {
+            model.setSoftwareUpdateState(
+                SoftwareUpdateState(
+                    phase: .failed,
+                    currentVersion: Self.version,
+                    errorMessage: model.copy.text(.updateFailedMessage)
+                )
+            )
+        }
         model.configure(actions: makeActions())
         configureCoordinatorCallbacks(model: model)
         configurePrivacyLifecycle()
@@ -152,6 +164,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             openLoginItemsSettings: { [weak self] in
                 self?.launchAtLoginController.openSettings()
+            },
+            checkForUpdates: { [weak self] in
+                self?.softwareUpdateController?.checkForUpdates()
+            },
+            downloadUpdate: { [weak self] in
+                self?.softwareUpdateController?.downloadUpdate()
+            },
+            cancelUpdate: { [weak self] in
+                self?.softwareUpdateController?.cancelUpdate()
+            },
+            installAndRelaunchUpdate: { [weak self] in
+                self?.softwareUpdateController?.installAndRelaunch()
             },
             openLatestRelease: { [weak self] in
                 self?.openLatestRelease()
@@ -367,6 +391,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-            ?? "0.1.4"
+            ?? "0.1.5"
     }
 }

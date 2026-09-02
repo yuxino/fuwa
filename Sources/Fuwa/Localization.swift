@@ -58,6 +58,23 @@ enum FuwaString: String, CaseIterable, Sendable {
     case shortcutConflict
     case shortcutFailed
     case invalidShortcut
+    case softwareUpdate
+    case checkForUpdates
+    case checkingForUpdates
+    case upToDate
+    case updateAvailable
+    case downloadUpdate
+    case downloadingUpdate
+    case extractingUpdate
+    case readyToInstall
+    case restartAndUpdate
+    case installingUpdate
+    case updateCancelled
+    case updateFailedMessage
+    case retryUpdate
+    case releaseNotes
+    case openReleasePage
+    case releaseRecoveryHint
     case viewLatestRelease
     case viewLatestReleaseHint
     case about
@@ -142,6 +159,23 @@ struct FuwaCopy: Sendable {
         .shortcutConflict: "That shortcut is already used. The previous shortcut is still active.",
         .shortcutFailed: "The shortcut could not be changed. The previous shortcut is still active.",
         .invalidShortcut: "Include Command, Option, or Control with a key.",
+        .softwareUpdate: "Software Update",
+        .checkForUpdates: "Check for Updates",
+        .checkingForUpdates: "Checking for updates…",
+        .upToDate: "Fuwa is up to date.",
+        .updateAvailable: "A new Fuwa version is available.",
+        .downloadUpdate: "Download Update",
+        .downloadingUpdate: "Downloading update…",
+        .extractingUpdate: "Verifying and extracting update…",
+        .readyToInstall: "The verified update is ready.",
+        .restartAndUpdate: "Restart and Complete Update",
+        .installingUpdate: "Installing update…",
+        .updateCancelled: "Update cancelled. You can try again.",
+        .updateFailedMessage: "The update could not be verified or completed. Fuwa was not changed.",
+        .retryUpdate: "Try Again",
+        .releaseNotes: "Release Notes",
+        .openReleasePage: "Open GitHub Releases",
+        .releaseRecoveryHint: "Use GitHub Releases only if the in-app update keeps failing.",
         .viewLatestRelease: "View Latest Release",
         .viewLatestReleaseHint: "Opens the latest Fuwa release in your browser.",
         .about: "About Fuwa",
@@ -201,6 +235,23 @@ struct FuwaCopy: Sendable {
         .shortcutConflict: "这个快捷键已被占用，原快捷键仍然有效。",
         .shortcutFailed: "无法更改快捷键，原快捷键仍然有效。",
         .invalidShortcut: "请同时按下 Command、Option 或 Control。",
+        .softwareUpdate: "软件更新",
+        .checkForUpdates: "检查更新",
+        .checkingForUpdates: "正在检查更新…",
+        .upToDate: "Fuwa 已是最新版本。",
+        .updateAvailable: "发现新的 Fuwa 版本。",
+        .downloadUpdate: "下载更新",
+        .downloadingUpdate: "正在下载更新…",
+        .extractingUpdate: "正在验证并解压更新…",
+        .readyToInstall: "已验证更新，可以安装。",
+        .restartAndUpdate: "重启并完成更新",
+        .installingUpdate: "正在安装更新…",
+        .updateCancelled: "更新已取消，可以重新尝试。",
+        .updateFailedMessage: "无法验证或完成更新，Fuwa 未被修改。",
+        .retryUpdate: "重试",
+        .releaseNotes: "版本说明",
+        .openReleasePage: "打开 GitHub Releases",
+        .releaseRecoveryHint: "仅当应用内更新持续失败时，才使用 GitHub Releases。",
         .viewLatestRelease: "查看最新版本",
         .viewLatestReleaseHint: "在浏览器中打开 Fuwa 最新版本页面。",
         .about: "关于 Fuwa",

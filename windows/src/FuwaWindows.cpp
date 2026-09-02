@@ -5,9 +5,11 @@
 #include <commctrl.h>
 #include <shellapi.h>
 #include <wtsapi32.h>
+#include <winsparkle.h>
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <format>
 #include <optional>
 #include <string>
@@ -20,6 +22,7 @@ constexpr wchar_t mainWindowClassName[] = L"FuwaWindowsControlWindow";
 constexpr wchar_t singleInstanceName[] = L"Local\\app.yuxino.fuwa.windows";
 constexpr UINT trayIconIdentifier = 1;
 constexpr UINT trayCallbackMessage = WM_APP + 1;
+constexpr UINT updateShutdownMessage = WM_APP + 2;
 constexpr UINT mirrorTimerIdentifier = 1;
 constexpr UINT globalHotKeyIdentifier = 1;
 constexpr UINT mirrorRefreshMilliseconds = 250;
@@ -35,6 +38,12 @@ constexpr wchar_t englishAboutText[] =
     L"\n\nThe Windows version uses the public DWM API for a local live mirror. "
     L"It does not read, save, or upload window pixels."
     L"\n\nFinder Quick Look is not applicable on Windows.";
+constexpr wchar_t updaterMarketingVersion[] =
+    FUWA_WIDEN_VERSION(FUWA_MARKETING_VERSION);
+constexpr wchar_t updaterBuildNumber[] =
+    FUWA_WIDEN_VERSION(FUWA_BUILD_NUMBER);
+constexpr char updaterPublicKey[] =
+    "8qWUhz/r6J3c6fVw9NVEmqvWcF4oVKwAtLFm9AkA1ZA=";
 #undef FUWA_WIDEN_VERSION
 #undef FUWA_WIDEN_VERSION_IMPL
 
@@ -52,6 +61,7 @@ constexpr UINT commandTrayPinForeground = 2002;
 constexpr UINT commandTrayUnpin = 2003;
 constexpr UINT commandTrayAbout = 2004;
 constexpr UINT commandTrayQuit = 2005;
+constexpr UINT commandTrayCheckForUpdates = 2006;
 
 struct UiCopy {
     const wchar_t* windowTitle;
@@ -66,6 +76,7 @@ struct UiCopy {
     const wchar_t* trayOpen;
     const wchar_t* trayPinForeground;
     const wchar_t* trayAbout;
+    const wchar_t* trayCheckForUpdates;
     const wchar_t* trayQuit;
     const wchar_t* ready;
     const wchar_t* emptySelection;
@@ -93,6 +104,7 @@ UiCopy makeCopy(bool chinese) {
             L"打开 Fuwa",
             L"镜像当前前台窗口",
             L"关于 Fuwa",
+            L"检查更新…",
             L"退出",
             L"请选择窗口。Fuwa 不会修改源窗口的真实层级。",
             L"请先在列表中选择一个窗口。",
@@ -119,6 +131,7 @@ UiCopy makeCopy(bool chinese) {
         L"Open Fuwa",
         L"Mirror frontmost window",
         L"About Fuwa",
+        L"Check for Updates…",
         L"Quit",
         L"Choose a window. Fuwa does not change the source window's real level.",
         L"Select a window from the list first.",
@@ -147,7 +160,9 @@ public:
         : instance_(instance),
           processId_(GetCurrentProcessId()),
           taskbarCreatedMessage_(RegisterWindowMessageW(L"TaskbarCreated")),
-          copy_(makeCopy(usesSimplifiedChinese())) {}
+          copy_(makeCopy(usesSimplifiedChinese())) {
+        activeApplication_.store(this);
+    }
 
     int run(int showCommand) {
         if (!registerMainWindowClass()) {
@@ -304,6 +319,10 @@ private:
                 stopMirror(copy_.noMirror);
             }
             return 0;
+        case updateShutdownMessage:
+            shuttingDown_ = true;
+            DestroyWindow(window);
+            return 0;
         case WM_POWERBROADCAST:
             if (wParam == static_cast<WPARAM>(PBT_APMSUSPEND)) {
                 stopMirror(copy_.noMirror);
@@ -421,6 +440,7 @@ private:
         ) != FALSE;
         refreshWindowList();
         updateActions();
+        initializeUpdater();
         if (!sessionNotificationRegistered_) {
             setStatus(copy_.sessionNotificationsUnavailable);
         } else if (!trayIconAdded_) {
@@ -776,6 +796,12 @@ private:
             copy_.unpin
         );
         AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+        AppendMenuW(
+            menu,
+            MF_STRING | (updateCheckInProgress_.load() ? MF_GRAYED : MF_ENABLED),
+            commandTrayCheckForUpdates,
+            copy_.trayCheckForUpdates
+        );
         AppendMenuW(menu, MF_STRING, commandTrayAbout, copy_.trayAbout);
         AppendMenuW(menu, MF_STRING, commandTrayQuit, copy_.trayQuit);
 
@@ -831,6 +857,9 @@ private:
                 MB_OK | MB_ICONINFORMATION
             );
             break;
+        case commandTrayCheckForUpdates:
+            checkForUpdates();
+            break;
         case commandTrayQuit:
             shuttingDown_ = true;
             DestroyWindow(mainWindow_);
@@ -861,6 +890,11 @@ private:
             Shell_NotifyIconW(NIM_DELETE, &trayIcon_);
             trayIconAdded_ = false;
         }
+        if (updaterInitialized_) {
+            win_sparkle_cleanup();
+            updaterInitialized_ = false;
+        }
+        activeApplication_.store(nullptr);
         if (headingFont_ != nullptr) {
             DeleteObject(headingFont_);
             headingFont_ = nullptr;
@@ -868,6 +902,58 @@ private:
         if (bodyFont_ != nullptr) {
             DeleteObject(bodyFont_);
             bodyFont_ = nullptr;
+        }
+    }
+
+    void initializeUpdater() {
+        win_sparkle_set_app_details(
+            L"yuxino",
+            L"Fuwa",
+            updaterMarketingVersion
+        );
+        win_sparkle_set_app_build_version(updaterBuildNumber);
+        win_sparkle_set_appcast_url(FUWA_UPDATE_FEED_URL);
+        win_sparkle_set_automatic_check_for_updates(0);
+        win_sparkle_set_can_shutdown_callback(&Application::canUpdaterShutdown);
+        win_sparkle_set_shutdown_request_callback(&Application::requestUpdaterShutdown);
+        win_sparkle_set_error_callback(&Application::finishUpdateCheck);
+        win_sparkle_set_did_not_find_update_callback(&Application::finishUpdateCheck);
+        win_sparkle_set_update_cancelled_callback(&Application::finishUpdateCheck);
+        win_sparkle_set_update_skipped_callback(&Application::finishUpdateCheck);
+        win_sparkle_set_update_postponed_callback(&Application::finishUpdateCheck);
+        win_sparkle_set_update_dismissed_callback(&Application::finishUpdateCheck);
+        if (win_sparkle_set_eddsa_public_key(updaterPublicKey) != 1) {
+            return;
+        }
+        win_sparkle_init();
+        updaterInitialized_ = true;
+    }
+
+    void checkForUpdates() {
+        if (!updaterInitialized_ || updateCheckInProgress_.exchange(true)) {
+            return;
+        }
+        win_sparkle_check_update_with_ui();
+    }
+
+    static int __cdecl canUpdaterShutdown() {
+        return TRUE;
+    }
+
+    static void __cdecl requestUpdaterShutdown() {
+        if (Application* application = activeApplication_.load()) {
+            PostMessageW(
+                application->mainWindow_,
+                updateShutdownMessage,
+                0,
+                0
+            );
+        }
+    }
+
+    static void __cdecl finishUpdateCheck() {
+        if (Application* application = activeApplication_.load()) {
+            application->updateCheckInProgress_.store(false);
         }
     }
 
@@ -892,9 +978,12 @@ private:
     bool hotKeyRegistered_ = false;
     bool sessionNotificationRegistered_ = false;
     bool shuttingDown_ = false;
+    bool updaterInitialized_ = false;
+    std::atomic_bool updateCheckInProgress_ = false;
     std::vector<WindowCandidate> candidates_;
     std::optional<WindowCandidate> trayForeground_;
     MirrorSession mirror_;
+    inline static std::atomic<Application*> activeApplication_ = nullptr;
 };
 
 } // namespace

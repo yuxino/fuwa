@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-02
+
+### Added
+
+- Added a user-initiated, signed in-app updater: Sparkle 2.9.6 with Fuwa-owned progress and restart controls on macOS, and WinSparkle 0.9.4 native update UI on Windows x64 and ARM64.
+- Added Ed25519-signed platform feeds, detached signatures, and a machine-readable `latest.json` whose package URLs, sizes, SHA-256 hashes, architectures, versions, and signatures are generated from the exact release assets.
+- Added fail-closed updater state, metadata, malformed-feed, signature, cancellation, unknown-length, retry, and duplicate-action checks in local tests and the protected release workflow.
+
+### Changed
+
+- The Settings update action now checks inside Fuwa; GitHub Releases is shown only as a recovery path after an update failure.
+- Release promotion now signs the exact reviewed packages with a GitHub Actions secret, verifies both valid and altered payloads, and publishes only after the signed nineteen-file asset set is stable.
+
 ## [0.1.4] - 2026-09-02
 
 ### Changed
@@ -76,7 +89,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/yuxino/fuwa/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/yuxino/fuwa/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/yuxino/fuwa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yuxino/fuwa/compare/v0.1.1...v0.1.2

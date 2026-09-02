@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 
-set(FUWA_MARKETING_VERSION "0.1.4")
-set(FUWA_BUILD_NUMBER "5")
+set(FUWA_MARKETING_VERSION "0.1.5")
+set(FUWA_BUILD_NUMBER "6")
 
 project(
     FuwaWindows
@@ -17,6 +17,60 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(FUWA_TARGET_PROCESSOR "${CMAKE_GENERATOR_PLATFORM}")
+if(FUWA_TARGET_PROCESSOR STREQUAL "")
+    set(FUWA_TARGET_PROCESSOR "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
+endif()
+if(FUWA_TARGET_PROCESSOR STREQUAL "")
+    set(FUWA_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+string(TOLOWER "${FUWA_TARGET_PROCESSOR}" FUWA_PROCESSOR_LOWER)
+if(FUWA_PROCESSOR_LOWER MATCHES "^(arm64|aarch64)$")
+    set(FUWA_PACKAGE_ARCHITECTURE "arm64")
+    set(FUWA_WINSPARKLE_ARCHITECTURE "ARM64")
+elseif(FUWA_PROCESSOR_LOWER MATCHES "^(x64|amd64|x86_64)$")
+    set(FUWA_PACKAGE_ARCHITECTURE "x64")
+    set(FUWA_WINSPARKLE_ARCHITECTURE "x64")
+else()
+    message(FATAL_ERROR
+        "Unsupported Windows target architecture: ${FUWA_TARGET_PROCESSOR}. "
+        "Fuwa supports only x64 and ARM64."
+    )
+endif()
+
+include(FetchContent)
+FetchContent_Declare(
+    FuwaWinSparkle
+    URL "https://github.com/vslavik/winsparkle/releases/download/v0.9.4/WinSparkle-0.9.4.zip"
+    URL_HASH "SHA256=6037df37fc263bd1650a1c4949681a9d40ffe991d01f35892a406cb5d103c976"
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_GetProperties(FuwaWinSparkle)
+if(NOT fuwawinsparkle_POPULATED)
+    FetchContent_Populate(FuwaWinSparkle)
+endif()
+set(FUWA_WINSPARKLE_ROOT
+    "${fuwawinsparkle_SOURCE_DIR}/WinSparkle-0.9.4"
+)
+set(FUWA_WINSPARKLE_BINARY_DIR
+    "${FUWA_WINSPARKLE_ROOT}/${FUWA_WINSPARKLE_ARCHITECTURE}/Release"
+)
+foreach(FUWA_WINSPARKLE_FILE WinSparkle.dll WinSparkle.lib)
+    if(NOT EXISTS "${FUWA_WINSPARKLE_BINARY_DIR}/${FUWA_WINSPARKLE_FILE}")
+        message(FATAL_ERROR
+            "Pinned WinSparkle archive is missing ${FUWA_WINSPARKLE_FILE} "
+            "for ${FUWA_PACKAGE_ARCHITECTURE}."
+        )
+    endif()
+endforeach()
+
+add_library(FuwaWinSparkleLibrary SHARED IMPORTED GLOBAL)
+set_target_properties(FuwaWinSparkleLibrary PROPERTIES
+    IMPORTED_IMPLIB "${FUWA_WINSPARKLE_BINARY_DIR}/WinSparkle.lib"
+    IMPORTED_LOCATION "${FUWA_WINSPARKLE_BINARY_DIR}/WinSparkle.dll"
+    INTERFACE_INCLUDE_DIRECTORIES "${FUWA_WINSPARKLE_ROOT}/include"
+)
 
 add_library(FuwaWindowsCore STATIC
     src/FuwaCore.cpp
@@ -38,7 +92,9 @@ target_include_directories(Fuwa PRIVATE
 )
 target_compile_features(Fuwa PRIVATE cxx_std_20)
 target_compile_definitions(Fuwa PRIVATE
+    FUWA_BUILD_NUMBER="${FUWA_BUILD_NUMBER}"
     FUWA_MARKETING_VERSION="${FUWA_MARKETING_VERSION}"
+    FUWA_UPDATE_FEED_URL="https://github.com/yuxino/fuwa/releases/latest/download/appcast-windows-${FUWA_PACKAGE_ARCHITECTURE}.xml"
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
@@ -48,12 +104,19 @@ target_compile_definitions(Fuwa PRIVATE
 )
 target_link_libraries(Fuwa PRIVATE
     FuwaWindowsCore
+    FuwaWinSparkleLibrary
     Comctl32
     Dwmapi
     Gdi32
     Shell32
     User32
     Wtsapi32
+)
+add_custom_command(TARGET Fuwa POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "$<TARGET_FILE:FuwaWinSparkleLibrary>"
+        "$<TARGET_FILE_DIR:Fuwa>"
+    VERBATIM
 )
 
 function(configure_fuwa_msvc_target target)
@@ -97,27 +160,17 @@ endif()
 add_test(NAME FuwaWindowsCoreTests COMMAND FuwaWindowsCoreTests)
 
 install(TARGETS Fuwa RUNTIME DESTINATION ".")
+install(FILES
+    "$<TARGET_FILE:FuwaWinSparkleLibrary>"
+    DESTINATION "."
+)
+install(FILES
+    "${FUWA_WINSPARKLE_ROOT}/COPYING"
+    "${FUWA_WINSPARKLE_ROOT}/COPYING.expat"
+    DESTINATION "licenses/WinSparkle"
+)
 
 set(CPACK_VERBATIM_VARIABLES ON)
-
-set(FUWA_TARGET_PROCESSOR "${CMAKE_GENERATOR_PLATFORM}")
-if(FUWA_TARGET_PROCESSOR STREQUAL "")
-    set(FUWA_TARGET_PROCESSOR "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
-endif()
-if(FUWA_TARGET_PROCESSOR STREQUAL "")
-    set(FUWA_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
-endif()
-string(TOLOWER "${FUWA_TARGET_PROCESSOR}" FUWA_PROCESSOR_LOWER)
-if(FUWA_PROCESSOR_LOWER MATCHES "^(arm64|aarch64)$")
-    set(FUWA_PACKAGE_ARCHITECTURE "arm64")
-elseif(FUWA_PROCESSOR_LOWER MATCHES "^(x64|amd64|x86_64)$")
-    set(FUWA_PACKAGE_ARCHITECTURE "x64")
-else()
-    message(FATAL_ERROR
-        "Unsupported Windows target architecture: ${FUWA_TARGET_PROCESSOR}. "
-        "Fuwa supports only x64 and ARM64."
-    )
-endif()
 
 set(CPACK_GENERATOR "INNOSETUP")
 set(CPACK_PACKAGE_NAME "Fuwa")
@@ -148,7 +201,7 @@ set(CPACK_INNOSETUP_SETUP_AppId "app.yuxino.fuwa.windows")
 set(CPACK_INNOSETUP_SETUP_AppMutex "Local\\app.yuxino.fuwa.windows")
 set(CPACK_INNOSETUP_SETUP_CloseApplications ON)
 set(CPACK_INNOSETUP_SETUP_PrivilegesRequired "lowest")
-set(CPACK_INNOSETUP_SETUP_RestartApplications OFF)
+set(CPACK_INNOSETUP_SETUP_RestartApplications ON)
 set(CPACK_INNOSETUP_SETUP_UninstallDisplayIcon "{app}\\Fuwa.exe")
 
 include(CPack)

@@ -22,7 +22,8 @@ Fuwa 是一个本地运行的窗口置顶镜像工具。macOS 版在菜单栏工
 - Finder Quick Look 仅适用于 macOS；Windows Explorer 和其他预览应用只按普通顶层窗口处理。
 - macOS 可自定义快捷键；Windows 当前使用 `Ctrl+Alt+P`。
 - 镜像始终穿透鼠标；“交互”或“显示源窗口”只会激活并抬升真实源窗口。
-- 窗口画面和元数据只在本机处理，无上传、分析、遥测或后台网络请求。
+- 窗口画面和元数据只在本机处理，无上传、分析或遥测；仅在用户点击“检查更新”时访问 Fuwa 的公开 GitHub Release 元数据。
+- 从 v0.1.5 起，macOS 和 Windows 都可由用户在应用内检查并安装经过 Ed25519 签名验证的更新。
 
 ## 要求
 
@@ -34,6 +35,8 @@ Fuwa 是一个本地运行的窗口置顶镜像工具。macOS 版在菜单栏工
 ## 安装
 
 Fuwa 支持 Windows 11 x64 / ARM64。公开版本请从 [GitHub Releases](https://github.com/yuxino/fuwa/releases) 下载：macOS 使用 `Fuwa-<版本>.zip`，Windows 从 v0.1.2 起使用 `Fuwa-<版本>-windows-<架构>-setup.exe`。草稿资产在对应 Release 正式发布前不会对外显示；每个公开包都附有 `.sha256` 校验文件。
+
+v0.1.4 及更早版本需要手动安装 v0.1.5 一次。此后可在 Fuwa 设置（macOS）或托盘菜单（Windows）中点击“检查更新”；应用只接受内置公钥验证通过的固定 GitHub feed 和安装包，失败时不会降级为未签名安装。
 
 macOS 包使用项目维护的本地签名身份，未使用 Apple Developer ID 签名或 Apple 公证。Windows 安装包未使用 Authenticode 签名。遇到系统警告时请核对下载来源与 SHA-256，不要关闭系统安全功能。
 

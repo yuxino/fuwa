@@ -202,9 +202,187 @@ jobs:
             --binary "$binary" \
             --pins "$pins"
 
+  prepare-update-metadata:
+    name: Sign update assets and prepare feeds
+    needs: verify-macos
+    runs-on: macos-26
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the exact tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Generate, verify, and upload signed updater metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          UPDATER_PRIVATE_KEY: ${{ secrets.FUWA_UPDATER_ED25519_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$UPDATER_PRIVATE_KEY" ]]; then
+            echo "FUWA_UPDATER_ED25519_PRIVATE_KEY is not configured." >&2
+            exit 1
+          fi
+          version="${RELEASE_TAG#v}"
+          read -r plist_version build_number < <(
+            python3 - <<'PY'
+          import plistlib
+          with open("Resources/Info.plist", "rb") as stream:
+              metadata = plistlib.load(stream)
+          print(metadata["CFBundleShortVersionString"], metadata["CFBundleVersion"])
+          PY
+          )
+          if [[ "$version" != "$plist_version" ]]; then
+            echo "Tag and bundle versions differ." >&2
+            exit 1
+          fi
+
+          release_json="$(
+            gh api --method GET --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | jq -cer --arg tag "$RELEASE_TAG" \
+                '[.[][] | select(.tag_name == $tag and .draft == true)] |
+                 if length == 1 then .[0]
+                 else error("expected exactly one matching draft Release") end'
+          )"
+          asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-update-assets.XXXXXX")"
+          metadata_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-update-metadata.XXXXXX")"
+          macos_zip="Fuwa-${version}.zip"
+          windows_x64="Fuwa-${version}-windows-x64-setup.exe"
+          windows_arm64="Fuwa-${version}-windows-arm64-setup.exe"
+          base_assets=(
+            "$macos_zip"
+            "${macos_zip}.sha256"
+            "$windows_x64"
+            "${windows_x64}.sha256"
+            "Fuwa-${version}-windows-x64-evidence.json"
+            "$windows_arm64"
+            "${windows_arm64}.sha256"
+            "Fuwa-${version}-windows-arm64-evidence.json"
+          )
+          expected_base_file="$RUNNER_TEMP/fuwa-expected-base-assets.txt"
+          actual_base_file="$RUNNER_TEMP/fuwa-actual-base-assets.txt"
+          printf '%s\n' "${base_assets[@]}" | sort > "$expected_base_file"
+          jq -r '.assets[].name' <<<"$release_json" | sort > "$actual_base_file"
+          if ! diff -u "$expected_base_file" "$actual_base_file"; then
+            echo "Updater signing requires the exact unsigned eight-file draft." >&2
+            exit 1
+          fi
+          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+            asset_id="$(
+              jq -er --arg name "$asset_name" \
+                '[.assets[] | select(.name == $name)] |
+                 if length == 1 then .[0].id
+                 else error("expected exactly one matching release asset") end' \
+                <<<"$release_json"
+            )"
+            gh api --method GET \
+              -H 'Accept: application/octet-stream' \
+              "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+              > "$asset_dir/$asset_name"
+          done
+
+          sparkle_zip="$RUNNER_TEMP/Sparkle-for-Swift-Package-Manager-2.9.6.zip"
+          curl --fail --location --silent --show-error \
+            -o "$sparkle_zip" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-for-Swift-Package-Manager.zip"
+          printf '%s  %s\n' \
+            '8d5fb41d960b43f4a68aa14126bf62b098544ec8d191cdcc73eb14e63a8e7606' \
+            "$sparkle_zip" | shasum -a 256 -c -
+          sparkle_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-sparkle-tools.XXXXXX")"
+          ditto -x -k "$sparkle_zip" "$sparkle_dir"
+          sign_update="$sparkle_dir/bin/sign_update"
+
+          sign_detached() {
+            local file="$1"
+            printf '%s' "$UPDATER_PRIVATE_KEY" \
+              | "$sign_update" --ed-key-file - -p "$file" > "${file}.sig"
+          }
+          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+            sign_detached "$asset_dir/$asset_name"
+          done
+
+          notes_file="$RUNNER_TEMP/fuwa-release-notes.txt"
+          awk \
+            -v heading="## [${version}]" \
+            '$0 == heading || index($0, heading " - ") == 1 {capture=1; next}
+             capture && /^## / {exit}
+             capture {print}' \
+            CHANGELOG.md > "$notes_file"
+          if [[ ! -s "$notes_file" ]]; then
+            echo "Current-version release notes are missing from CHANGELOG.md." >&2
+            exit 1
+          fi
+          published_at="$(git show -s --format=%cD "$RELEASE_TAG")"
+          python3 scripts/update-metadata.py generate \
+            --version "$version" \
+            --build "$build_number" \
+            --published-at "$published_at" \
+            --release-notes "$notes_file" \
+            --asset-dir "$asset_dir" \
+            --output-dir "$metadata_dir"
+
+          feeds=(
+            appcast.xml
+            appcast-windows-x64.xml
+            appcast-windows-arm64.xml
+          )
+          for feed in "${feeds[@]}"; do
+            printf '%s' "$UPDATER_PRIVATE_KEY" \
+              | "$sign_update" --ed-key-file - \
+                  "$metadata_dir/$feed" --disable-signing-warning
+            sign_detached "$metadata_dir/$feed"
+          done
+          sign_detached "$metadata_dir/latest.json"
+
+          python3 scripts/update-metadata.py verify \
+            --asset-dir "$asset_dir" \
+            --metadata-dir "$metadata_dir"
+          public_key='8qWUhz/r6J3c6fVw9NVEmqvWcF4oVKwAtLFm9AkA1ZA='
+          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+            swift scripts/verify-ed25519-signature.swift \
+              "$public_key" "$asset_dir/$asset_name" "$asset_dir/${asset_name}.sig"
+          done
+          for metadata_name in "${feeds[@]}" latest.json; do
+            swift scripts/verify-ed25519-signature.swift \
+              "$public_key" \
+              "$metadata_dir/$metadata_name" \
+              "$metadata_dir/${metadata_name}.sig"
+          done
+          altered_asset="$RUNNER_TEMP/fuwa-altered-update.bin"
+          cp "$asset_dir/$macos_zip" "$altered_asset"
+          printf '\0' >> "$altered_asset"
+          if swift scripts/verify-ed25519-signature.swift \
+              "$public_key" "$altered_asset" "$asset_dir/${macos_zip}.sig"; then
+            echo "Signature verifier accepted an altered update payload." >&2
+            exit 1
+          fi
+
+          upload_assets=(
+            "$asset_dir/${macos_zip}.sig"
+            "$asset_dir/${windows_x64}.sig"
+            "$asset_dir/${windows_arm64}.sig"
+            "$metadata_dir/appcast.xml"
+            "$metadata_dir/appcast.xml.sig"
+            "$metadata_dir/appcast-windows-x64.xml"
+            "$metadata_dir/appcast-windows-x64.xml.sig"
+            "$metadata_dir/appcast-windows-arm64.xml"
+            "$metadata_dir/appcast-windows-arm64.xml.sig"
+            "$metadata_dir/latest.json"
+            "$metadata_dir/latest.json.sig"
+          )
+          gh release upload "$RELEASE_TAG" "${upload_assets[@]}" --clobber
+
   promote:
     name: Verify exact assets and publish draft
-    needs: verify-macos
+    needs: [verify-macos, prepare-update-metadata]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release-promotion
@@ -354,19 +532,30 @@ jobs:
           expected_assets=(
             "$macos_zip"
             "${macos_zip}.sha256"
+            "${macos_zip}.sig"
             "$windows_x64"
             "${windows_x64}.sha256"
+            "${windows_x64}.sig"
             "Fuwa-${version}-windows-x64-evidence.json"
             "$windows_arm64"
             "${windows_arm64}.sha256"
+            "${windows_arm64}.sig"
             "Fuwa-${version}-windows-arm64-evidence.json"
+            "appcast.xml"
+            "appcast.xml.sig"
+            "appcast-windows-x64.xml"
+            "appcast-windows-x64.xml.sig"
+            "appcast-windows-arm64.xml"
+            "appcast-windows-arm64.xml.sig"
+            "latest.json"
+            "latest.json.sig"
           )
           mapfile -t expected_sorted < <(printf '%s\n' "${expected_assets[@]}" | sort)
           mapfile -t actual_sorted < <(jq -r '.assets[].name' <<<"$release_json" | sort)
           if ! diff -u \
             <(printf '%s\n' "${expected_sorted[@]}") \
             <(printf '%s\n' "${actual_sorted[@]}"); then
-            echo "Draft assets do not match the exact eight-file release contract." >&2
+            echo "Draft assets do not match the exact nineteen-file release contract." >&2
             exit 1
           fi
           asset_snapshot="$(
@@ -492,6 +681,10 @@ jobs:
 
           verify_windows_evidence x64 "$windows_x64" "$ACCEPTED_WINDOWS_X64_SHA256"
           verify_windows_evidence arm64 "$windows_arm64" "$ACCEPTED_WINDOWS_ARM64_SHA256"
+
+          python3 "$GITHUB_WORKSPACE/scripts/update-metadata.py" verify \
+            --asset-dir "$asset_dir" \
+            --metadata-dir "$asset_dir"
 
           final_draft_json="$(
             gh api --method GET --paginate --slurp \

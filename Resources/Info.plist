@@ -19,9 +19,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.4</string>
+    <string>0.1.5</string>
     <key>CFBundleVersion</key>
-    <string>5</string>
+    <string>6</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
@@ -32,6 +32,22 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>SUAllowsAutomaticUpdates</key>
+    <false/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
+    <key>SUFeedURL</key>
+    <string>https://github.com/yuxino/fuwa/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>8qWUhz/r6J3c6fVw9NVEmqvWcF4oVKwAtLFm9AkA1ZA=</string>
+    <key>SURequireSignedFeed</key>
+    <true/>
+    <key>SUSignedFeedFailureExpirationInterval</key>
+    <integer>0</integer>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
     <key>NSScreenCaptureUsageDescription</key>
     <string>Fuwa captures only the window you choose so it can keep a private, live mirror visible on your Mac.</string>
     <key>NSHumanReadableCopyright</key>

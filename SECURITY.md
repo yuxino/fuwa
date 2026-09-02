@@ -24,6 +24,8 @@ You can expect an acknowledgement within 7 days. The maintainers will validate t
 
 ## Scope
 
-Particularly relevant reports include unintended retention or disclosure of window pixels, incorrect handling of lock/sleep/user-switch boundaries, unsafe use of Accessibility, input injection, use of private APIs, or supply-chain issues in release artifacts.
+Particularly relevant reports include unintended retention or disclosure of window pixels, incorrect handling of lock/sleep/user-switch boundaries, unsafe use of Accessibility, input injection, use of private APIs, updater signature or fixed-feed bypasses, or supply-chain issues in release artifacts.
+
+Fuwa v0.1.5 and later accepts application updates only when the package and platform feed validate against the Ed25519 public key embedded in the installed app. Release promotion signs the exact reviewed macOS, Windows x64, and Windows ARM64 packages and publishes matching detached signatures plus `latest.json` for independent auditing. Signature, feed, version, architecture, or hash failures stop the in-app path; they do not enable an unsigned fallback.
 
 Expected macOS permission prompts, inability to mirror DRM or secure system windows, Windows foreground/topmost restrictions, and limitations already documented in the README are generally not vulnerabilities unless they can be used to bypass a security boundary.

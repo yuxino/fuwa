@@ -7,6 +7,7 @@ FUWA_APP_DIR="${FUWA_PROJECT_DIR}/dist/Fuwa.app"
 FUWA_CONTENTS_DIR="${FUWA_APP_DIR}/Contents"
 FUWA_MACOS_DIR="${FUWA_CONTENTS_DIR}/MacOS"
 FUWA_RESOURCES_DIR="${FUWA_CONTENTS_DIR}/Resources"
+FUWA_FRAMEWORKS_DIR="${FUWA_CONTENTS_DIR}/Frameworks"
 FUWA_SDK_15="/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
 FUWA_BUILD_UNIVERSAL="${FUWA_BUILD_UNIVERSAL:-1}"
 
@@ -38,11 +39,10 @@ export SWIFTPM_MODULECACHE_OVERRIDE="/private/tmp/fuwa-package-swift-cache"
 cd "${FUWA_PROJECT_DIR}"
 if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
     FUWA_ARCH_BINARIES=()
+    FUWA_SPARKLE_FRAMEWORK_SOURCE=""
     for FUWA_ARCH in arm64 x86_64; do
-        FUWA_ARCH_SCRATCH="${FUWA_PROJECT_DIR}/.build/package-${FUWA_ARCH}"
         swift build \
             --disable-sandbox \
-            --scratch-path "${FUWA_ARCH_SCRATCH}" \
             --configuration release \
             --product Fuwa \
             --arch "${FUWA_ARCH}" \
@@ -51,11 +51,20 @@ if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
             -Xswiftc -warnings-as-errors
         FUWA_ARCH_BIN_DIR="$(swift build \
             --disable-sandbox \
-            --scratch-path "${FUWA_ARCH_SCRATCH}" \
             --configuration release \
             --arch "${FUWA_ARCH}" \
             --show-bin-path)"
         FUWA_ARCH_BINARIES+=("${FUWA_ARCH_BIN_DIR}/Fuwa")
+        FUWA_ARCH_SPARKLE_FRAMEWORK="$({
+            find "${FUWA_PROJECT_DIR}/.build/artifacts" \
+                -path '*/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework' \
+                -type d -print -quit
+        })"
+        if [[ -z "${FUWA_ARCH_SPARKLE_FRAMEWORK}" ]]; then
+            print -u2 -r -- "error: Sparkle.framework was not resolved for ${FUWA_ARCH}"
+            exit 1
+        fi
+        FUWA_SPARKLE_FRAMEWORK_SOURCE="${FUWA_ARCH_SPARKLE_FRAMEWORK}"
     done
 
     FUWA_UNIVERSAL_DIR="${FUWA_PROJECT_DIR}/.build/package-universal"
@@ -79,6 +88,15 @@ else
         --product Fuwa \
         --show-bin-path)"
     FUWA_BINARY_SOURCE="${FUWA_BIN_DIR}/Fuwa"
+    FUWA_SPARKLE_FRAMEWORK_SOURCE="$({
+        find "${FUWA_PROJECT_DIR}/.build/artifacts" \
+            -path '*/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework' \
+            -type d -print -quit
+    })"
+    if [[ -z "${FUWA_SPARKLE_FRAMEWORK_SOURCE}" ]]; then
+        print -u2 -r -- "error: Sparkle.framework was not resolved"
+        exit 1
+    fi
 fi
 FUWA_VERSION="$(/usr/libexec/PlistBuddy \
     -c 'Print :CFBundleShortVersionString' \
@@ -88,8 +106,11 @@ FUWA_ARCHIVE_PATH="${FUWA_PROJECT_DIR}/dist/${FUWA_ARCHIVE_NAME}"
 
 rm -rf "${FUWA_APP_DIR}"
 rm -f "${FUWA_ARCHIVE_PATH}" "${FUWA_ARCHIVE_PATH}.sha256"
-mkdir -p "${FUWA_MACOS_DIR}" "${FUWA_RESOURCES_DIR}"
+mkdir -p "${FUWA_MACOS_DIR}" "${FUWA_RESOURCES_DIR}" "${FUWA_FRAMEWORKS_DIR}"
 cp "${FUWA_BINARY_SOURCE}" "${FUWA_MACOS_DIR}/Fuwa"
+/usr/bin/ditto \
+    "${FUWA_SPARKLE_FRAMEWORK_SOURCE}" \
+    "${FUWA_FRAMEWORKS_DIR}/Sparkle.framework"
 cp "${FUWA_PROJECT_DIR}/Resources/Info.plist" "${FUWA_CONTENTS_DIR}/Info.plist"
 cp "${FUWA_PROJECT_DIR}/Resources/AppIcon.icns" "${FUWA_RESOURCES_DIR}/AppIcon.icns"
 cp -R "${FUWA_PROJECT_DIR}/Resources/en.lproj" "${FUWA_RESOURCES_DIR}/en.lproj"
@@ -105,6 +126,15 @@ if [[ "${FUWA_BUILD_UNIVERSAL}" == "1" ]]; then
 fi
 
 plutil -lint "${FUWA_CONTENTS_DIR}/Info.plist"
+/usr/bin/lipo \
+    "${FUWA_FRAMEWORKS_DIR}/Sparkle.framework/Versions/B/Sparkle" \
+    -verify_arch arm64 x86_64
+
+if ! /usr/bin/otool -l "${FUWA_MACOS_DIR}/Fuwa" \
+    | /usr/bin/grep -F '@executable_path/../Frameworks' >/dev/null; then
+    print -u2 -r -- "error: packaged binary has no Frameworks runpath"
+    exit 1
+fi
 
 FUWA_IDENTITY_DESCRIPTION="$(
     /usr/bin/security find-identity -v -p codesigning \

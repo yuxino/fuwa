@@ -1,3 +1,4 @@
+import FuwaCore
 import SwiftUI
 
 @MainActor
@@ -54,22 +55,23 @@ struct SettingsView: View {
                 .padding(14)
 
                 sectionDivider
+                sectionTitle(copy.text(.softwareUpdate))
+                softwareUpdateControls
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 14)
+
+                sectionDivider
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) {
                         appVersion
                         Spacer(minLength: 8)
-                        latestReleaseButton
                         aboutButton
                         quitButton
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 10) {
-                            appVersion
-                            Spacer(minLength: 8)
-                            latestReleaseButton
-                        }
+                        appVersion
 
                         HStack(spacing: 12) {
                             Spacer()
@@ -94,14 +96,142 @@ struct SettingsView: View {
         }
     }
 
-    private var latestReleaseButton: some View {
-        Button(action: model.openLatestRelease) {
-            Label(copy.text(.viewLatestRelease), systemImage: "arrow.up.right")
+    @ViewBuilder
+    private var softwareUpdateControls: some View {
+        let state = model.softwareUpdate
+        VStack(alignment: .leading, spacing: 9) {
+            Text(updateStatusText(state))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(updateStatusText(state))
+
+            if let notes = state.releaseNotes,
+               state.phase == .available || state.phase == .ready {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(copy.text(.releaseNotes))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ScrollView {
+                        Text(notes)
+                            .font(.caption)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                    }
+                    .frame(maxHeight: 112)
+                }
+            }
+
+            updateProgress(state)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    updatePrimaryAction(state)
+                    updateSecondaryActions(state)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    updatePrimaryAction(state)
+                    updateSecondaryActions(state)
+                }
+            }
         }
-        .buttonStyle(FuwaQuietButtonStyle())
-        .help(copy.text(.viewLatestReleaseHint))
-        .accessibilityLabel(copy.text(.viewLatestRelease))
-        .accessibilityHint(copy.text(.viewLatestReleaseHint))
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private func updateProgress(_ state: SoftwareUpdateState) -> some View {
+        switch state.phase {
+        case .checking, .installing:
+            ProgressView()
+                .controlSize(.small)
+                .accessibilityLabel(updateStatusText(state))
+        case .downloading:
+            if let progress = state.downloadProgress {
+                ProgressView(value: progress)
+                    .accessibilityValue(Text(progress.formatted(.percent.precision(.fractionLength(0)))))
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(copy.text(.downloadingUpdate))
+            }
+        case .extracting:
+            if let progress = state.normalizedExtractionProgress {
+                ProgressView(value: progress)
+                    .accessibilityValue(Text(progress.formatted(.percent.precision(.fractionLength(0)))))
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(copy.text(.extractingUpdate))
+            }
+        case .idle, .current, .available, .ready, .cancelled, .failed:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func updatePrimaryAction(_ state: SoftwareUpdateState) -> some View {
+        switch state.phase {
+        case .idle, .current:
+            Button(copy.text(.checkForUpdates), action: model.checkForUpdates)
+                .buttonStyle(FuwaQuietButtonStyle())
+        case .available:
+            Button(copy.text(.downloadUpdate), action: model.downloadUpdate)
+                .buttonStyle(FuwaQuietButtonStyle())
+        case .ready:
+            Button(copy.text(.restartAndUpdate), action: model.installAndRelaunchUpdate)
+                .buttonStyle(FuwaQuietButtonStyle())
+                .keyboardShortcut(.defaultAction)
+        case .cancelled, .failed:
+            Button(copy.text(.retryUpdate), action: model.checkForUpdates)
+                .buttonStyle(FuwaQuietButtonStyle())
+        case .checking, .downloading, .extracting, .installing:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func updateSecondaryActions(_ state: SoftwareUpdateState) -> some View {
+        if state.canCancel || state.phase == .available {
+            Button(copy.text(.cancel), action: model.cancelUpdate)
+                .buttonStyle(.borderless)
+        }
+        if state.phase == .failed {
+            Button(action: model.openLatestRelease) {
+                Label(copy.text(.openReleasePage), systemImage: "arrow.up.right")
+            }
+            .buttonStyle(.borderless)
+            .help(copy.text(.releaseRecoveryHint))
+            .accessibilityHint(copy.text(.releaseRecoveryHint))
+        }
+    }
+
+    private func updateStatusText(_ state: SoftwareUpdateState) -> String {
+        switch state.phase {
+        case .idle:
+            return "\(copy.text(.version)) \(state.currentVersion)"
+        case .checking:
+            return copy.text(.checkingForUpdates)
+        case .current:
+            return "\(copy.text(.upToDate)) \(copy.text(.version)) \(state.currentVersion)."
+        case .available:
+            return [copy.text(.updateAvailable), state.availableVersion]
+                .compactMap { $0 }
+                .joined(separator: " ")
+        case .downloading:
+            if let progress = state.downloadProgress {
+                return "\(copy.text(.downloadingUpdate)) \(progress.formatted(.percent.precision(.fractionLength(0))))"
+            }
+            return copy.text(.downloadingUpdate)
+        case .extracting:
+            return copy.text(.extractingUpdate)
+        case .ready:
+            return copy.text(.readyToInstall)
+        case .installing:
+            return copy.text(.installingUpdate)
+        case .cancelled:
+            return copy.text(.updateCancelled)
+        case .failed:
+            return state.errorMessage ?? copy.text(.updateFailedMessage)
+        }
     }
 
     private var aboutButton: some View {

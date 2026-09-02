@@ -12,6 +12,12 @@ let package = Package(
         .library(name: "FuwaCore", targets: ["FuwaCore"]),
         .executable(name: "FuwaLogicTests", targets: ["FuwaLogicTests"])
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/sparkle-project/Sparkle",
+            exact: "2.9.6"
+        )
+    ],
     targets: [
         .target(
             name: "FuwaCore",
@@ -19,8 +25,17 @@ let package = Package(
         ),
         .executableTarget(
             name: "Fuwa",
-            dependencies: ["FuwaCore"],
-            path: "Sources/Fuwa"
+            dependencies: [
+                "FuwaCore",
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
+            path: "Sources/Fuwa",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@executable_path/../Frameworks"
+                ])
+            ]
         ),
         .executableTarget(
             name: "FuwaLogicTests",

@@ -29,6 +29,10 @@ jobs:
           bash -n scripts/verify-release-checksum.sh
           bash -n scripts/test-verify-release-checksum.sh
           bash scripts/test-verify-release-checksum.sh
+          python3 -m py_compile \
+            scripts/update-metadata.py \
+            scripts/test-update-metadata.py
+          python3 scripts/test-update-metadata.py
 
   swift:
     name: Strict build and logic tests
@@ -202,12 +206,12 @@ jobs:
             -ExecutablePath build/windows/Release/Fuwa.exe `
             -InstallerPath $installer.FullName `
             -ExpectedArchitecture '${{ matrix.arch }}' `
-            -ExpectedVersion '0.1.4.5' `
-            -ExpectedPackageVersion '0.1.4' `
+            -ExpectedVersion '0.1.5.6' `
+            -ExpectedPackageVersion '0.1.5' `
             -SourceCommit '${{ github.sha }}' `
             -WorkflowRunUrl '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
             -ManifestPath windows/resources/app.manifest `
-            -OutputPath "dist/windows/Fuwa-0.1.4-windows-${{ matrix.arch }}-evidence.json"
+            -OutputPath "dist/windows/Fuwa-0.1.5-windows-${{ matrix.arch }}-evidence.json"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
@@ -216,6 +220,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: |
-            dist/windows/Fuwa-0.1.4-windows-${{ matrix.arch }}-setup.exe
-            dist/windows/Fuwa-0.1.4-windows-${{ matrix.arch }}-setup.exe.sha256
-            dist/windows/Fuwa-0.1.4-windows-${{ matrix.arch }}-evidence.json
+            dist/windows/Fuwa-0.1.5-windows-${{ matrix.arch }}-setup.exe
+            dist/windows/Fuwa-0.1.5-windows-${{ matrix.arch }}-setup.exe.sha256
+            dist/windows/Fuwa-0.1.5-windows-${{ matrix.arch }}-evidence.json

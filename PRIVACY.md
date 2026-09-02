@@ -1,8 +1,8 @@
 # Fuwa Privacy Policy
 
-Last updated: August 30, 2026
+Last updated: September 2, 2026
 
-Fuwa is a local-first macOS and Windows utility. It has no in-app network client, analytics, advertising, telemetry, or user account system. Choosing `View Latest Release` in the macOS app asks the system to open the Fuwa releases page in your default browser; Fuwa does not send window data with that request. The Windows app has no equivalent network action.
+Fuwa is a local-first macOS and Windows utility with no analytics, advertising, telemetry, or user account system. It makes network requests only after you explicitly choose `Check for Updates`: Fuwa retrieves its public signed update feed and, if you approve an available update, its package from GitHub Releases. These requests do not include window pixels, window metadata, filenames, shortcut settings, or other Fuwa content.
 
 ## Data Fuwa processes
 
@@ -28,7 +28,7 @@ Window pixels and window metadata are used only on your computer to provide the 
 - Locking the screen, sleeping the computer, switching users, or quitting Fuwa stops active mirroring immediately. On macOS, Screen Recording revocation also clears captured pixels when detected.
 - The macOS keyboard shortcut and launch-at-login setting are stored locally using system preferences and services. The current Windows shortcut is fixed and the Windows app stores no user settings.
 
-Fuwa does not restore third-party window content after a privacy boundary. macOS or Windows may create diagnostic reports according to your system settings; Fuwa does not collect or transmit those reports.
+Fuwa does not restore third-party window content after a privacy boundary. The updater may store a verified package temporarily while installing it and removes or replaces that staging data through the native Sparkle or WinSparkle lifecycle. macOS or Windows may create diagnostic reports according to your system settings; Fuwa does not collect or transmit those reports.
 
 ## Permissions
 
@@ -44,7 +44,7 @@ Fuwa does not request camera, microphone, Input Monitoring, Automation, Contacts
 
 ## Third parties
 
-Fuwa contains no analytics SDKs and does not send data to third parties. Apple provides the macOS permission and launch-at-login services, while Microsoft Windows provides the Win32 and DWM services used by the Windows app; those services are governed by your operating-system settings and platform policies.
+Fuwa contains no analytics SDKs. GitHub serves the public update feeds and packages; as with an ordinary HTTPS download, GitHub receives network metadata such as your IP address and request headers under its own privacy terms. Apple provides the macOS permission and launch-at-login services, while Microsoft Windows provides the Win32 and DWM services used by the Windows app; those services are governed by your operating-system settings and platform policies.
 
 ## Changes
 

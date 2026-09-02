@@ -22,7 +22,8 @@ Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar
 - Finder Quick Look is macOS-only. Windows Explorer and other preview apps are handled only as ordinary top-level windows.
 - The macOS shortcut is customizable; Windows currently uses `Ctrl+Alt+P`.
 - Mirrors always pass mouse input through; `Interact` and `Reveal Source` only activate and raise the real source window.
-- Window pixels and metadata stay on your computer, with no uploads, analytics, telemetry, or background network requests.
+- Window pixels and metadata stay on your computer, with no uploads, analytics, or telemetry. Fuwa contacts its public GitHub Release metadata only when you select `Check for Updates`.
+- Starting with v0.1.5, both macOS and Windows can check for and install Ed25519-verified updates from inside the app.
 
 ## Requirements
 
@@ -34,6 +35,8 @@ Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar
 ## Install
 
 Fuwa supports Windows 11 on x64 and ARM64. Download public builds from [GitHub Releases](https://github.com/yuxino/fuwa/releases): `Fuwa-<version>.zip` for macOS, or, starting with v0.1.2, `Fuwa-<version>-windows-<architecture>-setup.exe` for Windows. Draft assets are not public until their Release is published; every public package has a matching `.sha256` file.
+
+Versions v0.1.4 and earlier need one manual upgrade to v0.1.5. Later updates can be started from Fuwa Settings on macOS or the tray menu on Windows. Fuwa accepts only its fixed GitHub feeds and packages verified by the embedded public key; a verification failure never falls back to unsigned installation.
 
 The macOS package uses the project's maintained local signing identity, not Apple Developer ID signing or notarization. Windows installers are not Authenticode-signed. If the operating system warns, verify the download source and SHA-256 instead of weakening system security.
 
