@@ -300,10 +300,14 @@ jobs:
           ditto -x -k "$sparkle_zip" "$sparkle_dir"
           sign_update="$sparkle_dir/bin/sign_update"
 
+          detached_index=0
           sign_detached() {
             local file="$1"
+            local signing_copy="$RUNNER_TEMP/fuwa-detached-${detached_index}.bin"
+            detached_index=$((detached_index + 1))
+            cp "$file" "$signing_copy"
             printf '%s' "$UPDATER_PRIVATE_KEY" \
-              | "$sign_update" --ed-key-file - -p "$file" > "${file}.sig"
+              | "$sign_update" --ed-key-file - -p "$signing_copy" > "${file}.sig"
           }
           for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
             sign_detached "$asset_dir/$asset_name"
