@@ -8,7 +8,7 @@
   </p>
 </div>
 
-Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar and supports app windows plus Finder Quick Look; the Windows app uses a normal control window and system tray to select ordinary application windows. Both create a Fuwa-owned live mirror without changing the source window's actual level.
+Fuwa is a local-first always-visible window mirror for macOS and Windows. It creates a Fuwa-owned, click-through live mirror of a selected window without changing the source window's real z-order. macOS supports application windows and Finder Quick Look; Windows supports ordinary top-level windows.
 
 ## Use
 
@@ -24,6 +24,15 @@ Fuwa is a local always-visible window mirror. The macOS app runs in the menu bar
 - Mirrors always pass mouse input through; `Interact` and `Reveal Source` only activate and raise the real source window.
 - Window pixels and metadata stay on your computer, with no uploads, analytics, or telemetry. Fuwa contacts its public GitHub Release metadata only when you select `Check for Updates`.
 - Starting with v0.1.5, both macOS and Windows can check for and install Ed25519-verified updates from inside the app.
+
+## Native implementations
+
+Fuwa is not a single cross-platform UI codebase compiled for two systems:
+
+- macOS uses Swift, SwiftUI/AppKit, and ScreenCaptureKit.
+- Windows uses C++20, Win32, and DWM live thumbnails.
+
+The two versions share the product model, update protocol, and release pipeline, while their application code is maintained separately and capabilities are aligned where each operating system allows it.
 
 ## Requirements
 
