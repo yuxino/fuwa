@@ -1,0 +1,148 @@
+put('README_EN.md','''<div align="center">
+  <img src="docs/images/app-icon.png" width="112" alt="Fuwa app icon">
+  <h1>Fuwa</h1>
+  <p>Keep the window you need in front.</p>
+  <p>
+    <a href="https://github.com/yuxino/fuwa/releases"><strong>View releases</strong></a>
+    · <a href="README.md">简体中文</a>
+  </p>
+</div>
+
+Fuwa is a native macOS menu bar app that creates an always-visible, click-through live mirror of an application window or Finder Quick Look, without changing the source window's real z-order.
+
+## Use
+
+1. Launch Fuwa and bring the target window to the front.
+2. Press `⌥⌘P` to pin it. Press the shortcut again while the same source is in front to unpin.
+3. Manage pins and live or frozen state from the menu bar.
+
+## Features
+
+- Pin multiple windows and freeze frames.
+- Support for ordinary application windows and Finder Quick Look.
+- Customizable keyboard shortcut.
+- Mirrors pass mouse input through; `Interact` and `Reveal Source` only activate and raise the real source window.
+- Window pixels and metadata stay on your computer, with no uploads, analytics, or telemetry.
+- Check, download, and install Ed25519-verified updates from Settings. No automatic background checks or installs.
+
+## Requirements
+
+- macOS 14 or later; the release archive includes arm64 (Apple silicon) and x86_64 (Intel). Physical Intel Mac acceptance is still pending.
+- Screen Recording permission, requested only on the first pin attempt.
+- Accessibility permission, requested only for `Interact` or `Reveal Source`.
+
+## Install
+
+Download `Fuwa-<version>.zip` from [GitHub Releases](https://github.com/yuxino/fuwa/releases), extract it, and move `Fuwa.app` to `/Applications`. Every public package has a matching `.sha256` file:
+
+```sh
+cd ~/Downloads
+shasum -a 256 -c Fuwa-<version>.zip.sha256
+```
+
+Replace `<version>` with the actual version number. Versions v0.1.4 and earlier need one manual upgrade to v0.1.5 or later. After that, select `Check for Updates` in Fuwa Settings. Fuwa accepts only its fixed GitHub feed and packages verified by the embedded public key; verification failure never falls back to unsigned installation.
+
+The macOS package uses the project's maintained local signing identity, not Apple Developer ID signing or notarization. If macOS blocks it, verify the source and SHA-256 and follow [Apple's instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac), rather than weakening system security.
+
+## Build from source
+
+Fuwa uses Swift, SwiftUI/AppKit, ScreenCaptureKit, and Sparkle.
+
+```sh
+git clone https://github.com/yuxino/fuwa.git
+cd fuwa
+./scripts/setup-local-signing.sh
+./scripts/install-app.sh
+```
+
+## Platform scope
+
+Fuwa is now maintained for macOS only. Windows development and releases have ended. Existing Windows release files and Git history remain available as unsupported archives; future macOS releases will not provide Windows installers or update feeds.
+
+Fuwa displays a mirror, not a change to another app's real window level. It does not bypass operating-system security boundaries or protected-content restrictions.
+
+[Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Independent implementation](docs/independent-implementation.md)
+
+## License
+
+[MIT](LICENSE) © 2026 yuxino and Fuwa contributors
+''')
+# Keep existing privacy/permission behavior; remove the retired implementation's claims.
+p='PRIVACY.md';s=(r/p).read_text()
+s=s.replace('Last updated: September 2, 2026','Last updated: September 6, 2026')
+s=s.replace('local-first macOS and Windows utility','local-first macOS utility')
+s='\n'.join(line for line in s.split('\n') if not line.startswith('On Windows, Fuwa') and not line.startswith('- On Windows, DWM'))
+s=s.replace('Unpinning removes the DWM relationship on Windows and clears any retained frame on macOS.','Unpinning clears any retained frame.')
+s=s.replace(' The current Windows shortcut is fixed and the Windows app stores no user settings.','')
+s=s.replace('native Sparkle or WinSparkle lifecycle. macOS or Windows may','native Sparkle lifecycle. macOS may')
+s=s.replace(' Windows DWM thumbnails do not use this permission model.','')
+s=s.replace(' Windows requests no Accessibility, UIAccess, or administrator permission.','')
+s=s.replace(' The Windows executable runs as the signed-in user with `asInvoker` and `uiAccess=false`.','')
+s=s.replace('Apple provides the macOS permission and launch-at-login services, while Microsoft Windows provides the Win32 and DWM services used by the Windows app; those services are governed by your operating-system settings and platform policies.','Apple provides the macOS permission and launch-at-login services, governed by your operating-system settings and platform policies.')
+s=s.replace('\n\n\n','\n\n');put(p,s)
+p='CONTRIBUTING.md';s=(r/p).read_text()
+s=s.replace('macOS 14 or later and Windows 11','macOS 14 or later')
+s=s.replace('The macOS app is a Swift 6 package and the Windows app is a native C++20/CMake target. Neither has third-party runtime dependencies. Use a macOS toolchain that supports Swift tools version 6.2 for the existing app.','Fuwa is a Swift 6 package with Sparkle for signed application updates. Use a macOS toolchain that supports Swift tools version 6.2.')
+start=s.index('On Windows, use Visual Studio');end=s.index('To create a local app bundle',start);s=s[:start]+s[end:]
+s='\n'.join(line for line in s.split('\n') if not line.startswith('- On Windows,') and not line.startswith('- Keep Windows source'))
+s=s.replace('relevant strict macOS or Windows build','strict macOS build')
+s=s.replace('CI validates warnings-as-errors Release builds and executable logic suites for both platforms, plus unsigned Windows installer artifacts; platform signing, notarization, and Release publication remain release-maintainer responsibilities.','CI validates the warnings-as-errors macOS Release build, executable logic suite, checksum parser, and macOS-only update metadata. Signing, notarization, and Release publication remain release-maintainer responsibilities.')
+start=s.index('Tag CI builds and retains');end=s.index('\n\nBy submitting',start)
+s=s[:start]+'''Fuwa supports macOS only. Do not reintroduce Windows targets, dependencies, installers, feeds, or release requirements without an explicit product-scope decision. Historical Windows code and packages remain in Git history and existing Releases, not in the maintained source tree.
+
+Tag CI runs the macOS build and tests; it does not create or publish a GitHub Release. A trusted Mac produces and verifies the stable-identity universal archive. Maintainers assemble a draft containing that archive and its checksum, then use protected manual promotion with the accepted archive hash. See [the release runbook](docs/releasing.md).'''+s[end:];put(p,s)
+p='SECURITY.md';s=(r/p).read_text()
+s=s.replace('Security fixes are provided for the latest released minor version of Fuwa.','Security fixes are provided for the latest released minor version of Fuwa on macOS. The discontinued Windows builds are unsupported, including archived 0.1.x packages.')
+s=s.replace('| Version | Supported |','| macOS version | Supported |')
+s=s.replace('expands macOS Accessibility behavior, or changes the Windows DWM/Win32 safety boundary','expands macOS Accessibility behavior')
+s=s.replace('the exact reviewed macOS, Windows x64, and Windows ARM64 packages','the exact reviewed universal macOS package')
+s=s.replace('matching detached signatures plus `latest.json`','matching detached signatures plus macOS-only `latest.json`')
+s=s.replace('Windows foreground/topmost restrictions, and limitations','and limitations');put(p,s)
+p='docs/independent-implementation.md';s=(r/p).read_text()
+s=s.replace('macOS and Windows application','macOS application')
+s=s.replace("- Microsoft's public Win32 and Desktop Window Manager APIs and documentation;\n",'')
+s=s.replace('private WindowServer, DWM, or Virtual Desktop APIs','private WindowServer APIs')
+s=s.replace('Fuwa uses public ScreenCaptureKit APIs for macOS mirror panels and public DWM thumbnail APIs for its Windows mirror window.','Fuwa uses public ScreenCaptureKit APIs for macOS mirror panels.')
+s=s.replace('macOS 与 Windows 应用。其代码依据 Apple 与 Microsoft 公开 API 和文档','macOS 应用。其代码依据 Apple 公开 API 和文档')
+s=s.replace('，在 Windows 通过公开 DWM thumbnail API 创建自有镜像窗口','');put(p,s)
+# Preserve the accepted historical updater decision; explicitly supersede only its platform/release sections.
+p='docs/plans/2026-09-02-signed-native-updater-design.md'
+s=(r/p).read_text();s=s.replace('## Status\n','''## Status
+
+Historical decision for the 0.1.5 bootstrap release. The Windows implementation
+and multi-platform release contract below were superseded by
+[the macOS-only decision](../decisions/2026-09-06-macos-only.md).
+The macOS Sparkle behavior and key-continuity requirements remain in force.
+''',1);put(p,s)
+(r/'docs/decisions').mkdir(exist_ok=True)
+put('docs/decisions/2026-09-06-macos-only.md','''# Fuwa is macOS-only
+
+## Decision
+
+At the maintainer's request, Fuwa is maintained only for macOS. Windows
+implementation, packaging, tests, acceptance scripts, and platform-specific
+plans are removed from the current source tree. Do not recreate them without
+an explicit change of scope. Existing tags and release assets are not deleted
+or rewritten; their Windows packages are historical and unsupported.
+
+## macOS continuity
+
+Keep the Swift app, ScreenCaptureKit behavior, universal arm64/x86_64 packaging,
+stable code-signing identity, permissions, Sparkle version, Ed25519 public key,
+`appcast.xml` URL, and user-confirmed update flow unchanged.
+
+## Delivery
+
+CI retains macOS strict build/logic tests and portable release-tool tests.
+Future release drafts begin with exactly the universal Mac zip and checksum.
+Manual promotion verifies the stable signing pins and accepted SHA-256, signs
+the archive and macOS feed, and publishes exactly seven assets. `latest.json`
+contains only `macos-universal`; no Windows artifact or runner is a release
+dependency. The existing tag-CI, main-ancestry, protected-environment, signature,
+altered-payload, and final asset-snapshot gates remain.
+
+Do not run the macOS-only promotion workflow for historical multi-platform
+tags. This change does not bump the app version, create a tag, or publish a
+Release. Once a future Mac release becomes latest, old Windows clients cannot
+use the retired latest-feed endpoints; existing versioned Releases remain.
+''')
