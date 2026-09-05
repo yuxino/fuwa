@@ -26,8 +26,6 @@ with tempfile.TemporaryDirectory(prefix="fuwa-update-metadata-tests-") as root_v
     signature = base64.b64encode(bytes(range(64))).decode("ascii") + "\n"
     names = (
         f"Fuwa-{version}.zip",
-        f"Fuwa-{version}-windows-x64-setup.exe",
-        f"Fuwa-{version}-windows-arm64-setup.exe",
     )
     for index, name in enumerate(names):
         (assets / name).write_bytes(f"fixture-{index}".encode("ascii"))
@@ -70,7 +68,19 @@ with tempfile.TemporaryDirectory(prefix="fuwa-update-metadata-tests-") as root_v
     latest_path = metadata / "latest.json"
     original_latest = latest_path.read_text(encoding="utf-8")
     latest = json.loads(original_latest)
-    latest["assets"]["windows-x64"]["sha256"] = "0" * 64
+    assert set(latest["assets"]) == {"macos-universal"}
+    assert {path.name for path in metadata.iterdir()} == {"appcast.xml", "latest.json"}
+    # A retired-platform record must not silently re-enter the release contract.
+    latest["assets"]["windows-x64"] = dict(latest["assets"]["macos-universal"])
+    latest_path.write_text(json.dumps(latest), encoding="utf-8")
+    run(
+        "python3", tool, "verify",
+        "--asset-dir", str(assets),
+        "--metadata-dir", str(metadata),
+        succeeds=False,
+    )
+    latest = json.loads(original_latest)
+    latest["assets"]["macos-universal"]["sha256"] = "0" * 64
     latest_path.write_text(json.dumps(latest), encoding="utf-8")
     run(
         "python3", tool, "verify",
@@ -80,7 +90,7 @@ with tempfile.TemporaryDirectory(prefix="fuwa-update-metadata-tests-") as root_v
     )
     latest_path.write_text(original_latest, encoding="utf-8")
 
-    feed = metadata / "appcast-windows-arm64.xml"
+    feed = metadata / "appcast.xml"
     original_feed = feed.read_text(encoding="utf-8")
     feed.write_text("<rss><broken>", encoding="utf-8")
     run(

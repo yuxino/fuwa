@@ -1,134 +1,101 @@
 # Fuwa Release Runbook
 
-Fuwa releases are deliberately assembled from two build trust boundaries.
-GitHub Actions produces and statically verifies unsigned Windows x64 and ARM64
-installers. A release maintainer produces the universal macOS archive on a
-trusted Mac that already holds Fuwa's stable local signing identity. Neither
-side may substitute for the other. The protected promotion workflow then signs
-the exact three reviewed update packages with Fuwa's independent Ed25519 update
-key and generates the signed platform feeds and `latest.json`.
+Fuwa is maintained for macOS only. A release maintainer produces the universal
+archive on a trusted Mac holding Fuwa's stable local signing identity. GitHub
+Actions verifies the macOS build and logic tests, and the promotion workflow
+independently verifies the archive, signs the exact reviewed update package,
+and generates the signed Sparkle feed and macOS-only `latest.json`.
 
-The repository never publishes a Release merely because a tag was pushed.
-Tag CI retains the Windows packages for 14 days. Publication is a separate,
-manual promotion of an already reviewed draft.
+Pushing a tag does not publish a Release. Publication is a separate manual
+promotion of an already reviewed draft. This runbook applies only to tags that
+include the [macOS-only decision](decisions/2026-09-06-macos-only.md); do not use
+it to re-promote historical multi-platform tags or delete their release assets.
 
 ## 1. Freeze the release commit
 
 On a clean `main` checkout:
 
-1. Move the release notes from `Unreleased` into the dated version section.
-2. Keep these values aligned:
-   - `Resources/Info.plist`: public version and monotonically increasing build
-     number;
-   - `windows/CMakeLists.txt`: the same public version and build number;
-   - `windows/resources/FuwaWindows.rc` and `app.manifest`: the four-part
-     `<public-version>.<build-number>` value;
-   - CI, artifact verification, and native acceptance expectations.
-3. Run the macOS strict build/tests and Windows x64/ARM64 build, CTest, package,
-   manifest-policy, release-metadata, and artifact-verification checks.
-4. Complete the native interactive acceptance checklist on each platform that
-   changed. Hosted compilation is not interactive acceptance.
+1. Move release notes from `Unreleased` into the dated version section.
+2. Set the public version and monotonically increasing build number in
+   `Resources/Info.plist`. Keep the release notes and tag version aligned.
+3. Run the strict macOS Release build and `FuwaLogicTests`, app-icon validation,
+   shell checks, checksum-parser tests, update-metadata tests, and
+   `python3 scripts/test-macos-only.py`.
+4. Complete native interactive acceptance for capture, permissions, freeze,
+   privacy boundaries, and updating. Hosted compilation is not interactive
+   acceptance. Keep Intel hardware limitations explicit in release notes.
 
-`windows/tests/ReleaseMetadataTests.ps1` is the fail-closed drift check for the
-version files. For 0.1.6, the public version is `0.1.6`, the build number is
-`7`, and the Windows file/assembly version is `0.1.6.7`.
+Create and push `v<public-version>` only after the release commit is on `main`.
+Require that tag's `CI` workflow to succeed. Windows builds and artifacts are
+not part of this release contract.
 
-Create and push the signed or annotated `v<public-version>` tag only after the
-release commit is on `main`. Wait for that tag's `CI` workflow to succeed. Do
-not reuse artifacts from a branch or pull-request run.
-
-## 2. Produce the macOS asset on the trusted Mac
-
-The Windows host cannot perform this step and must not claim that it did.
+## 2. Produce the archive on the trusted Mac
 
 ```sh
-git switch --detach v0.1.6
+git switch --detach "v<public-version>"
 ./scripts/package-app.sh
 codesign --verify --deep --strict --verbose=2 dist/Fuwa.app
 lipo dist/Fuwa.app/Contents/MacOS/Fuwa -verify_arch arm64 x86_64
-(cd dist && shasum -a 256 -c Fuwa-0.1.6.zip.sha256)
+(cd dist && shasum -a 256 -c "Fuwa-<public-version>.zip.sha256")
 ```
 
-Also inspect the designated requirement and confirm that it matches the
-previous stable package. Stop if the identity changes unexpectedly. Fuwa's
-current package is not signed with Apple Developer ID and is not notarized;
-the Release notes must say so.
+Replace the placeholders with the actual version. Confirm the full designated
+requirement matches the previous stable package. Stop if identity changes.
+The current package has no Apple Developer ID signature or notarization; the
+Release notes must say so. Do not substitute an ad-hoc-signed hosted build.
 
-The promotion workflow independently repeats the bundle, universal-binary,
-code-seal, leaf-certificate, and designated-requirement checks on a hosted Mac.
-The stable pins live in `scripts/release-signing-pins.json`. They were extracted
-from the publicly released `v0.1.1` archive whose SHA-256 is recorded in that
-file. The designated-requirement pin is the SHA-256 of the embedded Requirement
-blob in each Mach-O slice, not a certificate display name. Changing any pin is
-an explicit signing-identity migration: document why the old identity cannot be
-retained and expect macOS privacy permissions to require one final migration.
+Promotion independently repeats the bundle, universal-binary, code-seal,
+leaf-certificate, and designated-requirement checks on a hosted Mac. Stable
+pins live in `scripts/release-signing-pins.json`, extracted from the public
+`v0.1.1` archive whose hash is recorded there. The requirement pin describes
+the embedded Requirement blob in each Mach-O slice, not a certificate name.
+Changing pins is a separate, explicit signing-identity migration.
 
-## 3. Assemble, but do not publish, the draft
+## 3. Assemble the draft
 
-Download both `Fuwa-windows-*` artifacts from the successful tag CI run. Each
-contains one installer, its CPack-generated checksum, and one JSON verification
-record. Confirm that both JSON records are successful and name the tag commit.
-The successful run must retain exactly two unexpired workflow artifacts named
-`Fuwa-windows-x64` and `Fuwa-windows-arm64`; each must contain exactly its three
-architecture-specific files. Promotion downloads those workflow artifacts
-again and requires every byte to match the corresponding draft asset, so a
-self-consistent evidence JSON uploaded from elsewhere is insufficient.
+Create a draft Release for the existing tag and upload exactly two files:
 
-Create a draft Release for the existing tag, then upload exactly these eight
-files:
+- `Fuwa-<public-version>.zip`
+- `Fuwa-<public-version>.zip.sha256`
 
-- `Fuwa-0.1.6.zip`
-- `Fuwa-0.1.6.zip.sha256`
-- `Fuwa-0.1.6-windows-x64-setup.exe`
-- `Fuwa-0.1.6-windows-x64-setup.exe.sha256`
-- `Fuwa-0.1.6-windows-x64-evidence.json`
-- `Fuwa-0.1.6-windows-arm64-setup.exe`
-- `Fuwa-0.1.6-windows-arm64-setup.exe.sha256`
-- `Fuwa-0.1.6-windows-arm64-evidence.json`
-
-The draft notes must distinguish these facts:
-
-- the macOS archive has the project's stable local signature but no Apple
-  Developer ID signature or notarization;
-- the Windows installers are per-user and unsigned, so SmartScreen may warn;
-- Windows build/CTest/static artifact checks and native interactive acceptance
-  are different evidence boundaries.
-
-Do not publish a platform-incomplete draft: doing so would make the repository's
-`latest` download links silently drop packages from the previous release.
+Verify the archive independently and record its SHA-256. Release notes must
+state the signing/notarization status and distinguish automated checks from
+native interactive acceptance. Do not add historical Windows packages or feeds
+to a new Mac-only draft. Existing versioned Windows Releases remain archived
+and unsupported; their latest-feed URLs stop being supplied by future releases.
 
 ## 4. Promote the exact reviewed bytes
 
-Record the SHA-256 of the macOS zip and both Windows installers from an
-independent local verification. In GitHub Actions, run **Promote release draft**
-for the tag and provide those three hashes plus the exact confirmation text.
+Run **Promote release draft** with the tag, accepted macOS archive SHA-256,
+and this exact confirmation (substituting the tag):
 
-The workflow fails closed unless:
+```text
+publish Fuwa v<public-version> with unnotarized macOS assets
+```
 
-- the tag commit is contained in `origin/main` and its tag CI succeeded;
-- that successful run retains exactly the two expected, unexpired Windows
-  workflow artifacts and all six files are byte-identical to the draft assets;
-- the Release exists and is still a draft;
-- the draft initially contains exactly the eight build/evidence files above;
-- the protected macOS job signs the three exact package bytes using
-  `FUWA_UPDATER_ED25519_PRIVATE_KEY`, verifies valid and altered payloads, and
-  adds three signed feeds, detached `.sig` files, and signed `latest.json`;
-- the final uploaded asset names are exactly the nineteen-file contract;
-- all three accepted hashes match the packages and their checksum files;
-- the macOS archive contains only `Fuwa.app`, matches the tag version, contains
-  arm64 and x86_64, has a valid deep/strict code seal, and matches both the
-  pinned leaf certificate and designated requirement in every Mach-O slice;
-- both Windows evidence records match the tag commit, architecture, versions,
-  installer names, and installer hashes;
-- no draft asset changes between verification and publication. The protected
-  job performs its final snapshot read, publication PATCH, and post-publication
-  `/latest` verification in one shell step and fails if the assets changed.
+The workflow requires:
 
-Configure the `release-promotion` GitHub environment with required reviewers.
-The workflow performs update signing, metadata upload, and the final
-draft-to-published transition. It does not create tags, build packages, or
-repair an incomplete draft. The production update private key is stored only in
-the GitHub Actions secret `FUWA_UPDATER_ED25519_PRIVATE_KEY`; its recovery copy
+- The tag commit is on `origin/main`, its version matches `Info.plist`, and
+  its tag CI succeeded.
+- The stable draft initially contains exactly the two files above, and the
+  accepted hash matches the archive and checksum.
+- The archive contains only `Fuwa.app`, matches the version and bundle ID,
+  includes arm64/x86_64, passes deep/strict code sealing, and matches the
+  pinned certificate and designated requirement in both Mach-O slices.
+- Ed25519 signing uses the existing `FUWA_UPDATER_ED25519_PRIVATE_KEY`, verifies
+  valid and altered payloads, and generates the same macOS `appcast.xml` path.
+- The final inventory is exactly seven files: the zip, its `.sha256` and
+  `.sig`, `appcast.xml`, `appcast.xml.sig`, `latest.json`, and `latest.json.sig`.
+  The manifest contains exactly one `macos-universal` record.
+- No asset changes between the final verification snapshot and publication;
+  post-publication state, asset inventory, and `/latest` are checked again.
+
+Keep required reviewers on the `release-promotion` GitHub environment. The
+workflow signs and uploads metadata, then performs the protected final
+publication step. It does not build packages, create tags, or repair drafts.
+A partially processed draft must be reviewed before retrying; restore the
+reviewed two-file draft rather than weakening the inventory checks.
+
+The updater private key stays in its GitHub Actions secret. Its recovery copy
 is the maintainer's macOS login Keychain item for account
-`app.yuxino.fuwa.updater` and must never be committed, logged, or attached to a
-Release.
+`app.yuxino.fuwa.updater`; never commit, log, or attach it to a Release.

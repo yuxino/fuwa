@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Fuwa is now maintained for macOS only. Removed the native Windows implementation, installers, CI jobs, and Windows release requirements; historical Windows packages remain available in their existing Releases but are no longer maintained.
+- Release promotion now accepts the reviewed universal macOS archive and checksum, then produces its signed Sparkle feed and single-platform `latest.json`. The macOS app, signing identity, update public key, and feed URL are unchanged.
+
 ## [0.1.6] - 2026-09-02
 
 ### Fixed

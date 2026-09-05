@@ -31,8 +31,8 @@ fi
 
 read -r recorded_hash recorded_name < "$checksum_path"
 recorded_hash="$(printf '%s' "$recorded_hash" | tr '[:upper:]' '[:lower:]')"
-# CPack writes checksum files with the native Windows CRLF ending. Bash read
-# removes LF but intentionally retains CR, so remove exactly one terminal CR.
+# Checksum files may use CRLF endings. Bash read removes LF but intentionally
+# retains CR, so remove exactly one terminal CR.
 # Any additional byte (including a second CR) remains and fails the exact-name
 # comparison below.
 recorded_name="${recorded_name%$'\r'}"

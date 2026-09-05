@@ -135,8 +135,6 @@ def generate(arguments: argparse.Namespace) -> None:
     )
     names = {
         "macos": f"Fuwa-{arguments.version}.zip",
-        "windows-x64": f"Fuwa-{arguments.version}-windows-x64-setup.exe",
-        "windows-arm64": f"Fuwa-{arguments.version}-windows-arm64-setup.exe",
     }
     assets: dict[str, dict[str, object]] = {}
     for key, name in names.items():
@@ -158,17 +156,6 @@ def generate(arguments: argparse.Namespace) -> None:
         minimum_system_version="14.0",
         asset=assets["macos"],
     )
-    for architecture in ("x64", "arm64"):
-        write_feed(
-            output_dir / f"appcast-windows-{architecture}.xml",
-            title=f"Fuwa Windows {architecture} Updates",
-            version=arguments.version,
-            build=arguments.build,
-            published_at=normalized_published_at,
-            notes=notes,
-            minimum_system_version=None,
-            asset=assets[f"windows-{architecture}"],
-        )
 
     latest = {
         "schemaVersion": 1,
@@ -178,8 +165,6 @@ def generate(arguments: argparse.Namespace) -> None:
         "publishedAt": normalized_published_at,
         "assets": {
             "macos-universal": assets["macos"],
-            "windows-x64": assets["windows-x64"],
-            "windows-arm64": assets["windows-arm64"],
         },
     }
     (output_dir / "latest.json").write_text(
@@ -207,12 +192,10 @@ def verify(arguments: argparse.Namespace) -> None:
         fail("latest.json build is invalid")
     expected_names = {
         "macos-universal": f"Fuwa-{version}.zip",
-        "windows-x64": f"Fuwa-{version}-windows-x64-setup.exe",
-        "windows-arm64": f"Fuwa-{version}-windows-arm64-setup.exe",
     }
     assets = latest.get("assets")
     if not isinstance(assets, dict) or set(assets) != set(expected_names):
-        fail("latest.json must contain exactly three platform assets")
+        fail("latest.json must contain exactly the macos-universal asset")
     for key, name in expected_names.items():
         record = assets[key]
         path = asset_dir / name
@@ -229,8 +212,6 @@ def verify(arguments: argparse.Namespace) -> None:
 
     feeds = {
         "appcast.xml": "macos-universal",
-        "appcast-windows-x64.xml": "windows-x64",
-        "appcast-windows-arm64.xml": "windows-arm64",
     }
     for feed_name, asset_key in feeds.items():
         feed_path = metadata_dir / feed_name
