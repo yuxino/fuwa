@@ -7,7 +7,7 @@ verifier="$script_dir/verify-release-checksum.sh"
 fixture_dir="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/fuwa-checksum-test.XXXXXX")"
 trap 'rm -rf -- "$fixture_dir"' EXIT
 
-package_name="Fuwa-0.1.2-windows-arm64-setup.exe"
+package_name="Fuwa-0.1.6.zip"
 package_path="$fixture_dir/$package_name"
 checksum_path="$fixture_dir/${package_name}.sha256"
 printf 'Fuwa checksum parser fixture\n' > "$package_path"
@@ -25,7 +25,7 @@ expect_failure() {
   fi
 }
 
-# This is a literal CRLF record, matching CPack's Windows output bytes.
+# Accept a literal CRLF record without accepting extra trailing bytes.
 printf '%s  %s\r\n' "$package_hash" "$package_name" > "$checksum_path"
 bash "$verifier" "$package_path" "$checksum_path" "$package_hash"
 
@@ -38,7 +38,7 @@ printf '%s  %s\r\n%s  %s\r\n' \
   "$package_hash" "$package_name" > "$checksum_path"
 expect_failure 'multiple non-empty records'
 
-printf '%s  %s\r\n' "$package_hash" 'wrong-name.exe' > "$checksum_path"
+printf '%s  %s\r\n' "$package_hash" 'wrong-name.zip' > "$checksum_path"
 expect_failure 'wrong filename'
 
 wrong_hash="$(printf '%064d' 0)"

@@ -2,6 +2,11 @@
 
 ## Status
 
+Historical decision for the 0.1.5 bootstrap release. The Windows implementation
+and multi-platform release contract below were superseded by
+[the macOS-only decision](../decisions/2026-09-06-macos-only.md).
+The macOS Sparkle behavior and key-continuity requirements remain in force.
+
 Accepted for Fuwa 0.1.5. This is the bootstrap release: 0.1.4 and older do not
 contain an updater and must be installed manually once.
 

@@ -6,19 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag, for example v0.1.4
+        description: Existing macOS-only release tag (must include the platform-scope change)
         required: true
         type: string
       macos_sha256:
         description: Accepted SHA-256 for the macOS zip
-        required: true
-        type: string
-      windows_x64_sha256:
-        description: Accepted SHA-256 for the Windows x64 installer
-        required: true
-        type: string
-      windows_arm64_sha256:
-        description: Accepted SHA-256 for the Windows ARM64 installer
         required: true
         type: string
       confirmation:
@@ -48,6 +40,9 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
+
+      - name: Check macOS-only release contract
+        run: python3 scripts/test-macos-only.py
 
       - name: Verify the pinned macOS identity and universal archive
         env:
@@ -203,7 +198,7 @@ jobs:
             --pins "$pins"
 
   prepare-update-metadata:
-    name: Sign update assets and prepare feeds
+    name: Sign macOS update and prepare feed
     needs: verify-macos
     runs-on: macos-26
     timeout-minutes: 10
@@ -255,27 +250,19 @@ jobs:
           asset_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-update-assets.XXXXXX")"
           metadata_dir="$(mktemp -d "$RUNNER_TEMP/fuwa-update-metadata.XXXXXX")"
           macos_zip="Fuwa-${version}.zip"
-          windows_x64="Fuwa-${version}-windows-x64-setup.exe"
-          windows_arm64="Fuwa-${version}-windows-arm64-setup.exe"
           base_assets=(
             "$macos_zip"
             "${macos_zip}.sha256"
-            "$windows_x64"
-            "${windows_x64}.sha256"
-            "Fuwa-${version}-windows-x64-evidence.json"
-            "$windows_arm64"
-            "${windows_arm64}.sha256"
-            "Fuwa-${version}-windows-arm64-evidence.json"
           )
           expected_base_file="$RUNNER_TEMP/fuwa-expected-base-assets.txt"
           actual_base_file="$RUNNER_TEMP/fuwa-actual-base-assets.txt"
           printf '%s\n' "${base_assets[@]}" | sort > "$expected_base_file"
           jq -r '.assets[].name' <<<"$release_json" | sort > "$actual_base_file"
           if ! diff -u "$expected_base_file" "$actual_base_file"; then
-            echo "Updater signing requires the exact unsigned eight-file draft." >&2
+            echo "Updater signing requires the exact two-file macOS draft." >&2
             exit 1
           fi
-          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+          for asset_name in "$macos_zip"; do
             asset_id="$(
               jq -er --arg name "$asset_name" \
                 '[.assets[] | select(.name == $name)] |
@@ -309,7 +296,7 @@ jobs:
             printf '%s' "$UPDATER_PRIVATE_KEY" \
               | "$sign_update" --ed-key-file - -p "$signing_copy" > "${file}.sig"
           }
-          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+          for asset_name in "$macos_zip"; do
             sign_detached "$asset_dir/$asset_name"
           done
 
@@ -335,8 +322,6 @@ jobs:
 
           feeds=(
             appcast.xml
-            appcast-windows-x64.xml
-            appcast-windows-arm64.xml
           )
           for feed in "${feeds[@]}"; do
             printf '%s' "$UPDATER_PRIVATE_KEY" \
@@ -351,7 +336,7 @@ jobs:
             --metadata-dir "$metadata_dir" \
             --require-signed-feeds
           public_key='8qWUhz/r6J3c6fVw9NVEmqvWcF4oVKwAtLFm9AkA1ZA='
-          for asset_name in "$macos_zip" "$windows_x64" "$windows_arm64"; do
+          for asset_name in "$macos_zip"; do
             swift scripts/verify-ed25519-signature.swift \
               "$public_key" "$asset_dir/$asset_name" "$asset_dir/${asset_name}.sig"
           done
@@ -372,14 +357,8 @@ jobs:
 
           upload_assets=(
             "$asset_dir/${macos_zip}.sig"
-            "$asset_dir/${windows_x64}.sig"
-            "$asset_dir/${windows_arm64}.sig"
             "$metadata_dir/appcast.xml"
             "$metadata_dir/appcast.xml.sig"
-            "$metadata_dir/appcast-windows-x64.xml"
-            "$metadata_dir/appcast-windows-x64.xml.sig"
-            "$metadata_dir/appcast-windows-arm64.xml"
-            "$metadata_dir/appcast-windows-arm64.xml.sig"
             "$metadata_dir/latest.json"
             "$metadata_dir/latest.json.sig"
           )
@@ -407,8 +386,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
           ACCEPTED_MACOS_SHA256: ${{ inputs.macos_sha256 }}
-          ACCEPTED_WINDOWS_X64_SHA256: ${{ inputs.windows_x64_sha256 }}
-          ACCEPTED_WINDOWS_ARM64_SHA256: ${{ inputs.windows_arm64_sha256 }}
           CONFIRMATION: ${{ inputs.confirmation }}
         shell: bash
         run: |
@@ -419,15 +396,13 @@ jobs:
             exit 1
           fi
           version="${RELEASE_TAG#v}"
-          expected_confirmation="publish Fuwa ${RELEASE_TAG} with unsigned Windows and unnotarized macOS assets"
+          expected_confirmation="publish Fuwa ${RELEASE_TAG} with unnotarized macOS assets"
           if [[ "$CONFIRMATION" != "$expected_confirmation" ]]; then
             echo "Confirmation must be exactly: $expected_confirmation" >&2
             exit 1
           fi
           for accepted_hash in \
-            "$ACCEPTED_MACOS_SHA256" \
-            "$ACCEPTED_WINDOWS_X64_SHA256" \
-            "$ACCEPTED_WINDOWS_ARM64_SHA256"; do
+            "$ACCEPTED_MACOS_SHA256"; do
             if [[ ! "$accepted_hash" =~ ^[0-9a-fA-F]{64}$ ]]; then
               echo "Every accepted SHA-256 must contain exactly 64 hexadecimal characters." >&2
               exit 1
@@ -457,7 +432,6 @@ jobs:
             echo "Tag version $version differs from Info.plist version $plist_version." >&2
             exit 1
           fi
-          windows_version="${version}.${build_number}"
 
           successful_runs="$(
             gh api --method GET \
@@ -481,37 +455,7 @@ jobs:
             echo "No successful tag CI run was found for the release commit." >&2
             exit 1
           }
-          tag_run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${tag_run_id}"
-          run_artifacts="$(
-            gh api --method GET \
-              "repos/${GITHUB_REPOSITORY}/actions/runs/${tag_run_id}/artifacts" \
-              -f per_page=100
-          )"
-          if [[ "$(jq -r '.total_count' <<<"$run_artifacts")" != "2" ]]; then
-            echo "Tag CI must retain exactly two workflow artifacts." >&2
-            exit 1
-          fi
-          windows_x64_artifact_id="$(
-            jq -er --arg name 'Fuwa-windows-x64' \
-              '[.artifacts[] | select(.name == $name and .expired == false)] |
-               if length == 1 then .[0].id else error("missing x64 artifact") end' \
-              <<<"$run_artifacts"
-          )"
-          windows_arm64_artifact_id="$(
-            jq -er --arg name 'Fuwa-windows-arm64' \
-              '[.artifacts[] | select(.name == $name and .expired == false)] |
-               if length == 1 then .[0].id else error("missing ARM64 artifact") end' \
-              <<<"$run_artifacts"
-          )"
-          mapfile -t retained_artifact_names < <(
-            jq -r '.artifacts[].name' <<<"$run_artifacts" | sort
-          )
-          if ! diff -u \
-            <(printf '%s\n' Fuwa-windows-arm64 Fuwa-windows-x64) \
-            <(printf '%s\n' "${retained_artifact_names[@]}"); then
-            echo "Tag CI artifact names do not match the exact two-artifact contract." >&2
-            exit 1
-          fi
+          echo "Verified successful tag CI run: $tag_run_id"
 
           release_json="$(
             gh api --method GET --paginate --slurp \
@@ -532,26 +476,12 @@ jobs:
           release_id="$(jq -r '.id' <<<"$release_json")"
 
           macos_zip="Fuwa-${version}.zip"
-          windows_x64="Fuwa-${version}-windows-x64-setup.exe"
-          windows_arm64="Fuwa-${version}-windows-arm64-setup.exe"
           expected_assets=(
             "$macos_zip"
             "${macos_zip}.sha256"
             "${macos_zip}.sig"
-            "$windows_x64"
-            "${windows_x64}.sha256"
-            "${windows_x64}.sig"
-            "Fuwa-${version}-windows-x64-evidence.json"
-            "$windows_arm64"
-            "${windows_arm64}.sha256"
-            "${windows_arm64}.sig"
-            "Fuwa-${version}-windows-arm64-evidence.json"
             "appcast.xml"
             "appcast.xml.sig"
-            "appcast-windows-x64.xml"
-            "appcast-windows-x64.xml.sig"
-            "appcast-windows-arm64.xml"
-            "appcast-windows-arm64.xml.sig"
             "latest.json"
             "latest.json.sig"
           )
@@ -560,7 +490,7 @@ jobs:
           if ! diff -u \
             <(printf '%s\n' "${expected_sorted[@]}") \
             <(printf '%s\n' "${actual_sorted[@]}"); then
-            echo "Draft assets do not match the exact nineteen-file release contract." >&2
+            echo "Draft assets do not match the exact seven-file macOS release contract." >&2
             exit 1
           fi
           asset_snapshot="$(
@@ -584,67 +514,6 @@ jobs:
           done
           cd "$asset_dir"
 
-          compare_ci_artifact() {
-            local artifact_name="$1"
-            local artifact_id="$2"
-            local architecture="$3"
-            local artifact_zip="$ci_artifact_dir/${artifact_name}.zip"
-            local extracted_dir="$ci_artifact_dir/$artifact_name"
-            local installer_name="Fuwa-${version}-windows-${architecture}-setup.exe"
-            local evidence_name="Fuwa-${version}-windows-${architecture}-evidence.json"
-            local archive_entry
-            local expected_file
-            local -a expected_files=(
-              "$installer_name"
-              "${installer_name}.sha256"
-              "$evidence_name"
-            )
-            local -a actual_files
-
-            gh api --method GET \
-              "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
-              > "$artifact_zip"
-            while IFS= read -r archive_entry; do
-              case "$archive_entry" in
-                /*|../*|*/../*|*/..)
-                  echo "CI artifact contains an unsafe path: $archive_entry" >&2
-                  exit 1
-                  ;;
-              esac
-            done < <(unzip -Z1 "$artifact_zip")
-            mkdir "$extracted_dir"
-            unzip -q "$artifact_zip" -d "$extracted_dir"
-
-            mapfile -t actual_files < <(
-              find "$extracted_dir" -type f -printf '%P\n' | sort
-            )
-            mapfile -t expected_files < <(
-              printf '%s\n' "${expected_files[@]}" | sort
-            )
-            if ! diff -u \
-              <(printf '%s\n' "${expected_files[@]}") \
-              <(printf '%s\n' "${actual_files[@]}"); then
-              echo "$artifact_name does not match the exact three-file contract." >&2
-              exit 1
-            fi
-            for expected_file in "${expected_files[@]}"; do
-              if ! cmp --silent \
-                "$extracted_dir/$expected_file" \
-                "$asset_dir/$expected_file"; then
-                echo "$expected_file differs between tag CI and the draft Release." >&2
-                exit 1
-              fi
-            done
-          }
-
-          ci_artifact_dir="$(
-            mktemp -d "$RUNNER_TEMP/fuwa-tag-ci-artifacts.XXXXXX"
-          )"
-          compare_ci_artifact \
-            Fuwa-windows-x64 "$windows_x64_artifact_id" x64
-          compare_ci_artifact \
-            Fuwa-windows-arm64 "$windows_arm64_artifact_id" arm64
-
           verify_package() {
             local package_name="$1"
             local accepted_hash="${2,,}"
@@ -655,37 +524,6 @@ jobs:
           }
 
           verify_package "$macos_zip" "$ACCEPTED_MACOS_SHA256"
-          verify_package "$windows_x64" "$ACCEPTED_WINDOWS_X64_SHA256"
-          verify_package "$windows_arm64" "$ACCEPTED_WINDOWS_ARM64_SHA256"
-
-          verify_windows_evidence() {
-            local architecture="$1"
-            local installer_name="$2"
-            local accepted_hash="${3,,}"
-            local evidence_name="Fuwa-${version}-windows-${architecture}-evidence.json"
-
-            jq -e \
-              --arg architecture "$architecture" \
-              --arg package_version "$version" \
-              --arg windows_version "$windows_version" \
-              --arg commit "${tag_commit,,}" \
-              --arg workflow_url "$tag_run_url" \
-              --arg installer_name "$installer_name" \
-              --arg installer_hash "$accepted_hash" \
-              '.schemaVersion == 1 and
-               .success == true and
-               .expected.architecture == $architecture and
-               .expected.packageVersion == $package_version and
-               .expected.version == $windows_version and
-               (.provenance.sourceCommit | ascii_downcase) == $commit and
-               .provenance.workflowRunUrl == $workflow_url and
-               .artifacts.installer.name == $installer_name and
-               (.artifacts.installer.sha256 | ascii_downcase) == $installer_hash' \
-              "$evidence_name" >/dev/null
-          }
-
-          verify_windows_evidence x64 "$windows_x64" "$ACCEPTED_WINDOWS_X64_SHA256"
-          verify_windows_evidence arm64 "$windows_arm64" "$ACCEPTED_WINDOWS_ARM64_SHA256"
 
           python3 "$GITHUB_WORKSPACE/scripts/update-metadata.py" verify \
             --asset-dir "$asset_dir" \
