@@ -6,8 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-07
+
+### Fixed
+
+- Fixed a launch-time Sparkle loading failure in packages signed with the maintained local certificate. Local signatures without an Apple Team ID now receive the host-only library-validation exception; other Hardened Runtime protections and signed-update verification remain enabled.
+- Prevented an older cancelled pin request from clearing a newer request for the same window, and stopped counting starting sessions twice against the eight-window limit.
+- Preserved the previous frozen frame when Resume loses its stream or source before the first new frame. Closed sources remain non-resumable.
+
 ### Changed
 
+- Reduced repeated application-metadata lookups when checking one source window.
+- Removed compile-time Sparkle declarations from the distributed app and increased ZIP compression while retaining updater helpers and runtime resources. Added an actual framework-loading check to packaging.
 - Fuwa is now maintained for macOS only. Removed the native Windows implementation, installers, CI jobs, and Windows release requirements; historical Windows packages remain available in their existing Releases but are no longer maintained.
 - Release promotion now accepts the reviewed universal macOS archive and checksum, then produces its signed Sparkle feed and single-platform `latest.json`. The macOS app, signing identity, update public key, and feed URL are unchanged.
 
