@@ -84,8 +84,8 @@ class MacOSOnlyTests(unittest.TestCase):
                       read(".github/workflows/promote-release.yml"))
 
     def test_public_scope_is_consistent(self) -> None:
-        self.assertIn("不再开发或发布 Windows 版本", read("README.md"))
-        self.assertIn("Windows development and releases have ended", read("README_EN.md"))
+        self.assertIn("不再开发或发布 Windows 版本", read("README_ZH.md"))
+        self.assertIn("Windows development and releases have ended", read("README.md"))
         self.assertIn("discontinued Windows builds are unsupported", read("SECURITY.md"))
 
 
