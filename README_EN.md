@@ -3,7 +3,8 @@
   <h1>Fuwa</h1>
   <p>Keep the window you need in front.</p>
   <p>
-    <a href="https://github.com/yuxino/fuwa/releases"><strong>View releases</strong></a>
+    <a href="https://fuwa.yuxino.cn"><strong>Official website</strong></a>
+    · <a href="https://github.com/yuxino/fuwa/releases"><strong>View releases</strong></a>
     · <a href="README.md">简体中文</a>
   </p>
 </div>

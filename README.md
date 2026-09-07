@@ -3,7 +3,8 @@
   <h1>Fuwa</h1>
   <p>把需要的窗口留在最前面。</p>
   <p>
-    <a href="https://github.com/yuxino/fuwa/releases"><strong>查看发布版本</strong></a>
+    <a href="https://fuwa.yuxino.cn"><strong>官方网站</strong></a>
+    · <a href="https://github.com/yuxino/fuwa/releases"><strong>查看发布版本</strong></a>
     · <a href="README_EN.md">English</a>
   </p>
 </div>
