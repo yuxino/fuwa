@@ -8,6 +8,7 @@ if CommandLine.arguments.dropFirst().first == "--verify-app-icon" {
 private var runner = LogicTestRunner()
 runSelectionPolicyTests(runner: &runner)
 runPinStateTests(runner: &runner)
+runPendingPinRequestsTests(runner: &runner)
 runKeyboardShortcutTests(runner: &runner)
 runDisplayCoordinateSpaceTests(runner: &runner)
 runFrozenFrameSizingTests(runner: &runner)

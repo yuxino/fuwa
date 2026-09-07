@@ -475,11 +475,27 @@ final class PinSession {
             return
         }
 
-        let timeoutEvent = PinStartTimeoutPolicy.event(
-            resumingFrom: previousFreezeReason
+        let message = previousFreezeReason == nil
+            ? "Window capture failed before the first complete frame arrived."
+            : nil
+        await handleFirstFrameFailure(
+            reason: .captureFailed,
+            message: message,
+            failure: message.map { .captureFailed($0) } ?? .captureResumeTimedOut
         )
+    }
+
+    private func handleFirstFrameFailure(
+        reason: PinFailureReason,
+        message: String?,
+        failure: PinSessionError
+    ) async {
+        guard state == .starting else { return }
         do {
-            try transition(timeoutEvent)
+            try transition(PinStartFailurePolicy.event(
+                resumingFrom: currentCycle?.previousFreezeReason,
+                failureReason: reason
+            ))
         } catch {
             await failAndHide(
                 reason: .captureFailed,
@@ -488,19 +504,13 @@ final class PinSession {
             return
         }
 
-        let failure: PinSessionError
-        if previousFreezeReason == nil {
-            let message = "Window capture failed before the first complete frame arrived."
-            errorMessage = message
-            failure = .captureFailed(message)
+        errorMessage = message
+        if case .failed = state {
             panel?.orderOut(nil)
             captureView?.clearAllPixels()
-        } else {
-            // The restored frozen state already supplies the row detail. Keep
-            // its diagnostic language-neutral and localize the typed notice.
-            errorMessage = nil
-            failure = .captureResumeTimedOut
         }
+        // A frozen result retains the independent image from before Resume.
+        // Detach before suspension so late stream callbacks cannot clear it.
         let detachedCycle = detachCurrentCycle()
         notifyChange()
         onFailure?(failure)
@@ -551,9 +561,10 @@ final class PinSession {
             }
 
         case .starting:
-            await failAndHide(
+            await handleFirstFrameFailure(
                 reason: sourceStillExists ? .captureFailed : .sourceClosedBeforeFirstFrame,
-                message: message
+                message: message,
+                failure: .captureFailed(message)
             )
 
         default:
@@ -566,9 +577,11 @@ final class PinSession {
 
         switch state {
         case .starting:
-            await failAndHide(
+            let message = "The source window closed before the first frame arrived."
+            await handleFirstFrameFailure(
                 reason: .sourceClosedBeforeFirstFrame,
-                message: "The source window closed before the first frame arrived."
+                message: message,
+                failure: .captureFailed(message)
             )
 
         case .live:

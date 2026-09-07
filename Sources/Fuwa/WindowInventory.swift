@@ -127,7 +127,13 @@ struct WindowInventory: Sendable {
             return nil
         }
 
-        return descriptors(from: windowInfo).first(where: { $0.id == windowID })
+        // Resolve application metadata only for the requested window. Parsing
+        // every descriptor here needlessly looks up every running owner on each
+        // liveness check, Resume, Interact and Reveal Source operation.
+        guard let matchingInfo = windowInfo.first(where: {
+            ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value == windowID
+        }) else { return nil }
+        return descriptors(from: [matchingInfo]).first
     }
 
     /// Exact-ID/PID variant for code that already holds a stable source

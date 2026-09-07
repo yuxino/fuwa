@@ -63,16 +63,24 @@ public enum PinTransitionError: Error, Equatable, Hashable, Sendable {
     case invalidTransition(from: PinState, event: PinEvent)
 }
 
-/// Maps a first-frame deadline to the existing state-machine event that
-/// preserves the correct initial-capture or Resume behavior.
-public enum PinStartTimeoutPolicy {
-    public static func event(resumingFrom previousReason: PinFreezeReason?) -> PinEvent {
-        guard let previousReason else {
-            return .fail(.captureFailed)
+/// Keeps the same first-frame failure contract for timeouts, stream errors and
+/// source disappearance. A retry already has an independent image to preserve.
+public enum PinStartFailurePolicy {
+    public static func event(
+        resumingFrom previousReason: PinFreezeReason?,
+        failureReason: PinFailureReason = .captureFailed
+    ) -> PinEvent {
+        guard let previousReason, failureReason != .screenRecordingDenied else {
+            return .fail(failureReason)
         }
-        return .resumeFailed(previousReason)
+        return .resumeFailed(
+            failureReason == .sourceClosedBeforeFirstFrame ? .sourceClosed : previousReason
+        )
     }
 }
+
+/// Retains the original public name for clients that only need timeout policy.
+public typealias PinStartTimeoutPolicy = PinStartFailurePolicy
 
 /// A small value-type state machine shared by capture sessions and their tests.
 ///
@@ -126,9 +134,9 @@ public struct PinStateMachine: Equatable, Hashable, Sendable {
              (.frozen(.captureInterrupted), .resume):
             nextState = .starting
 
-        case (.starting, .resumeFailed(let reason)) where reason != .sourceClosed:
-            // A failed retry must keep the independent frozen frame visible and
-            // retryable. Initial capture failures still use `.fail` below.
+        case (.starting, .resumeFailed(let reason)):
+            // A failed retry keeps its independent frozen frame. A closed source
+            // makes that frame non-resumable; other failures remain retryable.
             nextState = .frozen(reason)
 
         case (.resolving, .fail(let reason)),

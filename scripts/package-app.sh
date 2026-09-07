@@ -111,6 +111,14 @@ cp "${FUWA_BINARY_SOURCE}" "${FUWA_MACOS_DIR}/Fuwa"
 /usr/bin/ditto \
     "${FUWA_SPARKLE_FRAMEWORK_SOURCE}" \
     "${FUWA_FRAMEWORKS_DIR}/Sparkle.framework"
+# SwiftPM needs these declarations when compiling, but the embedded framework
+# only needs its runtime code and resources. Trim the distributable copy before
+# signing it; preserve the resolved framework and all updater helpers in full.
+for FUWA_DEVELOPMENT_DIRECTORY in Headers PrivateHeaders Modules; do
+    rm -rf \
+        "${FUWA_FRAMEWORKS_DIR}/Sparkle.framework/${FUWA_DEVELOPMENT_DIRECTORY}" \
+        "${FUWA_FRAMEWORKS_DIR}/Sparkle.framework/Versions/B/${FUWA_DEVELOPMENT_DIRECTORY}"
+done
 cp "${FUWA_PROJECT_DIR}/Resources/Info.plist" "${FUWA_CONTENTS_DIR}/Info.plist"
 cp "${FUWA_PROJECT_DIR}/Resources/AppIcon.icns" "${FUWA_RESOURCES_DIR}/AppIcon.icns"
 cp -R "${FUWA_PROJECT_DIR}/Resources/en.lproj" "${FUWA_RESOURCES_DIR}/en.lproj"
@@ -164,7 +172,27 @@ codesign \
     --sign "${FUWA_CODESIGN_IDENTITY}" \
     "${FUWA_APP_DIR}"
 
+# Library Validation matches Apple Team IDs, not a self-signed certificate's
+# fingerprint. A stable local identity has no Team ID, so even our own signed
+# Sparkle framework would otherwise abort in dyld before main. Keep the rest of
+# Hardened Runtime enabled; Apple team-signed builds need no exception.
+FUWA_SIGNED_TEAM_ID="$(
+    codesign --display --verbose=4 "${FUWA_APP_DIR}" 2>&1 \
+        | /usr/bin/sed -n 's/^TeamIdentifier=//p'
+)"
+if [[ "${FUWA_SIGNED_TEAM_ID}" == "not set" ]]; then
+    # Re-sign only the host, without propagating its exception to the helpers.
+    codesign --force --options runtime "${FUWA_TIMESTAMP_ARGUMENT}" \
+        --entitlements "${FUWA_PROJECT_DIR}/Resources/LocalSigning.entitlements" \
+        --sign "${FUWA_CODESIGN_IDENTITY}" "${FUWA_APP_DIR}"
+elif [[ -z "${FUWA_SIGNED_TEAM_ID}" ]]; then
+    print -u2 -r -- "error: unable to determine the signed application's Team ID"
+    exit 1
+fi
+
 codesign --verify --deep --strict --verbose=2 "${FUWA_APP_DIR}"
+FUWA_CODESIGN_IDENTITY="${FUWA_CODESIGN_IDENTITY}" \
+    "${FUWA_SCRIPT_DIR}/verify-framework-loading.sh" "${FUWA_APP_DIR}"
 FUWA_DESIGNATED_REQUIREMENT="$(
     codesign --display --requirements - "${FUWA_APP_DIR}" 2>&1 \
         | /usr/bin/sed -n 's/^#*[[:space:]]*designated => //p'
@@ -178,7 +206,7 @@ if [[ "${FUWA_DESIGNATED_REQUIREMENT:l}" == *cdhash* ]]; then
     exit 1
 fi
 pushd "${FUWA_PROJECT_DIR}/dist" >/dev/null
-/usr/bin/zip -q -r -y -X "${FUWA_ARCHIVE_NAME}" "Fuwa.app"
+/usr/bin/zip -9 -q -r -y -X "${FUWA_ARCHIVE_NAME}" "Fuwa.app"
 shasum -a 256 "${FUWA_ARCHIVE_NAME}" > "${FUWA_ARCHIVE_NAME}.sha256"
 popd >/dev/null
 

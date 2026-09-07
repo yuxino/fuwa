@@ -156,6 +156,52 @@ func runPinStateTests(runner: inout LogicTestRunner) {
         }
     }
 
+    for previousReason in [PinFreezeReason.manual, .captureInterrupted] {
+        for failureReason in [PinFailureReason.captureFailed, .sourceClosedBeforeFirstFrame] {
+            var retry = PinStateMachine(initialState: .frozen(previousReason))
+            do {
+                _ = try retry.apply(.resume)
+                _ = try retry.apply(PinStartFailurePolicy.event(
+                    resumingFrom: previousReason,
+                    failureReason: failureReason
+                ))
+                let expectedReason: PinFreezeReason = failureReason == .sourceClosedBeforeFirstFrame
+                    ? .sourceClosed : previousReason
+                runner.expect(
+                    retry.state == .frozen(expectedReason),
+                    "a stream failure before the Resume first frame retains the old frozen image state"
+                )
+                if expectedReason == .sourceClosed {
+                    do {
+                        _ = try retry.apply(.resume)
+                        runner.expect(false, "a source lost during Resume cannot be retried")
+                    } catch {
+                        runner.expect(
+                            retry.state == .frozen(.sourceClosed),
+                            "a source lost during Resume remains visible but cannot be retried"
+                        )
+                    }
+                }
+            } catch {
+                runner.expect(false, "Resume failure recovery should be a defined transition: \(error)")
+            }
+        }
+        runner.expect(
+            PinStartFailurePolicy.event(
+                resumingFrom: previousReason,
+                failureReason: .screenRecordingDenied
+            ) == .fail(.screenRecordingDenied),
+            "permission denial never restores a retained frozen state"
+        )
+    }
+    runner.expect(
+        PinStartFailurePolicy.event(
+            resumingFrom: nil,
+            failureReason: .sourceClosedBeforeFirstFrame
+        ) == .fail(.sourceClosedBeforeFirstFrame),
+        "initial capture still fails when its source closes without a saved frame"
+    )
+
     var invalid = PinStateMachine()
     do {
         _ = try invalid.apply(.firstCompleteFrame)

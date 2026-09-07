@@ -39,7 +39,7 @@ final class PinCoordinator {
     private var sessionsByID: [UUID: PinSession] = [:]
     private var sessionIDByWindowID: [CGWindowID: UUID] = [:]
     private var insertionOrder: [UUID] = []
-    private var pendingWindowIDs = Set<CGWindowID>()
+    private var pendingPinRequests = PendingPinRequests()
     private var pendingSessionOperations = Set<UUID>()
     private var operationGeneration: UInt64 = 0
 
@@ -93,13 +93,24 @@ final class PinCoordinator {
             return
         }
 
-        guard sessionsByID.count + pendingWindowIDs.count < Self.maximumPinCount else {
+        let requestToken: UUID
+        switch pendingPinRequests.reserve(
+            windowID: intent.descriptor.id,
+            activeWindowIDs: Set(sessionIDByWindowID.keys),
+            maximumCount: Self.maximumPinCount
+        ) {
+        case .reserved(let token):
+            requestToken = token
+        case .duplicate:
+            return
+        case .limitReached:
             throw PinCoordinatorError.pinLimitReached(maximum: Self.maximumPinCount)
         }
 
-        guard pendingWindowIDs.insert(intent.descriptor.id).inserted else { return }
         let requestedGeneration = operationGeneration
-        defer { pendingWindowIDs.remove(intent.descriptor.id) }
+        defer {
+            pendingPinRequests.finish(windowID: intent.descriptor.id, token: requestToken)
+        }
 
         let target = try await resolver.resolve(intent)
         guard requestedGeneration == operationGeneration else {
@@ -211,7 +222,7 @@ final class PinCoordinator {
         sessionsByID.removeAll()
         sessionIDByWindowID.removeAll()
         insertionOrder.removeAll()
-        pendingWindowIDs.removeAll()
+        pendingPinRequests.clear()
         pendingSessionOperations.removeAll()
         tracker.stop()
 

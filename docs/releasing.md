@@ -44,6 +44,19 @@ requirement matches the previous stable package. Stop if identity changes.
 The current package has no Apple Developer ID signature or notarization; the
 Release notes must say so. Do not substitute an ad-hoc-signed hosted build.
 
+The stable local certificate has no Apple Team ID. For that signing profile
+only, packaging gives the host `com.apple.security.cs.disable-library-validation`
+so it can load the bundled, locally signed Sparkle framework. Other Hardened
+Runtime protections remain enabled; Apple team-signed builds receive no such
+exception. This does not change system Gatekeeper settings or update signature
+verification. See [Apple's library validation rules](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.cs.disable-library-validation).
+
+Packaging also runs `scripts/verify-framework-loading.sh` to load the embedded
+framework using the host's signing identity and entitlements. A valid code seal
+alone does not prove that dyld will allow the app to start. The probe covers the
+trusted Mac's native architecture; it does not replace app launch, capture,
+update installation or Intel hardware acceptance.
+
 Promotion independently repeats the bundle, universal-binary, code-seal,
 leaf-certificate, and designated-requirement checks on a hosted Mac. Stable
 pins live in `scripts/release-signing-pins.json`, extracted from the public
