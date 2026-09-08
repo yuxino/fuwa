@@ -65,8 +65,6 @@ done
 iconutil -c icns "${FUWA_ICONSET_DIR}" -o "${FUWA_ICON_GENERATED}"
 python3 "${FUWA_ICON_SCRIPT_DIR}/optimize-icns.py" "${FUWA_ICON_GENERATED}"
 
-FUWA_ICON_EXTRACTED_DIR="${FUWA_ICON_TEMP_DIR}/Verified.iconset"
-iconutil -c iconset "${FUWA_ICON_GENERATED}" -o "${FUWA_ICON_EXTRACTED_DIR}"
 cd "${FUWA_ICON_PROJECT_DIR}"
 swift build \
     --configuration release \
@@ -79,7 +77,7 @@ FUWA_ICON_BIN_DIR="$(swift build \
 "${FUWA_ICON_BIN_DIR}/FuwaLogicTests" --verify-app-icon \
     "${FUWA_ICON_SOURCE}" \
     "${FUWA_ICONSET_DIR}" \
-    "${FUWA_ICON_EXTRACTED_DIR}"
+    "${FUWA_ICON_GENERATED}"
 
 if [[ "${FUWA_ICON_MODE}" == "check" ]]; then
     if ! cmp -s "${FUWA_ICON_GENERATED}" "${FUWA_ICON_OUTPUT}"; then
