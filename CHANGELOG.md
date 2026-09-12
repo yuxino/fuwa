@@ -8,18 +8,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [0.1.7] - 2026-09-07
 
-### Fixed
+### English
+
+#### Fixed
 
 - Fixed a launch-time Sparkle loading failure in packages signed with the maintained local certificate. Local signatures without an Apple Team ID now receive the host-only library-validation exception; other Hardened Runtime protections and signed-update verification remain enabled.
 - Prevented an older cancelled pin request from clearing a newer request for the same window, and stopped counting starting sessions twice against the eight-window limit.
 - Preserved the previous frozen frame when Resume loses its stream or source before the first new frame. Closed sources remain non-resumable.
 
-### Changed
+#### Changed
 
 - Reduced repeated application-metadata lookups when checking one source window.
 - Removed compile-time Sparkle declarations from the distributed app and increased ZIP compression while retaining updater helpers and runtime resources. Added an actual framework-loading check to packaging.
 - Fuwa is now maintained for macOS only. Removed the native Windows implementation, installers, CI jobs, and Windows release requirements; historical Windows packages remain available in their existing Releases but are no longer maintained.
 - Release promotion now accepts the reviewed universal macOS archive and checksum, then produces its signed Sparkle feed and single-platform `latest.json`. The macOS app, signing identity, update public key, and feed URL are unchanged.
+
+### 中文
+
+#### 修复
+
+- 修复使用稳定本地证书签名的包在启动时无法加载 Sparkle。没有 Apple Team ID 的本地签名仅为宿主启用 library-validation 例外，其他 hardened runtime 保护与更新签名验证仍启用。
+- 防止已取消的旧固定请求清除同窗口的新请求，启动中的会话不再被重复计入八窗口限制。
+- 恢复过程中若流或源在新首帧前消失，保留之前冻结的画面；已经关闭的源仍不可恢复。
+
+#### 调整
+
+- 检查单个源窗口时减少重复应用元数据查询。
+- 分发应用移除 Sparkle 编译期声明并加强 ZIP 压缩，保留更新助手和运行时资源；打包新增实际框架加载检查。
+- 此后只维护 macOS，移除 Windows 原生实现、安装器、CI 和发布要求。旧 Windows 包保留在原 Release 中，不再维护。
+- 发布流程接收经过审核的 macOS Universal 包及校验文件，生成签名 Sparkle feed 和单平台 `latest.json`；应用、签名身份、更新公钥和 feed 地址不变。
 
 ## [0.1.6] - 2026-09-02
 
