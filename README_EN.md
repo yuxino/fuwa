@@ -8,15 +8,7 @@ This page keeps the previous English documentation address and section links ava
 
 109 seconds · 4K · 60 fps · English female narration. Pin a reference, work beneath a live mirror, freeze and resume, manage several windows, and use Finder Quick Look.
 
-<details>
-<summary>
-  <picture><img src="docs/demos/full-tour-en-poster.webp" width="960" alt="Fuwa full feature tour cover in English"></picture>
-  <br><strong>Expand to watch here · 4K / 60 fps · English</strong>
-</summary>
-
 https://github.com/user-attachments/assets/e4168306-13da-4f69-bb3d-f75c2cd88d54
-
-</details>
 
 The Chinese and English native interactions were filmed separately with a dedicated recording copy. [Capture notes](docs/demos/fuwa-full-tour-provenance.json) describe the framing adaptations; [watch the Chinese version](README_ZH.md#完整功能演示).
 
