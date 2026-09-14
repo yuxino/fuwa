@@ -1,0 +1,125 @@
+{
+  "product": "Fuwa",
+  "version": "0.1.7",
+  "source_commit": "73f9e502abd8f8415bd6a250e3fef7a671ff9955",
+  "recorded_on": "2026-09-14",
+  "platform": "macOS 26.3.1, Apple silicon",
+  "capture": "Real native SwiftUI/AppKit windows and ScreenCaptureKit pin mirrors. Chinese and English operations captured separately.",
+  "native_feature_capture": true,
+  "unchanged_installed_binary_acceptance": false,
+  "recording_copy_adaptations": [
+    "Regular management window replaces menu-bar popover for stable video framing.",
+    "Target and recording allowlists include only public Demo Desk, Fuwa, and the explicitly verified Quick Look reference.",
+    "Mirror window sharing is enabled for this recording copy so actual mirrors appear in the recording.",
+    "Recording-only language controls and ScreenCaptureKit movie output are added."
+  ],
+  "features": [
+    "Pin and unpin",
+    "Work alongside a click-through mirror",
+    "Freeze and resume live capture",
+    "Manage multiple pins and Clear All",
+    "Finder Quick Look",
+    "Interact and Reveal Source",
+    "Shortcut editor and permission status",
+    "Check for Updates entry"
+  ],
+  "scope_note": "The update entry is shown; no update installation is represented. This film is not physical Intel or Windows acceptance.",
+  "source_capture": {
+    "width": 3024,
+    "height": 1964,
+    "target_fps": 60,
+    "crop": [
+      0,
+      70,
+      3024,
+      1700
+    ]
+  },
+  "output": {
+    "width": 3840,
+    "height": 2160,
+    "fps": 60,
+    "duration_seconds": 109,
+    "frames": 6540
+  },
+  "narration": {
+    "en": "Aria Neural, natural pitch",
+    "zh": "Xiaoyi Neural, natural pitch"
+  },
+  "audio": "Original soft score, ducked beneath narration. Synthetic chapter whooshes removed.",
+  "poster": "Complete opening cover from frame zero; motion continues at 2.5 seconds.",
+  "art": "Youthful, cheerful half-body Fuwa with fluffy shoulder-length hair, a rounder face, white cardigan and lavender bow. F/star clips and the established palette are preserved. This revision replaces the earlier mature portrait in the actual Chinese and English native recordings as well as the opening and closing frames.",
+  "editing": "Native operations trimmed to remove waiting; UI states are not fabricated. Original recording H.264 decoded through VideoToolbox to avoid the software decoder artifact.",
+  "art_sha256": "4cef9f7f4dbeb970bff6cf2f18bc47c83253e00644d15191cfad95b11044555d",
+  "edited_native_clips": [
+    {
+      "file": "public/en/full/freeze.mp4",
+      "sha256": "be26864dd1f3403b78368d23bf29fa2a52eeebf5c01c6fc1ac58a3db295b141d"
+    },
+    {
+      "file": "public/en/full/multi.mp4",
+      "sha256": "c2d1b05c087dbd6b2098cca2ddfa16cf392c049e4b3037c9b2b61fd6091c7721"
+    },
+    {
+      "file": "public/en/full/pin.mp4",
+      "sha256": "0c2e6d8c81ab4c60ba8222c4e6d37196a1cb9bc273630961195e508b59d46f61"
+    },
+    {
+      "file": "public/en/full/quicklook.mp4",
+      "sha256": "b702f8926903ffab17d6692c74c22e825542f1a1bf7747b4a7a83b165f833e29"
+    },
+    {
+      "file": "public/en/full/settings.mp4",
+      "sha256": "fe490272a7638749337ca503495ee92edf04d633c876b4a4f0a79d0870ecfc79"
+    },
+    {
+      "file": "public/en/full/workspace.mp4",
+      "sha256": "e3934bc319f9227bb1869fe9507e2f33a895203557f0aac6cf638865ca709aa0"
+    },
+    {
+      "file": "public/zh/full/freeze.mp4",
+      "sha256": "50bd1eb61d80d7d651b62829f4d5e2da51deda3990a0a2c395bf31872c8b4d05"
+    },
+    {
+      "file": "public/zh/full/multi.mp4",
+      "sha256": "bb3b6fcc013c0f65d4cdb6bba95791a1c3759bae73f15f459040ec28d886c103"
+    },
+    {
+      "file": "public/zh/full/pin.mp4",
+      "sha256": "56e9992fc0c7699d0edf439486ba3c0ab0fa00cf2ff785c59fbd49b517ec1e2a"
+    },
+    {
+      "file": "public/zh/full/quicklook.mp4",
+      "sha256": "f9b70e59d74a7e74f5a816f8897aff90c5979e224b24d30324818a16c6736df0"
+    },
+    {
+      "file": "public/zh/full/settings.mp4",
+      "sha256": "c80972b031534ab7044fcb8ab403ced8720779fc7e47c0697ec8ee65c68f898c"
+    },
+    {
+      "file": "public/zh/full/workspace.mp4",
+      "sha256": "303edc856eac571f88635556ee18286cd4b7cad685ae5e0a2381f2e1daef4ad3"
+    }
+  ],
+  "native_take_manifest_sha256": "bb7f0dc122a841ea3c628caa100272297288a6d2992850cfbd6b90c6e7069429",
+  "final_movies": [
+    {
+      "file": "fuwa-full-tour-en-4k.mp4",
+      "bytes": 33701926,
+      "sha256": "5121f74a077fb7999e6971e970a462cd326f25eb91b12f4b0d0eca68ae6caa27"
+    },
+    {
+      "file": "fuwa-full-tour-zh-4k.mp4",
+      "bytes": 32337371,
+      "sha256": "897be3c97cb17e1c930a8c907dd7d603ce2d39ea81a3e6d1d79285f7173c57b0"
+    }
+  ],
+  "soundtrack_loudness_lufs": {
+    "en": -16.1,
+    "zh": -15.8
+  },
+  "soundtrack_true_peak_dbfs": {
+    "en": -1.5,
+    "zh": -1.9
+  }
+}

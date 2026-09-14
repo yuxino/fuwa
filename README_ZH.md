@@ -11,6 +11,14 @@
 
 Fuwa 是一个 macOS 原生菜单栏工具，为选中的应用窗口或 Finder 空格预览创建始终可见、鼠标穿透的实时镜像，不改变源窗口的真实层级。
 
+## 完整功能演示
+
+109 秒 · 4K · 60 帧 · 中文女声旁白。完整展示固定参考窗口、鼠标穿透、冻结与继续、多窗口管理和 Finder 快速预览。
+
+https://github.com/user-attachments/assets/54825073-590a-4504-a6ea-a1ef7d9f5604
+
+中英文原生操作分别录制，使用专门的录制副本。[录制说明](docs/demos/fuwa-full-tour-provenance.json)列出了为画面布局所做的调整；也可以[观看英文版](README.md#full-feature-tour)。
+
 ## 使用
 
 1. 启动 Fuwa，把目标窗口置于前方。

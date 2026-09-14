@@ -11,6 +11,14 @@
 
 Fuwa is a native macOS menu bar app that creates an always-visible, click-through live mirror of an application window or Finder Quick Look, without changing the source window's real z-order.
 
+## Full feature tour
+
+109 seconds · 4K · 60 fps · English female narration. Pin a reference, work beneath a live mirror, freeze and resume, manage several windows, and use Finder Quick Look.
+
+https://github.com/user-attachments/assets/e4168306-13da-4f69-bb3d-f75c2cd88d54
+
+The Chinese and English native interactions were filmed separately with a dedicated recording copy. [Capture notes](docs/demos/fuwa-full-tour-provenance.json) describe the framing adaptations; [watch the Chinese version](README_ZH.md#完整功能演示).
+
 ## Use
 
 1. Launch Fuwa and bring the target window to the front.
