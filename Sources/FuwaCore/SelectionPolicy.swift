@@ -155,6 +155,11 @@ public enum SelectionPolicy {
         context: SelectionContext
     ) -> Bool {
         guard descriptor.ownerPID != context.selfProcessID else { return false }
+        // A legacy or recording copy can run under another PID. Its mirror is
+        // never source content, even when it is above the user's real window.
+        guard descriptor.ownerBundleIdentifier?.lowercased() != "app.yuxino.fuwa" else {
+            return false
+        }
         guard !context.excludedWindowIDs.contains(descriptor.id) else { return false }
         guard descriptor.alpha.isFinite, descriptor.alpha > context.minimumAlpha else {
             return false

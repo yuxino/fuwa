@@ -34,6 +34,25 @@ private func fixture(
 }
 
 func runSelectionPolicyTests(runner: inout LogicTestRunner) {
+    let otherFuwa = fixture(
+        id: 50, pid: 8_888, owner: "Fuwa Recording",
+        bundleIdentifier: "app.yuxino.fuwa", layer: 3
+    )
+    let source = fixture(id: 51, pid: 619, bundleIdentifier: "com.apple.finder")
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [otherFuwa, source],
+            context: SelectionContext(selfProcessID: 9_999)
+        )?.id == source.id,
+        "a second Fuwa process cannot become a mirror source"
+    )
+    runner.expect(
+        SelectionPolicy.intentWindow(
+            in: [otherFuwa, source],
+            context: SelectionContext(selfProcessID: 9_999, frontmostProcessID: 8_888)
+        ) == nil,
+        "a focused Fuwa copy does not silently capture content behind it"
+    )
     let finderQuickLookWindows = [
         fixture(
             id: 3_662,
