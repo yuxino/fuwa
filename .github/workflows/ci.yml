@@ -62,6 +62,12 @@ jobs:
           -Xswiftc -warnings-as-errors
           FuwaLogicTests
 
+      - name: Run native termination tests
+        run: >-
+          swift test
+          -Xswiftc -strict-concurrency=complete
+          -Xswiftc -warnings-as-errors
+
       - name: Verify app icon assets
         run: ./scripts/generate-app-icon.sh --check
 

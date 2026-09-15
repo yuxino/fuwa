@@ -41,6 +41,11 @@ let package = Package(
             name: "FuwaLogicTests",
             dependencies: ["FuwaCore"],
             path: "Tests/FuwaLogicTests"
+        ),
+        .testTarget(
+            name: "FuwaLifecycleTests",
+            dependencies: ["Fuwa"],
+            path: "Tests/FuwaLifecycleTests"
         )
     ],
     swiftLanguageModes: [.v6]

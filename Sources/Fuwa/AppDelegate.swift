@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: AppModel?
     private var statusBarController: StatusBarController?
     private var softwareUpdateController: SoftwareUpdateController?
+    private var isTerminating = false
     private var preparedPopoverIntent = PreparedIntentSlot<
         Result<TargetIntentSnapshot, Error>
     >()
@@ -65,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             accessibilityPermission: accessibilityPermissionState
         )
         self.model = model
+        NSApp.mainMenu = FuwaApplicationMenu.make(quitTitle: model.copy.text(.quit))
         do {
             softwareUpdateController = try SoftwareUpdateController(model: model)
         } catch {
@@ -98,7 +100,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        prepareForTermination()
+        return .terminateNow
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        prepareForTermination()
+    }
+
+    private func prepareForTermination() {
+        guard !isTerminating else { return }
+        isTerminating = true
         discardPopoverIntent()
         hotKey?.stop()
         privacyLifecycle.stop()
@@ -106,6 +119,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pinCoordinator.clearAllImmediately()
         statusBarController?.invalidate()
         statusBarController = nil
+        // Include popovers, About, and any presentation no longer owned by a
+        // pin session. Hide synchronously before AppKit tears down the app;
+        // never wait for ScreenCaptureKit's asynchronous stream shutdown.
+        for window in NSApp.windows {
+            window.orderOut(nil)
+            window.close()
+        }
     }
 
     private func makeActions() -> FuwaAppActions {
@@ -183,10 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showAbout: { [weak self] in
                 self?.showAboutPanel()
             },
-            quit: { [weak self] in
-                self?.discardPopoverIntent()
-                self?.model?.disengageInteraction()
-                self?.pinCoordinator.clearAllImmediately()
+            quit: {
                 NSApp.terminate(nil)
             }
         )
@@ -196,6 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Task. This is what keeps Finder Quick Look and other transient windows
     /// from disappearing between user input and target selection.
     private func handleGlobalShortcut() {
+        guard !isTerminating else { return }
         discardPopoverIntent()
         let intent: TargetIntentSnapshot
         do {
@@ -240,6 +258,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func toggle(_ intent: TargetIntentSnapshot) async throws {
+        // A shortcut task may have been queued before shutdown began.
+        guard !isTerminating else { throw PinCoordinatorError.operationCancelled }
         do {
             try await pinCoordinator.toggle(intent)
         } catch TargetResolutionError.screenRecordingPermissionDenied {
