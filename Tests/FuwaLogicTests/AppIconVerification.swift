@@ -84,39 +84,61 @@ private func verifyAppIcon(
         "AppIcon.png corners must be genuinely transparent, not painted black or checkerboard"
     )
 
-    let outsideCircleAlpha = [
-        master.sampledAlpha(xRatio: 0.15, yRatio: 0.15),
-        master.sampledAlpha(xRatio: 0.85, yRatio: 0.15),
-        master.sampledAlpha(xRatio: 0.15, yRatio: 0.85),
-        master.sampledAlpha(xRatio: 0.85, yRatio: 0.85),
+    // Launchpad composites a gray plate behind circular-only icons. The master
+    // must fill the rounded square so that plate never shows through.
+    let fillSamples = [
+        (0.15, 0.15),
+        (0.85, 0.15),
+        (0.15, 0.85),
+        (0.85, 0.85),
     ]
-    try requireAppIcon(
-        outsideCircleAlpha.allSatisfy({ $0 <= 8 }),
-        "AppIcon.png must not contain an opaque outer matte around its circular portrait"
-    )
+    for (xRatio, yRatio) in fillSamples {
+        let x = Int((Double(master.width - 1) * xRatio).rounded())
+        let y = Int((Double(master.height - 1) * yRatio).rounded())
+        try requireAppIcon(
+            master.alpha(x: x, y: y) >= 247,
+            "AppIcon.png rounded-square background is missing at (\(xRatio), \(yRatio))"
+        )
+        let red = master.pixels[((y * master.width) + x) * 4]
+        let green = master.pixels[((y * master.width) + x) * 4 + 1]
+        let blue = master.pixels[((y * master.width) + x) * 4 + 2]
+        let luminance = (Int(red) + Int(green) + Int(blue)) / 3
+        try requireAppIcon(
+            luminance >= 240,
+            "AppIcon.png background must stay near the portrait's original white, not a gray plate"
+        )
+    }
 
-    let insideCircleAlpha = [
+    let insidePortraitAlpha = [
         master.sampledAlpha(xRatio: 0.20, yRatio: 0.20),
         master.sampledAlpha(xRatio: 0.80, yRatio: 0.20),
         master.sampledAlpha(xRatio: 0.20, yRatio: 0.80),
         master.sampledAlpha(xRatio: 0.80, yRatio: 0.80),
     ]
     try requireAppIcon(
-        insideCircleAlpha.allSatisfy({ $0 >= 247 }),
+        insidePortraitAlpha.allSatisfy({ $0 >= 247 }),
         "AppIcon.png circular portrait is too small or clipped"
     )
 
     var edgeTranslucentPixels = 0
     let centerX = Double(master.width - 1) / 2
     let centerY = Double(master.height - 1) / 2
-    let exteriorRadius = Double(min(master.width, master.height)) * 0.49
+    let squircleExponent = 5.0
     for y in 0..<master.height {
         for x in 0..<master.width {
+            let nx = abs((Double(x) - centerX) / centerX)
+            let ny = abs((Double(y) - centerY) / centerY)
+            let squircleValue = pow(nx, squircleExponent) + pow(ny, squircleExponent)
             let value = master.alpha(x: x, y: y)
-            if hypot(Double(x) - centerX, Double(y) - centerY) >= exteriorRadius {
+            if squircleValue >= 1.08 {
                 try requireAppIcon(
                     value <= 8,
-                    "AppIcon.png pixels outside its circular portrait must be transparent"
+                    "AppIcon.png pixels outside its rounded square must be transparent"
+                )
+            } else if squircleValue <= 0.92 {
+                try requireAppIcon(
+                    value >= 247,
+                    "AppIcon.png rounded-square interior must stay opaque"
                 )
             }
             let isOuterBand = x < master.width / 5

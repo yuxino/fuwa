@@ -12,11 +12,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Fuwa now keeps an icon in the Dock. Clicking the Dock icon, or reopening Fuwa from Finder or Launchpad, shows the same Pins and Settings content in a regular window that can be closed or minimized without quitting the app. The menu bar popover is unchanged, and both entry points share one state.
 
+#### Fixed
+
+- Filled the app icon's rounded-square background with the portrait's original white so Launchpad and the Dock no longer show a gray plate around the circular Fuwa portrait. The mascot, `F` clip, star accessory, and transparent corners are unchanged.
+
 ### 中文
 
 #### 新增
 
 - Fuwa 现在常驻 Dock。点击 Dock 图标，或从访达、启动台重新打开 Fuwa，会在常规窗口中显示与菜单栏相同的 Pins 与设置内容；关闭或最小化该窗口不会退出 App。菜单栏 popover 保持不变，两个入口共用同一份状态。
+
+#### 修复
+
+- 为应用图标补上与头像原白底一致的圆角方形底色，启动台和 Dock 不再在圆形头像周围露出灰色底板。角色、`F` 发夹、星形配饰和透明圆角保持不变。
 
 ## [0.1.7] - 2026-09-07
 
