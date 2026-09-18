@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: GlobalHotKey?
     private var model: AppModel?
     private var statusBarController: StatusBarController?
+    private var mainWindowController: MainWindowController?
     private var softwareUpdateController: SoftwareUpdateController?
     private var isTerminating = false
     private var preparedPopoverIntent = PreparedIntentSlot<
@@ -93,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         self.statusBarController = statusBarController
+        mainWindowController = MainWindowController(model: model)
         privacyLifecycle.start()
 
         if let shortcutLaunchError {
@@ -103,6 +105,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         prepareForTermination()
         return .terminateNow
+    }
+
+    /// The Dock icon is Fuwa's second entry point: reopening the app brings
+    /// the mirror list and settings forward in a regular window.
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        mainWindowController?.present()
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -119,10 +131,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pinCoordinator.clearAllImmediately()
         statusBarController?.invalidate()
         statusBarController = nil
-        // Include popovers, About, and any presentation no longer owned by a
-        // pin session. Hide synchronously before AppKit tears down the app;
-        // never wait for ScreenCaptureKit's asynchronous stream shutdown.
-        for window in NSApp.windows {
+        // Include popovers, the main window, About, and any presentation no
+        // longer owned by a pin session. Hide synchronously before AppKit tears
+        // down the app; never wait for ScreenCaptureKit's asynchronous stream
+        // shutdown. Iterate a copy: closing a window mutates `NSApp.windows`.
+        for window in Array(NSApp.windows) {
             window.orderOut(nil)
             window.close()
         }

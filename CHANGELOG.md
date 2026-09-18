@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### English
+
+#### Added
+
+- Fuwa now keeps an icon in the Dock. Clicking the Dock icon, or reopening Fuwa from Finder or Launchpad, shows the same Pins and Settings content in a regular window that can be closed or minimized without quitting the app. The menu bar popover is unchanged, and both entry points share one state.
+
+### 中文
+
+#### 新增
+
+- Fuwa 现在常驻 Dock。点击 Dock 图标，或从访达、启动台重新打开 Fuwa，会在常规窗口中显示与菜单栏相同的 Pins 与设置内容；关闭或最小化该窗口不会退出 App。菜单栏 popover 保持不变，两个入口共用同一份状态。
+
 ## [0.1.7] - 2026-09-07
 
 ### English

@@ -105,7 +105,7 @@ frozen ── resume while source exists → starting
 
 ## 界面
 
-Fuwa 是 `LSUIElement` 菜单栏 App，不显示 Dock 图标。菜单栏按钮使用 template glyph；点击打开原生 popover。
+Fuwa 是常驻菜单栏的普通 App，同时显示 Dock 图标。菜单栏按钮使用 template glyph；点击打开原生 popover。点击 Dock 图标（或通过 Finder、Launchpad 重新打开）会把同一份 Pins / Settings 内容显示在一个常规窗口中，两个入口共用同一个 `AppModel`。
 
 Popover 保持单列、低密度、黑白与中性灰：
 
@@ -124,6 +124,8 @@ Fuwa 与 Kiri、mimi 属于同一产品家族。应用图标与 README 标识沿
 `Resources/AppIcon.png` 是唯一母版，所有 `.icns` 尺寸都由脚本生成并在 CI 中核对。图标必须保留真实透明圆角，在 32 px 下仍能辨认角色轮廓、`F` 与悬浮窗；不得加入第二套 logo、不可读的小字或仅靠颜色成立的含义。
 
 2026-09-08 调整：应用图标与 README 改用已确认的银发人物近景圆形头像，识别点为脸部、`F` 发夹与星形配饰，不再包含悬浮窗或小字。1130 × 1130 RGBA 母版裁自官网原画，圆内保留原白底、圆外真实透明，所有 ICNS 尺寸继续从该母版生成并核验。
+
+Dock 展示调整：Fuwa 不再声明 `LSUIElement`，激活策略改为 `.regular`，因此图标常驻 Dock。菜单栏快速 popover 保持原样；Dock 图标提供可关闭、可最小化的常规窗口，关闭窗口不退出 App（退出仍走菜单栏与 `⌘Q`）。
 
 ## 本地化与无障碍
 

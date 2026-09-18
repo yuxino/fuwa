@@ -120,7 +120,11 @@ struct FuwaPopoverView: View {
             maxWidth: .infinity,
             minHeight: isCompactEmpty ? 0 : 360,
             idealHeight: preferredContentSize.height,
-            maxHeight: .infinity
+            maxHeight: .infinity,
+            // Keep the header and primary action at the top when the view is
+            // shown in a window taller than the popover's ideal height. The
+            // flexible Pins group above the footer absorbs the extra space.
+            alignment: .top
         )
         .background(Color(nsColor: .windowBackgroundColor))
         .onExitCommand(perform: model.dismissPopover)

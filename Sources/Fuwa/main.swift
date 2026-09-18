@@ -30,7 +30,11 @@ if let existing = NSRunningApplication.runningApplications(
 let application = NSApplication.shared
 let applicationDelegate = AppDelegate()
 application.delegate = applicationDelegate
-application.setActivationPolicy(.accessory)
+// Fuwa is a menu bar utility that also stays in the Dock, so people can
+// launch and switch to it the way they do with any other app. The menu bar
+// item keeps hosting the quick popover; the Dock icon opens the same content
+// in a regular window.
+application.setActivationPolicy(.regular)
 
 withExtendedLifetime((applicationDelegate, instanceLock)) {
     application.run()
