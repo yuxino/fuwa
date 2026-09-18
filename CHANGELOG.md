@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-09-18
+
 ### English
 
 #### Added
@@ -148,7 +150,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Explicit rejection of SecurityAgent and local-authentication surfaces without falling through to content behind them.
 - Dependency-free Swift logic test executable and strict macOS CI.
 
-[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/yuxino/fuwa/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/yuxino/fuwa/compare/v0.1.7...v0.1.8
+[0.1.7]: https://github.com/yuxino/fuwa/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/yuxino/fuwa/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/yuxino/fuwa/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/yuxino/fuwa/compare/v0.1.3...v0.1.4
