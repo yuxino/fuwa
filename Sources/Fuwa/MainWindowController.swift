@@ -4,8 +4,8 @@ import SwiftUI
 /// A persistent management surface, separate from the compact menu-bar panel.
 /// Both presentations observe the same live pin and permission state.
 @MainActor
-final class MainWindowController {
-    private let window: NSWindow
+final class MainWindowController: NSObject {
+    let window: NSWindow
 
     init(model: AppModel) {
         window = NSWindow(
@@ -14,6 +14,12 @@ final class MainWindowController {
             backing: .buffered,
             defer: false
         )
+
+        super.init()
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification, object: NSApp)
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidResignActive),
+            name: NSApplication.didResignActiveNotification, object: NSApp)
 
         window.title = model.copy.text(.appName)
         window.isReleasedWhenClosed = false
@@ -36,8 +42,24 @@ final class MainWindowController {
         if !window.isVisible {
             window.center()
         }
+        // Ordering alone cannot lift a normal window above floating mirrors.
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func applicationDidBecomeActive() {
+        guard window.isVisible else { return }
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
+    }
+
+    @objc private func applicationDidResignActive() {
+        // Management should not stay above other apps after the user leaves Fuwa.
+        window.level = .normal
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // Keep enough room for the sidebar, source titles and labeled actions.

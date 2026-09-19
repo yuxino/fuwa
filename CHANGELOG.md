@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-19
+
+### English
+
+- Keep the active management window above pinned mirrors and their controls so pins remain manageable. Restore its normal window level when switching to another app.
+
+- Requires macOS 14 or later. The universal archive retains Fuwa's stable local signature and signed updater; it is not Apple Developer ID signed or notarized. Native window-order regression checks passed on Apple Silicon; Intel hardware and a full update-install cycle were not revalidated.
+
+### 中文
+
+- 管理窗口激活时显示在固定镜像及控制条上方，避免管理操作被遮挡；切换到其他应用后恢复普通窗口层级。
+- 需要 macOS 14 或更新版本。Universal 安装包沿用稳定本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。Apple Silicon 原生窗口层级回归检查已通过；未重新验证 Intel 实机和完整更新安装过程。
+
 ## [0.1.9] - 2026-09-19
 
 ### English
