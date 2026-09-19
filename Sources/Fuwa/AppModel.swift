@@ -42,6 +42,8 @@ struct FuwaAppActions {
     /// the asynchronous capture work. Keeping the claim outside `Task` prevents
     /// a close event from discarding an operation the user already started.
     var beginPinFrontWindow: @MainActor () throws -> PinFrontWindowOperation = { {} }
+    var showControls: @MainActor (UUID) -> Void = { _ in }
+    var pinWindow: @MainActor (FuwaWindowChoice) async throws -> Void = { _ in }
     var freeze: @MainActor (UUID) async throws -> Void = { _ in }
     var resume: @MainActor (UUID) async throws -> Void = { _ in }
     var interact: @MainActor (UUID) async throws -> Void = { _ in }
@@ -60,6 +62,7 @@ struct FuwaAppActions {
     var cancelUpdate: @MainActor () -> Void = {}
     var installAndRelaunchUpdate: @MainActor () -> Void = {}
     var openLatestRelease: @MainActor () -> Void = {}
+    var openMainWindow: @MainActor () -> Void = {}
     var showAbout: @MainActor () -> Void = {}
     var quit: @MainActor () -> Void = {}
 }
@@ -274,6 +277,10 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func openMainWindow() {
+        actions.openMainWindow()
+    }
+
     func showAbout() {
         actions.showAbout()
     }
@@ -283,7 +290,7 @@ final class AppModel: ObservableObject {
     }
 
     func pinFrontWindow() {
-        guard !isPinningFrontWindow else { return }
+        guard !isPinningFrontWindow, !isClearingAll else { return }
         isPinningFrontWindow = true
         notice = nil
 
@@ -304,6 +311,21 @@ final class AppModel: ObservableObject {
             } catch {
                 presentError(error)
             }
+        }
+    }
+
+    func showControls(_ id: UUID) { actions.showControls(id) }
+
+    func pinWindow(_ choice: FuwaWindowChoice) {
+        guard !isPinningFrontWindow, !isClearingAll,
+              !pins.contains(where: { $0.sourceWindowID == choice.id }) else { return }
+        isPinningFrontWindow = true
+        notice = nil
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { isPinningFrontWindow = false }
+            do { try await actions.pinWindow(choice) }
+            catch { presentError(error) }
         }
     }
 
@@ -441,7 +463,7 @@ final class AppModel: ObservableObject {
         _ id: UUID,
         operation: @escaping @MainActor (FuwaAppActions) async throws -> Void
     ) {
-        guard !busyPinIDs.contains(id) else { return }
+        guard !isClearingAll, pins.contains(where: { $0.id == id }), !busyPinIDs.contains(id) else { return }
         busyPinIDs.insert(id)
         notice = nil
         let currentActions = actions

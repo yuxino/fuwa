@@ -21,7 +21,10 @@ struct PinRowView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(pin.windowTitle)
+                    Button { model.showControls(pin.id) } label: { Text(pin.windowTitle) }
+                        .buttonStyle(.plain)
+                        .disabled(!pin.canShowControls)
+                        .accessibilityHint(copy.text(.showControls))
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                         .truncationMode(.middle)
@@ -48,52 +51,8 @@ struct PinRowView: View {
                 }
             }
 
-            HStack(spacing: 4) {
-                Text(interactionTitle)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 8)
-
-                if pin.canFreeze {
-                    FuwaIconButton(
-                        symbol: "pause.fill",
-                        label: copy.text(.freeze),
-                        action: { model.freeze(pin.id) }
-                    )
-                    .disabled(isBusy)
-                } else if pin.canResume {
-                    FuwaIconButton(
-                        symbol: "play.fill",
-                        label: copy.text(.resume),
-                        action: { model.resume(pin.id) }
-                    )
-                    .disabled(isBusy)
-                }
-
-                FuwaIconButton(
-                    symbol: interactionSymbol,
-                    label: copy.text(.interact),
-                    action: { model.interact(pin.id) }
-                )
-                .disabled(isBusy || !canUseSource)
-
-                FuwaIconButton(
-                    symbol: "arrow.up.forward.app",
-                    label: copy.text(.revealSource),
-                    action: { model.revealSource(pin.id) }
-                )
-                .disabled(isBusy || !canUseSource)
-
-                FuwaIconButton(
-                    symbol: "xmark",
-                    label: copy.text(.unpin),
-                    action: { model.unpin(pin.id) }
-                )
-                .disabled(isBusy)
-            }
-            .padding(.leading, detailsIndent)
+            PinActionsView(model: model, pin: pin)
+                .padding(.leading, detailsIndent)
 
             if let detailMessage {
                 Text(detailMessage)
@@ -108,59 +67,11 @@ struct PinRowView: View {
         .accessibilityLabel("\(pin.applicationName), \(pin.windowTitle), \(stateTitle)")
     }
 
-    private var stateTitle: String {
-        switch pin.state {
-        case .resolving:
-            copy.text(.resolving)
-        case .starting:
-            copy.text(.starting)
-        case .live:
-            copy.text(.live)
-        case .frozen(.manual):
-            copy.text(.frozen)
-        case .frozen(.sourceClosed):
-            copy.text(.sourceClosed)
-        case .frozen(.captureInterrupted):
-            copy.text(.captureInterrupted)
-        case .failed:
-            copy.text(.failed)
-        case .stopping, .stopped:
-            copy.text(.stopping)
-        }
-    }
+    private var stateTitle: String { pin.stateTitle(copy) }
 
     private var stateIsFailure: Bool {
         if case .failed = pin.state { return true }
         return false
-    }
-
-    private var canUseSource: Bool {
-        switch pin.state {
-        case .live, .frozen(.manual), .frozen(.captureInterrupted):
-            true
-        case .resolving, .starting, .frozen(.sourceClosed), .failed, .stopping, .stopped:
-            false
-        }
-    }
-
-    private var interactionTitle: String {
-        switch model.interactionStates[pin.id] ?? .viewOnly {
-        case .viewOnly:
-            copy.text(.viewOnly)
-        case .engaged:
-            copy.text(.interacting)
-        case .unavailable:
-            copy.text(.interactionUnavailable)
-        }
-    }
-
-    private var interactionSymbol: String {
-        switch model.interactionStates[pin.id] ?? .viewOnly {
-        case .viewOnly, .unavailable:
-            "cursorarrow.click"
-        case .engaged:
-            "cursorarrow.rays"
-        }
     }
 
     private var detailMessage: String? {

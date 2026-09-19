@@ -25,7 +25,7 @@ enum FuwaPopoverLayout {
             return NSSize(
                 width: 472,
                 height: compact
-                    ? (hasNotice ? 580 : 340) + (hasPermissionWarning ? 40 : 0)
+                    ? (hasNotice ? 720 : 540) + (hasPermissionWarning ? 40 : 0)
                     : 720
             )
         }
@@ -33,7 +33,7 @@ enum FuwaPopoverLayout {
             return NSSize(
                 width: 436,
                 height: compact
-                    ? (hasNotice ? 460 : 280) + (hasPermissionWarning ? 28 : 0)
+                    ? (hasNotice ? 660 : 460) + (hasPermissionWarning ? 28 : 0)
                     : 660
             )
         }
@@ -41,13 +41,13 @@ enum FuwaPopoverLayout {
             return NSSize(
                 width: 396,
                 height: compact
-                    ? (hasNotice ? 320 : 192) + (hasPermissionWarning ? 16 : 0)
+                    ? (hasNotice ? 480 : 360) + (hasPermissionWarning ? 16 : 0)
                     : 600
             )
         }
         return NSSize(
             width: 364,
-            height: compact ? (hasNotice ? 248 : 160) : 520
+            height: compact ? (hasNotice ? 400 : 300) : 520
         )
     }
 }

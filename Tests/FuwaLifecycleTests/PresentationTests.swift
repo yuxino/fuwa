@@ -1,0 +1,64 @@
+import AppKit
+import SwiftUI
+import Testing
+import FuwaCore
+@testable import Fuwa
+
+@Suite(.serialized)
+@MainActor
+struct PresentationTests {
+    private func pin(_ state: PinState) -> PinSnapshot {
+        PinSnapshot(id: UUID(), sourceWindowID: 100, applicationName: "Preview", bundleIdentifier: nil,
+                    windowTitle: "Reference document", state: state, errorMessage: nil)
+    }
+
+    @Test func closedSourceCannotResumeOrReveal() {
+        let closed = pin(.frozen(.sourceClosed))
+        #expect(!closed.canResume)
+        #expect(!closed.canUseSource)
+        #expect(!closed.canFreeze)
+        #expect(closed.canShowControls)
+        #expect(!pin(.starting).canShowControls)
+        #expect(pin(.live).canFreeze)
+        #expect(pin(.frozen(.manual)).canResume)
+        #expect(pin(.frozen(.captureInterrupted)).canResume)
+    }
+
+    @Test func menusExposeAvailabilityAndWindowSpecificActions() throws {
+        _ = NSApplication.shared
+        let model = AppModel(copy: FuwaCopy(language: .english))
+        let controller = StatusBarController(model: model)
+        defer { controller.invalidate() }
+        let empty = controller.makeQuickMenu()
+        #expect(empty.items.first(where: { $0.title == "Clear All" })?.isEnabled == false)
+        #expect(empty.items.contains(where: { $0.title == "Quit Fuwa" && $0.isEnabled }))
+        let closed = pin(.frozen(.sourceClosed))
+        model.updatePins([closed])
+        let submenu = try #require(controller.makeQuickMenu().items.first(where: { $0.submenu != nil })?.submenu)
+        #expect(submenu.items.first(where: { $0.title == "Reveal Source" })?.isEnabled == false)
+        #expect(submenu.items.contains(where: { $0.title == "Unpin" && $0.isEnabled }))
+        #expect(!submenu.items.contains(where: { $0.title == "Resume" }))
+    }
+
+    @Test func clearAllPreventsConcurrentPinCommands() async {
+        let model = AppModel()
+        model.updatePins([pin(.live)])
+        var requestedPin = false
+        var actions = FuwaAppActions()
+        actions.beginPinFrontWindow = { requestedPin = true; return {} }
+        actions.clearAll = { try await Task.sleep(for: .milliseconds(20)) }
+        model.configure(actions: actions)
+        model.clearAll()
+        model.pinFrontWindow()
+        #expect(!requestedPin)
+        try? await Task.sleep(for: .milliseconds(40))
+        #expect(!model.isClearingAll)
+    }
+
+    @Test func allCopyKeysHaveBothLanguages() {
+        for language in [FuwaLanguage.english, .simplifiedChinese] {
+            let copy = FuwaCopy(language: language)
+            for key in FuwaString.allCases { #expect(copy.text(key) != key.rawValue) }
+        }
+    }
+}

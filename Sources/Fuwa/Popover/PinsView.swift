@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct PinsView: View {
     @ObservedObject var model: AppModel
+    var showsPinAction = true
     @FocusState private var pinButtonFocused: Bool
     @ScaledMetric(relativeTo: .body) private var rowDividerIndent = 54
 
@@ -10,17 +11,52 @@ struct PinsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            pinButton
-                .padding(.horizontal, 14)
-                .padding(.bottom, 12)
+            if showsPinAction {
+                pinButton
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 12)
+            }
 
             if !model.pins.isEmpty {
-                Divider()
                 pinsList
+            } else {
+                emptyState
             }
         }
         .onAppear {
             pinButtonFocused = true
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if !showsPinAction {
+            VStack(spacing: 16) {
+                Image(systemName: "macwindow.on.rectangle")
+                    .font(.system(size: 42, weight: .ultraLight))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text(copy.text(.emptyTitle)).font(.title3.weight(.semibold))
+                Text(copy.text(.mirrorExplanation))
+                    .font(.callout).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(copy.text(.emptyTitle), systemImage: "macwindow.on.rectangle")
+                    .font(.headline)
+                Text(copy.text(.noPinsBody))
+                    .font(.callout)
+                Text(copy.text(.mirrorExplanation))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
         }
     }
 
@@ -46,7 +82,7 @@ struct PinsView: View {
             }
         }
         .buttonStyle(FuwaPrimaryButtonStyle())
-        .disabled(model.isPinningFrontWindow)
+        .disabled(model.isPinningFrontWindow || model.isClearingAll)
         .focused($pinButtonFocused)
         .help(pinButtonHint)
         .accessibilityLabel(pinButtonTitle)

@@ -67,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             accessibilityPermission: accessibilityPermissionState
         )
         self.model = model
+        pinCoordinator.presentationModel = model
         NSApp.mainMenu = FuwaApplicationMenu.make(quitTitle: model.copy.text(.quit))
         do {
             softwareUpdateController = try SoftwareUpdateController(model: model)
@@ -95,6 +96,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.statusBarController = statusBarController
         mainWindowController = MainWindowController(model: model)
+        let launchEvent = NSAppleEventManager.shared().currentAppleEvent
+        let launchedAtLogin = launchEvent?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue
+            == keyAELaunchedAsLogInItem
+        if !launchedAtLogin { mainWindowController?.present() }
         privacyLifecycle.start()
 
         if let shortcutLaunchError {
@@ -150,6 +155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     guard let self else { throw FuwaApplicationError.unavailable }
                     try await toggle(intent)
                 }
+            },
+            showControls: { [weak self] id in self?.pinCoordinator.focusControls(id) },
+            pinWindow: { [weak self] choice in
+                guard let self else { throw FuwaApplicationError.unavailable }
+                let refreshed = try TargetResolver().snapshotExactWindow(matching: choice.intent.descriptor)
+                // A picker is an add action, never a toggle on a stale row.
+                guard !pinCoordinator.snapshots.contains(where: { $0.sourceWindowID == choice.id }) else { return }
+                try await toggle(refreshed)
             },
             freeze: { [weak self] id in
                 guard let self else { throw FuwaApplicationError.unavailable }
@@ -212,6 +225,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             openLatestRelease: { [weak self] in
                 self?.openLatestRelease()
+            },
+            openMainWindow: { [weak self] in
+                self?.mainWindowController?.present()
             },
             showAbout: { [weak self] in
                 self?.showAboutPanel()

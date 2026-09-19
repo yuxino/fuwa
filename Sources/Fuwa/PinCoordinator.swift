@@ -31,6 +31,7 @@ struct PinInteractionTarget {
 final class PinCoordinator {
     static let maximumPinCount = 8
 
+    weak var presentationModel: AppModel?
     var onPinsChanged: (([PinSnapshot]) -> Void)?
     var onFailure: ((Error) -> Void)?
 
@@ -59,6 +60,10 @@ final class PinCoordinator {
 
     var pinCount: Int {
         sessionsByID.count
+    }
+
+    func focusControls(_ id: UUID) {
+        sessionsByID[id]?.focusControls()
     }
 
     func interactionTarget(for id: UUID) throws -> PinInteractionTarget {
@@ -123,6 +128,7 @@ final class PinCoordinator {
         }
 
         let session = PinSession(target: target)
+        session.presentationModel = presentationModel
         configureCallbacks(for: session)
         sessionsByID[session.id] = session
         sessionIDByWindowID[session.sourceWindowID] = session.id

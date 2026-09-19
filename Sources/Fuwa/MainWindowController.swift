@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Hosts the Fuwa content in a regular window so the Dock icon has a real
-/// destination. The menu bar item keeps its transient popover for quick
-/// access; both presentations observe the same `AppModel`.
+/// A persistent management surface, separate from the compact menu-bar panel.
+/// Both presentations observe the same live pin and permission state.
 @MainActor
 final class MainWindowController {
     private let window: NSWindow
@@ -25,7 +24,7 @@ final class MainWindowController {
             height: .greatestFiniteMagnitude
         )
         window.contentViewController = NSHostingController(
-            rootView: FuwaPopoverView(model: model)
+            rootView: MainView(model: model)
         )
         window.setContentSize(Self.defaultContentSize)
         window.center()
@@ -41,9 +40,8 @@ final class MainWindowController {
         window.makeKeyAndOrderFront(nil)
     }
 
-    // Matches the popover's minimum usable height so the header, primary
-    // action, and settings row sit together instead of spacing out.
-    private static let defaultContentSize = NSSize(width: 364, height: 360)
-    private static let minimumContentSize = NSSize(width: 340, height: 320)
-    private static let maximumContentWidth: CGFloat = 560
+    // Keep enough room for the sidebar, source titles and labeled actions.
+    private static let defaultContentSize = NSSize(width: 720, height: 540)
+    private static let minimumContentSize = NSSize(width: 640, height: 460)
+    private static let maximumContentWidth: CGFloat = 1000
 }

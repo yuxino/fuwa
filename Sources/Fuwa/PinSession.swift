@@ -5,6 +5,7 @@ import CoreMedia
 import CoreVideo
 import FuwaCore
 import ScreenCaptureKit
+import SwiftUI
 
 enum PinSessionError: LocalizedError {
     case invalidTransition(PinTransitionError)
@@ -71,6 +72,8 @@ final class PinSession {
     private var windowTitle: String
     private var errorMessage: String?
 
+    weak var presentationModel: AppModel?
+    private var controlsPanel: NSPanel?
     private var panel: NSPanel?
     private var captureView: CaptureView?
     private var currentCycle: CaptureCycle?
@@ -163,7 +166,7 @@ final class PinSession {
         // A transient source can close in the small gap between receiving the
         // first frame and the deferred live reveal. A valid frozen frame must
         // always make its presentation visible independently of the old stream.
-        panel?.orderFrontRegardless()
+        showPresentation()
         try transition(.freeze(reason))
         errorMessage = reason == .captureInterrupted
             ? "Capture was interrupted. The last complete frame is preserved."
@@ -269,7 +272,7 @@ final class PinSession {
         cancelFirstFrameWatchdog()
 
         if state == .stopped {
-            panel?.orderOut(nil)
+            hidePresentation()
             captureView?.clearAllPixels()
             return
         }
@@ -284,9 +287,14 @@ final class PinSession {
             errorMessage = error.localizedDescription
         }
 
-        panel?.orderOut(nil)
+        hidePresentation()
         captureView?.clearAllPixels()
         let detachedCycle = detachCurrentCycle()
+        if let controlsPanel {
+            panel?.removeChildWindow(controlsPanel)
+            controlsPanel.close()
+        }
+        controlsPanel = nil
         panel?.close()
         panel = nil
         captureView = nil
@@ -336,7 +344,7 @@ final class PinSession {
             guard let self, self.isCurrent(streamID: streamID, generation: generation) else {
                 return
             }
-            self.panel?.orderFrontRegardless()
+            self.showPresentation()
             await Task.yield()
             guard self.isCurrent(streamID: streamID, generation: generation) else {
                 return
@@ -506,7 +514,7 @@ final class PinSession {
 
         errorMessage = message
         if case .failed = state {
-            panel?.orderOut(nil)
+            hidePresentation()
             captureView?.clearAllPixels()
         }
         // A frozen result retains the independent image from before Resume.
@@ -522,7 +530,7 @@ final class PinSession {
             try? transition(.fail(.captureFailed))
         }
         errorMessage = error.localizedDescription
-        panel?.orderOut(nil)
+        hidePresentation()
         captureView?.clearAllPixels()
         let detachedCycle = detachCurrentCycle()
         await Self.stopCaptureCycle(detachedCycle)
@@ -640,7 +648,7 @@ final class PinSession {
             try? transition(.fail(reason))
         }
         errorMessage = message
-        panel?.orderOut(nil)
+        hidePresentation()
         captureView?.clearAllPixels()
         let detachedCycle = detachCurrentCycle()
         await Self.stopCaptureCycle(detachedCycle)
@@ -680,6 +688,48 @@ final class PinSession {
 
         self.panel = panel
         captureView = view
+        if let presentationModel {
+            let controls = PinControlsPanel(
+                contentRect: NSRect(x: frame.minX, y: frame.maxY, width: 380, height: 78),
+                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false
+            )
+            controls.contentView = NSHostingView(rootView: PinControlsView(model: presentationModel, pinID: id))
+            controls.title = "Fuwa — \(windowTitle)"
+            controls.level = .floating
+            controls.isReleasedWhenClosed = false
+            controls.hidesOnDeactivate = false
+            controls.sharingType = .none
+            controls.collectionBehavior = panel.collectionBehavior
+            controlsPanel = controls
+        }
+    }
+
+    func focusControls() {
+        guard panel?.isVisible == true else { return }
+        positionControls()
+        controlsPanel?.makeKeyAndOrderFront(nil)
+    }
+
+    private func showPresentation() {
+        panel?.orderFrontRegardless()
+        if let panel, let controlsPanel {
+            positionControls()
+            if controlsPanel.parent == nil { panel.addChildWindow(controlsPanel, ordered: .above) }
+            controlsPanel.orderFrontRegardless()
+        }
+    }
+
+    private func hidePresentation() {
+        controlsPanel?.orderOut(nil)
+        panel?.orderOut(nil)
+    }
+
+    private func positionControls() {
+        guard let panel, let controlsPanel else { return }
+        let screens = NSScreen.screens
+        guard let index = FloatingControlsLayout.screenIndex(source: panel.frame, screens: screens.map(\.frame)) else { return }
+        let frame = FloatingControlsLayout.frame(source: panel.frame, visible: screens[index].visibleFrame)
+        controlsPanel.setFrame(frame, display: true)
     }
 
     private func updateTarget(_ target: ResolvedTarget) {
@@ -699,6 +749,7 @@ final class PinSession {
         guard appKitFrame.width > 0, appKitFrame.height > 0 else { return }
         guard panel?.frame != appKitFrame else { return }
         panel?.setFrame(appKitFrame, display: true)
+        positionControls()
     }
 
     private func scheduleCaptureResize(to pointSize: CGSize) {

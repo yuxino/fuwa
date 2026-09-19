@@ -14,6 +14,16 @@ enum FuwaLanguage: String, Sendable {
 
 enum FuwaString: String, CaseIterable, Sendable {
     case appName
+    case showControls
+    case chooseWindow
+    case searchWindows
+    case refreshWindows
+    case noWindowsFound
+    case openFuwa
+    case emptyTitle
+    case mirrorExplanation
+    case removeExplanation
+    case manageWindows
     case appTagline
     case pinFrontWindow
     case pinning
@@ -115,6 +125,16 @@ struct FuwaCopy: Sendable {
 
     private static let english: [FuwaString: String] = [
         .appName: "Fuwa",
+        .showControls: "Show Floating Controls",
+        .chooseWindow: "Choose a Window",
+        .searchWindows: "Search apps and windows",
+        .refreshWindows: "Refresh Windows",
+        .noWindowsFound: "No matching windows. Open a window, then refresh.",
+        .openFuwa: "Open Fuwa",
+        .emptyTitle: "Keep something in view",
+        .mirrorExplanation: "Pinned windows are live mirrors. Use Reveal Source to work in the original window.",
+        .removeExplanation: "Removing a pin leaves the original window open.",
+        .manageWindows: "Your windows",
         .appTagline: "Keep the window you need close by.",
         .pinFrontWindow: "Pin Front Window",
         .pinning: "Pinning…",
@@ -191,6 +211,16 @@ struct FuwaCopy: Sendable {
 
     private static let simplifiedChinese: [FuwaString: String] = [
         .appName: "Fuwa",
+        .showControls: "显示浮窗控制",
+        .chooseWindow: "选择窗口",
+        .searchWindows: "搜索应用和窗口",
+        .refreshWindows: "刷新窗口列表",
+        .noWindowsFound: "没有匹配的窗口。打开窗口后刷新列表。",
+        .openFuwa: "打开 Fuwa",
+        .emptyTitle: "让需要的内容留在眼前",
+        .mirrorExplanation: "固定窗口是实时镜像。需要操作时，选择“显示源窗口”回到原窗口。",
+        .removeExplanation: "取消固定不会关闭原窗口。",
+        .manageWindows: "你的窗口",
         .appTagline: "让需要的窗口一直在手边。",
         .pinFrontWindow: "固定最前方窗口",
         .pinning: "正在固定…",
