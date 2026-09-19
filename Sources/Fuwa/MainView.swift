@@ -92,9 +92,14 @@ struct MainView: View {
                 .font(.body.weight(selected ? .semibold : .regular))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(10)
-                .background(selected ? Color.primary.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 7))
+                .overlay(alignment: .leading) {
+                    if selected {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Color.primary).frame(width: 3, height: 18)
+                    }
+                }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FuwaRowButtonStyle(selected: selected))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

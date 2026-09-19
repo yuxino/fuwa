@@ -86,9 +86,11 @@ struct WindowPickerView: View {
                                     Image(systemName: pinned ? "checkmark" : "plus")
                                 }
                                 .padding(.vertical, 12)
+                                .padding(.horizontal, 10)
                                 .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(FuwaRowButtonStyle(selected: pinned))
+                            .accessibilityAddTraits(pinned ? .isSelected : [])
                             .disabled(pinned || model.isPinningFrontWindow || model.isClearingAll)
                             Divider()
                         }

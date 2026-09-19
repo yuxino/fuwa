@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-09-19
+
+### English
+
+- Add distinct hover and pressed feedback to management actions, window-picker rows, and clickable pin titles. The sidebar now marks the selected page with a persistent indicator and outline. Disabled controls do not react to hover; hover transitions respect Reduce Motion.
+- Includes the management-window stacking fix from 0.1.10. Requires macOS 14 or later; the universal package uses Fuwa's stable local signature and signed updater, without Apple Developer ID signing or notarization. Intel hardware and the complete update-install cycle were not revalidated.
+
+### 中文
+
+- 为管理按钮、窗口选择列表和可点击的固定窗口标题补上明确的悬停与按下反馈；侧栏用常驻标记和轮廓区分当前页面。禁用控件不响应悬停，悬停过渡遵循“减少动态效果”设置。
+- 包含 0.1.10 的管理窗口层级修复。需要 macOS 14 或更新版本；Universal 包沿用稳定本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。未重新验证 Intel 实机和完整更新安装过程。
+
 ## [0.1.10] - 2026-09-19
 
 ### English

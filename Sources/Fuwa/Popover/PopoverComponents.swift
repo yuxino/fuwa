@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FuwaPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -17,28 +18,64 @@ struct FuwaPrimaryButtonStyle: ButtonStyle {
             }
             .opacity(opacity(isPressed: configuration.isPressed))
             .contentShape(Rectangle())
+            .onHover { isHovered = $0 }
     }
 
     private func opacity(isPressed: Bool) -> Double {
         guard isEnabled else { return 0.35 }
-        return isPressed ? 0.72 : 1
+        return isPressed ? 0.64 : (isHovered ? 0.82 : 1)
+    }
+}
+
+/// Shared neutral feedback for actions and selectable navigation/list rows.
+/// State is local to each rendered button; disabled controls never highlight.
+private struct FuwaButtonFeedback: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+    let isPressed: Bool
+    let selected: Bool
+    let restingOpacity: Double
+
+    private var fillOpacity: Double {
+        guard isEnabled else { return selected ? 0.10 : restingOpacity }
+        if isPressed { return 0.20 }
+        if isHovered { return selected ? 0.16 : 0.11 }
+        return selected ? 0.10 : restingOpacity
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .background(Color.primary.opacity(fillOpacity), in: RoundedRectangle(cornerRadius: 7))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder(Color.primary.opacity(isEnabled && (isHovered || isPressed || selected) ? 0.22 : 0), lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 7))
+            .opacity(isEnabled ? 1 : 0.35)
+            .onHover { isHovered = $0 }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.10), value: isHovered)
     }
 }
 
 struct FuwaQuietButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.callout.weight(.medium))
             .foregroundStyle(.primary)
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
-            .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(configuration.isPressed ? 0.12 : 0.06))
-            }
-            .opacity(isEnabled ? 1 : 0.35)
+            .modifier(FuwaButtonFeedback(isPressed: configuration.isPressed, selected: false, restingOpacity: 0.06))
+    }
+}
+
+struct FuwaRowButtonStyle: ButtonStyle {
+    var selected = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.primary)
+            .modifier(FuwaButtonFeedback(isPressed: configuration.isPressed, selected: selected, restingOpacity: 0))
     }
 }
 

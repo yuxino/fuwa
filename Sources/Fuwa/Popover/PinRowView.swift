@@ -21,8 +21,10 @@ struct PinRowView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Button { model.showControls(pin.id) } label: { Text(pin.windowTitle) }
-                        .buttonStyle(.plain)
+                    Button { model.showControls(pin.id) } label: {
+                        Text(pin.windowTitle).padding(.horizontal, 4).padding(.vertical, 2)
+                    }
+                        .buttonStyle(FuwaRowButtonStyle())
                         .disabled(!pin.canShowControls)
                         .accessibilityHint(copy.text(.showControls))
                         .font(.subheadline.weight(.semibold))
