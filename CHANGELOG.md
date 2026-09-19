@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-19
+
+### English
+
+#### Improved
+
+- Redesigned the native management window with a dedicated sidebar, useful empty state, and a searchable window picker. Choosing a window preserves its exact identity; already-pinned windows cannot be accidentally toggled off from a stale picker row.
+- Added labeled floating controls for Freeze, Resume, Reveal Source, and Unpin, with keyboard focus and clear live/frozen/source-closed states. Mirror pixels remain click-through, and removing a pin leaves its source window open.
+- Added a native right-click menu and pin count to the menu bar, including per-window actions, settings, and direct quit. Busy and unavailable actions are disabled.
+- Kept floating controls inside display bounds and selected the display using overlap and nearest-screen fallback, including negative screen coordinates. The management window opens on normal launch, while login-item launch stays quiet.
+
+#### Installation and verification
+
+- Requires macOS 14 or later. `Fuwa-0.1.9.zip` contains a universal Apple Silicon/Intel application. Existing users can use the signed in-app updater; manual downloads should replace Fuwa in Applications after quitting it.
+- Uses Fuwa's maintained local signing identity. This package is not Apple Developer ID signed or notarized; macOS may require approval through Privacy & Security on first installation. Do not disable Gatekeeper.
+- Strict builds, automated logic/state tests, English/Chinese offscreen native layouts, and signing/framework-loading checks passed. Native Apple Silicon checks covered window selection, live pinning, freeze/resume, source reveal, and exit with a pin. Actual secondary-display/Space behavior, Intel hardware, and a complete update-install cycle were not revalidated for this release. Cross-display geometry was tested with simulated arrangements; this is not physical multi-display acceptance.
+
+### 中文
+
+#### 改进
+
+- 重做原生管理窗口，加入独立侧栏、空状态说明和可搜索的窗口选择器。选择窗口时保留其精确身份，过期列表中的已固定窗口不会被误取消固定。
+- 新增带文字的浮窗控制：冻结、恢复实时、显示源窗口和取消固定，支持键盘聚焦，并清楚区分实时、已冻结和源窗口已关闭。镜像画面保持鼠标穿透，取消固定不会关闭源窗口。
+- 菜单栏新增原生右键菜单和固定数量，可直接操作各窗口、打开设置和退出；忙碌或不可用的操作会禁用。
+- 浮窗控制保持在显示器可见范围内，按窗口交叠面积和最近显示器选择位置，支持负坐标屏幕。正常启动显示管理窗口，登录项启动保持安静。
+
+#### 安装与验证
+
+- 需要 macOS 14 或更新版本。`Fuwa-0.1.9.zip` 包含支持 Apple Silicon 与 Intel 的 Universal 应用。现有用户可使用签名的应用内更新；手动下载时请先退出 Fuwa，再替换“应用程序”中的 Fuwa。
+- 沿用 Fuwa 的稳定本地签名身份，未使用 Apple Developer ID 签名，也未经 Apple 公证；首次安装可能需要在“隐私与安全性”中手动批准。不要关闭 Gatekeeper。
+- 严格构建、自动化逻辑与状态测试、中英文原生界面离屏渲染、签名及框架加载检查已通过。Apple Silicon 原生验收覆盖选窗、实时固定、冻结与恢复、显示源窗口和带固定窗口退出。本版本尚未重新验收真实副屏/桌面空间行为、Intel 实机和完整更新安装过程；跨屏几何使用模拟布局测试，不代表物理多屏验收通过。
+
 ## [0.1.8] - 2026-09-18
 
 ### English
