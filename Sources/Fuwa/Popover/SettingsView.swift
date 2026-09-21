@@ -324,11 +324,9 @@ struct SettingsView: View {
     }
 
     private var sectionDivider: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.055))
-            .frame(height: 7)
-            .overlay(alignment: .top) { Divider() }
-            .overlay(alignment: .bottom) { Divider() }
+        Divider()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .accessibilityHidden(true)
     }
 }

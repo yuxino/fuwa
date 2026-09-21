@@ -2,19 +2,20 @@ import AppKit
 import SwiftUI
 
 struct FuwaPrimaryButtonStyle: ButtonStyle {
+    var expands = true
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(Color(nsColor: .windowBackgroundColor))
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(.white)
+            .frame(maxWidth: expands ? .infinity : nil)
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
             .background {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(Color.primary)
+                    .fill(FuwaAppearance.ink)
             }
             .opacity(opacity(isPressed: configuration.isPressed))
             .contentShape(Rectangle())

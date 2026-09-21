@@ -22,6 +22,9 @@ final class MainWindowController: NSObject {
             name: NSApplication.didResignActiveNotification, object: NSApp)
 
         window.title = model.copy.text(.appName)
+        window.appearance = NSAppearance(named: .aqua)
+        window.backgroundColor = .white
+        window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
         window.isRestorable = false
         window.contentMinSize = Self.minimumContentSize

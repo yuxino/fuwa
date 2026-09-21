@@ -34,7 +34,7 @@ struct MainView: View {
             .padding(20)
             .frame(width: 174)
             .frame(maxHeight: .infinity)
-            .background(Color.primary.opacity(0.025))
+            .background(FuwaAppearance.sidebar)
             Divider()
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -46,7 +46,7 @@ struct MainView: View {
                             Button { choosingWindow = true } label: {
                                 Label(copy.text(.chooseWindow), systemImage: "plus")
                             }
-                            .buttonStyle(FuwaQuietButtonStyle())
+                            .buttonStyle(FuwaPrimaryButtonStyle(expands: false))
                             .disabled(model.isPinningFrontWindow || model.isClearingAll)
                         }
                     }
@@ -55,6 +55,10 @@ struct MainView: View {
                             .font(.callout).foregroundStyle(.secondary)
                         Text(model.shortcutIsActive ? model.shortcut.displayString : copy.text(.shortcutInactive))
                             .font(.system(.callout, design: .monospaced).weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(FuwaAppearance.sidebar, in: RoundedRectangle(cornerRadius: 6))
                             .textSelection(.enabled)
                     }
                 }
@@ -66,6 +70,7 @@ struct MainView: View {
                 Divider()
                 if settingsSelected {
                     SettingsView(model: model)
+                        .padding(.horizontal, 10)
                 } else {
                     PinsView(model: model, showsPinAction: false)
                     Spacer(minLength: 0)
@@ -82,7 +87,7 @@ struct MainView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .fuwaLightSurface()
         .sheet(isPresented: $choosingWindow) { WindowPickerView(model: model) }
     }
 

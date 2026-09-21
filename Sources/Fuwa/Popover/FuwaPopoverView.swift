@@ -126,7 +126,7 @@ struct FuwaPopoverView: View {
             // flexible Pins group above the footer absorbs the extra space.
             alignment: .top
         )
-        .background(Color(nsColor: .windowBackgroundColor))
+        .fuwaLightSurface()
         .onExitCommand(perform: model.dismissPopover)
         .onAppear(perform: reportPreferredContentSize)
         .onChange(of: layoutSignature) { _, _ in

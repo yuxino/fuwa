@@ -84,6 +84,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     private func configurePopover() {
+        popover.appearance = NSAppearance(named: .aqua)
         popover.behavior = .transient
         popover.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         popover.contentSize = FuwaPopoverLayout.preferredContentSize(

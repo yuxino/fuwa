@@ -92,8 +92,8 @@ struct PinControlsView: View {
                 PinActionsView(model: model, pin: pin, compact: true)
             }
             .padding(10)
-            .background(Color(nsColor: .windowBackgroundColor))
             .overlay(Rectangle().stroke(Color.primary.opacity(0.16), lineWidth: 1))
+            .fuwaLightSurface()
             .accessibilityElement(children: .contain)
         }
     }

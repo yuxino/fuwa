@@ -104,6 +104,7 @@ struct WindowPickerView: View {
         }
         .padding(24)
         .frame(width: 480, height: 400)
+        .fuwaLightSurface()
         .task { await refresh() }
     }
 

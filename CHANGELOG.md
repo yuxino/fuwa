@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### English
+
+- Give management, settings, the menu-bar panel, window picker, and floating controls a consistent white appearance, including in macOS Dark Mode. Use a pale sidebar, quieter section dividers, a compact shortcut label, and a prominent neutral window-picker action while preserving interaction feedback.
+- Refine the existing character icon with a smaller portrait and more white space, retaining the rounded-square silhouette and transparent corners.
+
+### 中文
+
+- 将管理窗口、设置、菜单栏面板、窗口选择器与悬浮控制条统一为白色外观，在 macOS 深色模式下也保持白底。使用浅色侧栏、轻量分隔线、紧凑快捷键标签和更醒目的中性主按钮，并保留交互状态反馈。
+- 调整现有人物图标的头像占比，增加白色留白，保留圆角方形轮廓和透明外角。
+
 ## [0.1.11] - 2026-09-19
 
 ### English
