@@ -35,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     >()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: iconURL) {
+            NSApp.applicationIconImage = icon
+        }
         let requestedShortcut = settingsStore.shortcut
         let hotKey = GlobalHotKey { [weak self] in
             self?.handleGlobalShortcut()
