@@ -30,8 +30,14 @@ struct ShortcutRecorder: View {
                     }
 
                     Text(displayTitle)
-                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+                        .font(.system(.callout, design: .monospaced).weight(.medium))
                         .monospacedDigit()
+
+                    if !isRecording && !model.isUpdatingShortcut {
+                        Text(copy.text(.recordShortcut))
+                            .font(.callout)
+                            .foregroundStyle(FuwaAppearance.secondaryText)
+                    }
                 }
                 .frame(minWidth: 92)
             }

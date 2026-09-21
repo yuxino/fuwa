@@ -5,6 +5,13 @@ enum FuwaAppearance {
     static let canvas = Color.white
     static let sidebar = Color(white: 0.975)
     static let ink = Color(white: 0.12)
+    static let secondaryText = Color(white: 0.40)
+}
+
+enum FuwaTypography {
+    static let settingTitle = Font.body.weight(.medium)
+    static let explanation = Font.callout
+    static let sectionTitle = Font.callout.weight(.semibold)
 }
 
 extension View {

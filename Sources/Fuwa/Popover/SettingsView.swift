@@ -20,7 +20,7 @@ struct SettingsView: View {
                     openSettings: model.openScreenRecordingSettings
                 )
 
-                Divider().padding(.leading, 14)
+                Divider().padding(.horizontal, 14)
 
                 PermissionSettingsRow(
                     title: copy.text(.accessibility),
@@ -31,7 +31,7 @@ struct SettingsView: View {
                 )
 
                 sectionDivider
-                sectionTitle(copy.text(.settings))
+                sectionTitle(copy.text(.general))
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
@@ -49,7 +49,7 @@ struct SettingsView: View {
                 }
                 .padding(14)
 
-                Divider().padding(.leading, 14)
+                Divider().padding(.horizontal, 14)
 
                 launchAtLoginControls
                 .padding(14)
@@ -64,14 +64,14 @@ struct SettingsView: View {
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) {
-                        appVersion
+                        appName
                         Spacer(minLength: 8)
                         aboutButton
                         quitButton
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        appVersion
+                        appName
 
                         HStack(spacing: 12) {
                             Spacer()
@@ -86,14 +86,9 @@ struct SettingsView: View {
         .scrollIndicators(.automatic)
     }
 
-    private var appVersion: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(copy.text(.appName))
-                .font(.subheadline.weight(.semibold))
-            Text("\(copy.text(.version)) \(model.version)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
+    private var appName: some View {
+        Text(copy.text(.appName))
+            .font(FuwaTypography.settingTitle)
     }
 
     @ViewBuilder
@@ -249,11 +244,12 @@ struct SettingsView: View {
     private var shortcutDescription: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(copy.text(.shortcut))
-                .font(.subheadline.weight(.medium))
+                .font(FuwaTypography.settingTitle)
 
             Text(copy.text(.shortcutNote))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(FuwaTypography.explanation)
+                .foregroundStyle(FuwaAppearance.secondaryText)
+                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !model.shortcutIsActive {
@@ -303,6 +299,8 @@ struct SettingsView: View {
             )
         )
         .toggleStyle(.switch)
+        .font(FuwaTypography.settingTitle)
+        .controlSize(.small)
         .disabled(model.isUpdatingLaunchAtLogin)
     }
 
@@ -314,12 +312,11 @@ struct SettingsView: View {
     }
 
     private func sectionTitle(_ title: String) -> some View {
-        Text(title.uppercased())
-            .font(.caption2.weight(.semibold))
-            .tracking(0.6)
-            .foregroundStyle(.secondary)
+        Text(title)
+            .font(FuwaTypography.sectionTitle)
+            .foregroundStyle(FuwaAppearance.secondaryText)
             .padding(.horizontal, 14)
-            .padding(.top, 12)
+            .padding(.top, 16)
             .padding(.bottom, 6)
             .accessibilityAddTraits(.isHeader)
     }
@@ -361,15 +358,22 @@ private struct PermissionSettingsRow: View {
     }
 
     private var permissionDescription: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline.weight(.medium))
-
-            FuwaPermissionLabel(state: state, copy: copy)
+        VStack(alignment: .leading, spacing: 7) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    Text(title).font(FuwaTypography.settingTitle)
+                    FuwaPermissionLabel(state: state, copy: copy)
+                }
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title).font(FuwaTypography.settingTitle)
+                    FuwaPermissionLabel(state: state, copy: copy)
+                }
+            }
 
             Text(note)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(FuwaTypography.explanation)
+                .foregroundStyle(FuwaAppearance.secondaryText)
+                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

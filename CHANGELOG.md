@@ -8,10 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### English
 
+- Unify settings typography, improve explanatory text contrast and wrapping, and group permissions with their status. Replace the repeated Settings section with General, show Change beside the shortcut, and align English/Chinese guidance with the available actions.
 - Complete feedback for borderless actions and icon buttons with consistent hover, pressed, disabled, and keyboard-focus states. Enlarge compact targets, retain native menu behavior, and use AppKit hand cursors for link-style actions without intercepting clicks. Add Command-O for the window picker and Command-comma for settings.
 
 ### 中文
 
+- 统一设置页文字层级，改善说明文字的对比度和换行，将权限名称与状态放在一起。重复的“设置”分组改为“通用”，快捷键旁明确显示“更改”，并使中英文说明与实际可用操作一致。
 - 为文字操作和图标按钮补齐一致的悬停、按下、禁用及键盘焦点反馈，扩大紧凑控件的点击区域，保留原生菜单交互；链接类操作使用 AppKit 手形光标且不拦截点击。新增 Command-O 打开窗口选择器、Command-逗号打开设置。
 
 ## [0.1.12] - 2026-09-21
