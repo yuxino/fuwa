@@ -6,15 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-09-21
+
 ### English
 
 - Give management, settings, the menu-bar panel, window picker, and floating controls a consistent white appearance, including in macOS Dark Mode. Use a pale sidebar, quieter section dividers, a compact shortcut label, and a prominent neutral window-picker action while preserving interaction feedback.
 - Refine the existing character icon with a smaller portrait and more white space, retaining the rounded-square silhouette and transparent corners.
+- Requires macOS 14 or later. Existing users can update in the app or quit Fuwa and replace it in Applications. The universal Apple Silicon/Intel package retains the stable local signature and signed updater; it is not Apple Developer ID signed or notarized. Builds, logic tests, icon validation, and native appearance checks passed on Apple Silicon. Intel hardware, fresh permission prompts, and the complete update-install cycle were not revalidated.
 
 ### 中文
 
 - 将管理窗口、设置、菜单栏面板、窗口选择器与悬浮控制条统一为白色外观，在 macOS 深色模式下也保持白底。使用浅色侧栏、轻量分隔线、紧凑快捷键标签和更醒目的中性主按钮，并保留交互状态反馈。
 - 调整现有人物图标的头像占比，增加白色留白，保留圆角方形轮廓和透明外角。
+- 需要 macOS 14 或更新版本。现有用户可在应用内更新，或退出 Fuwa 后替换“应用程序”中的旧版。Apple Silicon/Intel Universal 包沿用稳定本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。已在 Apple Silicon 上通过构建、逻辑测试、图标校验和原生外观检查；未重新验证 Intel 实机、首次权限弹窗与完整更新安装过程。
 
 ## [0.1.11] - 2026-09-19
 
