@@ -30,7 +30,7 @@ The Chinese and English native interactions were filmed separately with a dedica
 - Pin multiple windows and freeze frames.
 - Support for ordinary application windows and Finder Quick Look.
 - Customizable keyboard shortcut.
-- Mirrors pass mouse input through; `Interact` and `Reveal Source` only activate and raise the real source window.
+- Mirrors pass mouse input through; `Reveal Source` activates and raises the real source window.
 - Window pixels and metadata stay on your computer, with no uploads, analytics, or telemetry.
 - Check, download, and install Ed25519-verified updates from Settings. No automatic background checks or installs.
 
@@ -38,7 +38,7 @@ The Chinese and English native interactions were filmed separately with a dedica
 
 - macOS 14 or later; the release archive includes arm64 (Apple silicon) and x86_64 (Intel). Physical Intel Mac acceptance is still pending.
 - Screen Recording permission, requested only on the first pin attempt.
-- Accessibility permission, requested only for `Interact` or `Reveal Source`.
+- Accessibility permission, requested only for `Reveal Source`.
 
 ## Install
 
