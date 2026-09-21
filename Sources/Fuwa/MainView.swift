@@ -24,6 +24,7 @@ struct MainView: View {
                     navigation(copy.text(.settings), symbol: "gearshape", selected: settingsSelected) {
                         settingsSelected = true
                     }
+                    .keyboardShortcut(",", modifiers: .command)
                 }
                 Spacer()
                 Text(copy.pinsCount(model.pins.count))
@@ -47,6 +48,7 @@ struct MainView: View {
                                 Label(copy.text(.chooseWindow), systemImage: "plus")
                             }
                             .buttonStyle(FuwaPrimaryButtonStyle(expands: false))
+                            .keyboardShortcut("o", modifiers: .command)
                             .disabled(model.isPinningFrontWindow || model.isClearingAll)
                         }
                     }
@@ -80,6 +82,7 @@ struct MainView: View {
                             .font(.caption).foregroundStyle(.secondary)
                         Spacer()
                         Button(copy.text(.clearAll), action: model.clearAll)
+                            .buttonStyle(FuwaQuietButtonStyle())
                             .disabled(model.pins.isEmpty || model.isClearingAll)
                     }
                     .padding(16)

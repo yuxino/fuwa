@@ -22,15 +22,16 @@ struct PinRowView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Button { model.showControls(pin.id) } label: {
-                        Text(pin.windowTitle).padding(.horizontal, 4).padding(.vertical, 2)
+                        Text(pin.windowTitle).padding(.horizontal, 4).frame(minHeight: 28)
                     }
                         .buttonStyle(FuwaRowButtonStyle())
+                        .fuwaLinkCursor()
                         .disabled(!pin.canShowControls)
                         .accessibilityHint(copy.text(.showControls))
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                         .truncationMode(.middle)
-                        .help(pin.windowTitle)
+                        .help("\(copy.text(.showControls)): \(pin.windowTitle)")
 
                     HStack(spacing: 5) {
                         Text(pin.applicationName)

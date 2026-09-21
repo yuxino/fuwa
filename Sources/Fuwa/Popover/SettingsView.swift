@@ -192,13 +192,14 @@ struct SettingsView: View {
     private func updateSecondaryActions(_ state: SoftwareUpdateState) -> some View {
         if state.canCancel || state.phase == .available {
             Button(copy.text(.cancel), action: model.cancelUpdate)
-                .buttonStyle(.borderless)
+                .buttonStyle(FuwaPlainButtonStyle())
         }
         if state.phase == .failed {
             Button(action: model.openLatestRelease) {
                 Label(copy.text(.openReleasePage), systemImage: "arrow.up.right")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(FuwaPlainButtonStyle())
+            .fuwaLinkCursor()
             .help(copy.text(.releaseRecoveryHint))
             .accessibilityHint(copy.text(.releaseRecoveryHint))
         }
@@ -236,12 +237,12 @@ struct SettingsView: View {
 
     private var aboutButton: some View {
         Button(copy.text(.about), action: model.showAbout)
-            .buttonStyle(.borderless)
+            .buttonStyle(FuwaPlainButtonStyle())
     }
 
     private var quitButton: some View {
         Button(copy.text(.quit), action: model.quit)
-            .buttonStyle(.borderless)
+            .buttonStyle(FuwaPlainButtonStyle())
             .keyboardShortcut("q", modifiers: .command)
     }
 

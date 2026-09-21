@@ -19,6 +19,7 @@ struct FuwaPrimaryButtonStyle: ButtonStyle {
             }
             .opacity(opacity(isPressed: configuration.isPressed))
             .contentShape(Rectangle())
+            .modifier(FuwaKeyboardFocus(cornerRadius: 9))
             .onHover { isHovered = $0 }
     }
 
@@ -54,6 +55,7 @@ private struct FuwaButtonFeedback: ViewModifier {
             }
             .contentShape(RoundedRectangle(cornerRadius: 7))
             .opacity(isEnabled ? 1 : 0.35)
+            .modifier(FuwaKeyboardFocus(cornerRadius: 7))
             .onHover { isHovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.10), value: isHovered)
     }
@@ -66,7 +68,36 @@ struct FuwaQuietButtonStyle: ButtonStyle {
             .foregroundStyle(.primary)
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
+            .frame(minHeight: 28)
             .modifier(FuwaButtonFeedback(isPressed: configuration.isPressed, selected: false, restingOpacity: 0.06))
+    }
+}
+
+/// Borderless actions still need a visible target and pointer/keyboard feedback.
+struct FuwaPlainButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 6)
+            .frame(minHeight: 28)
+            .modifier(FuwaButtonFeedback(isPressed: configuration.isPressed, selected: false, restingOpacity: 0))
+    }
+}
+
+private struct FuwaKeyboardFocus: ViewModifier {
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.isEnabled) private var isEnabled
+
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            RoundedRectangle(cornerRadius: cornerRadius + 2)
+                .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
+                .padding(-3)
+                .opacity(isFocused && isEnabled ? 1 : 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 }
 
@@ -81,8 +112,8 @@ struct FuwaRowButtonStyle: ButtonStyle {
 }
 
 struct FuwaIconButton: View {
-    @ScaledMetric(relativeTo: .body) private var buttonWidth = 26
-    @ScaledMetric(relativeTo: .body) private var buttonHeight = 24
+    @ScaledMetric(relativeTo: .body) private var buttonWidth = 28
+    @ScaledMetric(relativeTo: .body) private var buttonHeight = 28
 
     let symbol: String
     let label: String
@@ -115,14 +146,15 @@ struct FuwaIconButton: View {
             .frame(width: buttonWidth, height: buttonHeight)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(FuwaPlainButtonStyle())
+        .disabled(isBusy)
         .help(label)
         .accessibilityLabel(label)
     }
 }
 
 struct FuwaNoticeView: View {
-    @ScaledMetric(relativeTo: .body) private var dismissButtonSize = 18
+    @ScaledMetric(relativeTo: .body) private var dismissButtonSize = 24
 
     let notice: FuwaNotice
     let copy: FuwaCopy
@@ -146,7 +178,7 @@ struct FuwaNoticeView: View {
                     .font(.caption2.weight(.semibold))
                     .frame(width: dismissButtonSize, height: dismissButtonSize)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(FuwaPlainButtonStyle())
             .help(copy.text(.dismiss))
             .accessibilityLabel(copy.text(.dismiss))
         }

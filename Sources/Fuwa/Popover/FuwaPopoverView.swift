@@ -144,7 +144,7 @@ struct FuwaPopoverView: View {
                         .font(.caption.weight(.semibold))
                         .frame(width: navigationButtonSize, height: navigationButtonSize)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(FuwaPlainButtonStyle())
                 .help(copy.text(.back))
                 .accessibilityLabel(copy.text(.back))
             }
@@ -202,7 +202,7 @@ struct FuwaPopoverView: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(model.hasPermissionWarning ? Color.orange : Color.secondary)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(FuwaPlainButtonStyle())
             .help(settingsButtonLabel)
             .accessibilityLabel(settingsButtonLabel)
 
@@ -218,7 +218,7 @@ struct FuwaPopoverView: View {
                             .font(.caption.weight(.medium))
                     }
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(FuwaPlainButtonStyle())
                 .disabled(model.isClearingAll)
                 .help(copy.text(.clearAll))
                 .accessibilityLabel(copy.text(.clearAll))
@@ -233,7 +233,7 @@ struct FuwaPopoverView: View {
                 Image(systemName: "ellipsis")
                     .frame(width: moreButtonWidth, height: moreButtonHeight)
             }
-            .menuStyle(.borderlessButton)
+            .menuStyle(.borderedButton)
             .menuIndicator(.hidden)
             .fixedSize()
             .help(copy.text(.moreActions))
