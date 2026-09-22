@@ -9,15 +9,15 @@
   </p>
 </div>
 
-Fuwa 是一个 macOS 原生菜单栏工具，为选中的应用窗口或 Finder 空格预览创建始终可见、鼠标穿透的实时镜像，不改变源窗口的真实层级。
+Fuwa 是 macOS 窗口置顶工具。把参考图片、文档或教程窗口放在最上方，回到其他应用后也能继续查看，不用反复切换窗口。置顶画面不拦截鼠标，你可以照常操作下方的应用。
 
 ## 完整功能演示
 
-109 秒 · 4K · 60 帧 · 中文女声旁白。完整展示固定参考窗口、鼠标穿透、冻结与继续、多窗口管理和 Finder 快速预览。
+109 秒 · 4K · 60 帧 · 中文女声旁白。对照要求写拍摄清单、保留教程参数、同时查阅多份资料，以及看参考图写设计说明。
 
-https://github.com/user-attachments/assets/54825073-590a-4504-a6ea-a1ef7d9f5604
+https://github.com/user-attachments/assets/8a218239-7d7c-4585-b7d6-33f57094e961
 
-中英文原生操作分别录制，使用专门的录制副本。[录制说明](docs/demos/fuwa-full-tour-provenance.json)列出了为画面布局所做的调整；也可以[观看英文版](README.md#full-feature-tour)。
+实际录制英文界面的 Fuwa 和公开示例文档，分别配有中英文旁白及字幕，访达控件保留系统中文。[录制说明](docs/demos/fuwa-full-tour-provenance.json)列出了录制副本的调整；也可以[观看英文版](README.md#full-feature-tour)。
 
 ## 使用
 
@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/54825073-590a-4504-a6ea-a1ef7d9f5604
 ## 功能
 
 - 同时固定多个窗口，支持冻结画面。
-- 支持普通应用窗口和 Finder Quick Look。
+- 支持应用窗口，以及图片、文档的系统预览窗口。
 - 可自定义快捷键。
 - 镜像始终穿透鼠标；“显示源窗口”只会激活并抬升真实源窗口。
 - 窗口画面和元数据只在本机处理，无上传、分析或遥测。

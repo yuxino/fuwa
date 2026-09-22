@@ -1,39 +1,44 @@
 {
   "product": "Fuwa",
-  "version": "0.1.7",
-  "source_commit": "73f9e502abd8f8415bd6a250e3fef7a671ff9955",
-  "recorded_on": "2026-09-14",
-  "platform": "macOS 26.3.1, Apple silicon",
-  "capture": "Real native SwiftUI/AppKit windows and ScreenCaptureKit pin mirrors. Chinese and English operations captured separately.",
+  "version": "0.1.13",
+  "source_commit": "4c31c882add466bfc012e5deca4837a9e9b73a30",
+  "release_tag_commit": "2c653c5cfdc8e832dea63c98b4c0bfad275aefcd",
+  "recorded_at": "2026-09-22",
+  "platform": "macOS 26.3.1 on Apple Silicon",
+  "capture": "Real SwiftUI/AppKit interactions and ScreenCaptureKit window mirrors, captured with English Fuwa UI and public English sample documents, then localized with Chinese and English narration and captions. System-owned Finder controls retain the macOS Chinese language.",
   "native_feature_capture": true,
   "unchanged_installed_binary_acceptance": false,
   "recording_copy_adaptations": [
-    "Regular management window replaces menu-bar popover for stable video framing.",
-    "Target and recording allowlists include only public Demo Desk, Fuwa, and the explicitly verified Quick Look reference.",
-    "Mirror window sharing is enabled for this recording copy so actual mirrors appear in the recording.",
-    "Recording-only language controls and ScreenCaptureKit movie output are added."
+    "Current production main window positioned on the right for filming.",
+    "Window picker limited to public Demo Desk windows and the CUA-verified Quick Look window ID 176.",
+    "Mirror/control window sharing enabled only in the recording copy so they appear in the film.",
+    "Recording-only language controls and ScreenCaptureKit movie output. Private apps excluded from recorded output."
   ],
-  "features": [
-    "Pin and unpin",
-    "Work alongside a click-through mirror",
-    "Freeze and resume live capture",
-    "Manage multiple pins and Clear All",
-    "Finder Quick Look",
-    "Interact and Reveal Source",
-    "Shortcut editor and permission status",
-    "Check for Updates entry"
+  "features_shown": [
+    "Pin a window from the native picker",
+    "Work alongside a live click-through mirror",
+    "Freeze and resume",
+    "Compare a photo brief and export guide using multiple pins",
+    "Pinned Finder Quick Look image",
+    "Reveal Source, edit the original draft, and review settings"
   ],
-  "scope_note": "The update entry is shown; no update installation is represented. This film is not physical Intel or Windows acceptance.",
   "source_capture": {
     "width": 3024,
     "height": 1964,
-    "target_fps": 60,
-    "crop": [
+    "fps": 60,
+    "standard_crop": [
       0,
-      70,
+      64,
       3024,
-      1700
-    ]
+      1900
+    ],
+    "quicklook_crop": [
+      0,
+      64,
+      3024,
+      1900
+    ],
+    "quicklook_layout": "Image preview fitted with neutral side padding; some system preview controls overlap the floating controls in the recording"
   },
   "output": {
     "width": 3840,
@@ -46,80 +51,79 @@
     "en": "Aria Neural, natural pitch",
     "zh": "Xiaoyi Neural, natural pitch"
   },
-  "audio": "Original soft score, ducked beneath narration. Synthetic chapter whooshes removed.",
-  "poster": "Complete opening cover from frame zero; motion continues at 2.5 seconds.",
-  "art": "Youthful, cheerful half-body Fuwa with fluffy shoulder-length hair, a rounder face, white cardigan and lavender bow. F/star clips and the established palette are preserved. This revision replaces the earlier mature portrait in the actual Chinese and English native recordings as well as the opening and closing frames.",
-  "editing": "Native operations trimmed to remove waiting; UI states are not fabricated. Original recording H.264 decoded through VideoToolbox to avoid the software decoder artifact.",
-  "art_sha256": "4cef9f7f4dbeb970bff6cf2f18bc47c83253e00644d15191cfad95b11044555d",
+  "audio": "Original quiet score with speech ducking; no chapter whooshes. All narration rewritten around practical tasks: a shot list, tutorial parameters and image-reference notes.",
+  "opening": "Complete cover at frame zero, animated after 2.5 seconds.",
+  "art": "White and lavender sweet Lolita half-body Fuwa with a round face, lace collar, puffed sleeves and bows. Silver-white hair, violet eyes and F/star clips retained. This illustration is used in the Quick Look example, opening, closing, website hero and posters. Existing application icon, website logo, favicon and player avatar are unchanged.",
+  "art_sha256": "4460ae4ce83cb7984fe3bbdc5fd217f76c80e3f8e11a4dc5a3d0510a1a4848a6",
+  "icon_sha256": "890e54190c2a114a66ba2de85b1cf63dad3ad4a580e0d83f3a101e523caab959",
+  "editing": "Opening and closing rendered with Remotion; existing chapter footage retained, with only the subtitle area outside the captured app replaced using FFmpeg, and new narration mixed over the original score. Native actions trimmed for pacing without fabricated UI states. Quick Look tail may hold the last recorded frame for less than one second. Native H.264 decoded using VideoToolbox before portable H.264 export.",
+  "limits": [
+    "No update installation is represented in the video.",
+    "Recording-copy footage is not unchanged-binary acceptance.",
+    "No Intel hardware acceptance is claimed.",
+    "System preview controls partially overlap the floating controls in the image-preview scene; the reference image and design notes remain visible."
+  ],
   "edited_native_clips": [
     {
       "file": "public/en/full/freeze.mp4",
-      "sha256": "be26864dd1f3403b78368d23bf29fa2a52eeebf5c01c6fc1ac58a3db295b141d"
+      "sha256": "376a42db4f0c98a9c240c676f79aa0128015bace8bbbbf62625d0f700485b4d6"
     },
     {
       "file": "public/en/full/multi.mp4",
-      "sha256": "c2d1b05c087dbd6b2098cca2ddfa16cf392c049e4b3037c9b2b61fd6091c7721"
+      "sha256": "9e7dcfdf06aab2db80386ca8c87fcd1ac9e94001175500ba18b2d0aaa36aba92"
     },
     {
       "file": "public/en/full/pin.mp4",
-      "sha256": "0c2e6d8c81ab4c60ba8222c4e6d37196a1cb9bc273630961195e508b59d46f61"
+      "sha256": "eadc94db4a66945be0c15b1da6d92467eb8b9e9681999d86cd776c2c15474567"
     },
     {
       "file": "public/en/full/quicklook.mp4",
-      "sha256": "b702f8926903ffab17d6692c74c22e825542f1a1bf7747b4a7a83b165f833e29"
+      "sha256": "8b4a02e478634966a7d2e3dcab0c59aff7e1924645557d38517b52b1f9424c9e"
     },
     {
       "file": "public/en/full/settings.mp4",
-      "sha256": "fe490272a7638749337ca503495ee92edf04d633c876b4a4f0a79d0870ecfc79"
+      "sha256": "8f5ec48da33b089b544a89799a58bfe0e48d889637630b0419b5022c5a32e6fd"
     },
     {
       "file": "public/en/full/workspace.mp4",
-      "sha256": "e3934bc319f9227bb1869fe9507e2f33a895203557f0aac6cf638865ca709aa0"
+      "sha256": "99d375c2cddeb3365488f8016200ab5c5adff6d8e3bf23fe9d40c7fe7c6cb506"
     },
     {
       "file": "public/zh/full/freeze.mp4",
-      "sha256": "50bd1eb61d80d7d651b62829f4d5e2da51deda3990a0a2c395bf31872c8b4d05"
+      "sha256": "376a42db4f0c98a9c240c676f79aa0128015bace8bbbbf62625d0f700485b4d6"
     },
     {
       "file": "public/zh/full/multi.mp4",
-      "sha256": "bb3b6fcc013c0f65d4cdb6bba95791a1c3759bae73f15f459040ec28d886c103"
+      "sha256": "9e7dcfdf06aab2db80386ca8c87fcd1ac9e94001175500ba18b2d0aaa36aba92"
     },
     {
       "file": "public/zh/full/pin.mp4",
-      "sha256": "56e9992fc0c7699d0edf439486ba3c0ab0fa00cf2ff785c59fbd49b517ec1e2a"
+      "sha256": "eadc94db4a66945be0c15b1da6d92467eb8b9e9681999d86cd776c2c15474567"
     },
     {
       "file": "public/zh/full/quicklook.mp4",
-      "sha256": "f9b70e59d74a7e74f5a816f8897aff90c5979e224b24d30324818a16c6736df0"
+      "sha256": "8b4a02e478634966a7d2e3dcab0c59aff7e1924645557d38517b52b1f9424c9e"
     },
     {
       "file": "public/zh/full/settings.mp4",
-      "sha256": "c80972b031534ab7044fcb8ab403ced8720779fc7e47c0697ec8ee65c68f898c"
+      "sha256": "8f5ec48da33b089b544a89799a58bfe0e48d889637630b0419b5022c5a32e6fd"
     },
     {
       "file": "public/zh/full/workspace.mp4",
-      "sha256": "303edc856eac571f88635556ee18286cd4b7cad685ae5e0a2381f2e1daef4ad3"
+      "sha256": "99d375c2cddeb3365488f8016200ab5c5adff6d8e3bf23fe9d40c7fe7c6cb506"
     }
   ],
-  "native_take_manifest_sha256": "bb7f0dc122a841ea3c628caa100272297288a6d2992850cfbd6b90c6e7069429",
+  "native_take_manifest_sha256": "1a8519a8c7a8bbbecf465f59365c9d57c2fe3c6038d703cdffb9f0862c981a60",
   "final_movies": [
     {
       "file": "fuwa-full-tour-en-4k.mp4",
-      "bytes": 33701926,
-      "sha256": "5121f74a077fb7999e6971e970a462cd326f25eb91b12f4b0d0eca68ae6caa27"
+      "bytes": 28397031,
+      "sha256": "8ff4951954803bac907113b310502b869a3ee908149afd98a4eb05a9a348d064"
     },
     {
       "file": "fuwa-full-tour-zh-4k.mp4",
-      "bytes": 32337371,
-      "sha256": "897be3c97cb17e1c930a8c907dd7d603ce2d39ea81a3e6d1d79285f7173c57b0"
+      "bytes": 28310125,
+      "sha256": "f1ca325ca539311da19d65a9bc9885b0f962d57be7e8d779495902ba856b75e0"
     }
-  ],
-  "soundtrack_loudness_lufs": {
-    "en": -16.1,
-    "zh": -15.8
-  },
-  "soundtrack_true_peak_dbfs": {
-    "en": -1.5,
-    "zh": -1.9
-  }
+  ]
 }

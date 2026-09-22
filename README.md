@@ -9,15 +9,15 @@
   </p>
 </div>
 
-Fuwa is a native macOS menu bar app that creates an always-visible, click-through live mirror of an application window or Finder Quick Look, without changing the source window's real z-order.
+Fuwa keeps the window you need on top of other apps on your Mac. Keep a reference image, document, or tutorial visible while you work, without switching back and forth. The pinned view lets clicks pass through to the app underneath.
 
 ## Full feature tour
 
-109 seconds · 4K · 60 fps · English female narration. Pin a reference, work beneath a live mirror, freeze and resume, manage several windows, and use Finder Quick Look.
+109 seconds · 4K · 60 fps · English female narration. Draft a shot list from a brief, keep tutorial settings in view, compare references, and write design notes beside an image.
 
-https://github.com/user-attachments/assets/e4168306-13da-4f69-bb3d-f75c2cd88d54
+https://github.com/user-attachments/assets/2643e8a5-dc40-4334-8395-cd7783c8a74a
 
-The Chinese and English native interactions were filmed separately with a dedicated recording copy. [Capture notes](docs/demos/fuwa-full-tour-provenance.json) describe the framing adaptations; [watch the Chinese version](README_ZH.md#完整功能演示).
+Real native interactions use English Fuwa UI and public sample documents, with Chinese and English narration and captions. Finder controls retain the system's Chinese language. [Capture notes](docs/demos/fuwa-full-tour-provenance.json) describe the recording-copy adaptations; [watch the Chinese version](README_ZH.md#完整功能演示).
 
 ## Use
 
@@ -28,7 +28,7 @@ The Chinese and English native interactions were filmed separately with a dedica
 ## Features
 
 - Pin multiple windows and freeze frames.
-- Support for ordinary application windows and Finder Quick Look.
+- Support for application windows and system previews of images and documents.
 - Customizable keyboard shortcut.
 - Mirrors pass mouse input through; `Reveal Source` activates and raises the real source window.
 - Window pixels and metadata stay on your computer, with no uploads, analytics, or telemetry.
