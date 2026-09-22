@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-09-22
+
+### English
+
+- Explain window pinning directly in the main window and empty state, with reference images, documents, and tutorials as examples. Clarify that the pinned view updates live and that Reveal Source opens the original window for interaction.
+- Keep the existing application logo, white interface, keyboard shortcuts, and pinning behavior.
+- Requires macOS 14 or later. Update in the app or quit Fuwa and replace it in Applications. The universal Apple Silicon/Intel package uses the existing local signing identity and signed updater; it is not Apple Developer ID signed or notarized. Strict universal compilation, logic tests, 11 native regression tests, icon validation, code-signature verification, and the bundled-framework loading check passed on Apple Silicon. Interactive use, Intel hardware, and a full update-install cycle were not revalidated for this copy-only change.
+
+### 中文
+
+- 在主窗口和空状态中直接说明窗口置顶的用途，以参考图片、文档和教程为例。说明置顶画面会实时更新，需要点击或编辑内容时使用“显示源窗口”。
+- 保留现有应用 Logo、白色界面、快捷键和窗口固定行为。
+- 需要 macOS 14 或更新版本。可在应用内更新，或退出 Fuwa 后替换“应用程序”中的旧版。Apple Silicon/Intel Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。已在 Apple Silicon 上通过严格 Universal 编译、逻辑测试、11 项原生回归测试、图标校验、代码签名验证及内置框架加载检查。本次仅调整文案，未重新验收交互操作、Intel 实机和完整更新安装流程。
+
 ## [0.1.13] - 2026-09-22
 
 ### English
