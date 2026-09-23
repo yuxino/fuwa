@@ -33,6 +33,20 @@ struct SettingsView: View {
                 sectionDivider
                 sectionTitle(copy.text(.general))
 
+                Picker(copy.text(.language), selection: Binding(
+                    get: { model.languagePreference },
+                    set: { model.setLanguage($0) }
+                )) {
+                    Text(copy.text(.systemLanguage)).tag(FuwaLanguagePreference.system)
+                    Text("简体中文").tag(FuwaLanguagePreference.simplifiedChinese)
+                    Text("English").tag(FuwaLanguagePreference.english)
+                }
+                .pickerStyle(.menu)
+                .font(FuwaTypography.settingTitle)
+                .padding(14)
+
+                Divider().padding(.horizontal, 14)
+
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
                         shortcutDescription

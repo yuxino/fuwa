@@ -69,7 +69,8 @@ struct FuwaAppActions {
 
 @MainActor
 final class AppModel: ObservableObject {
-    let copy: FuwaCopy
+    @Published private(set) var copy: FuwaCopy
+    @Published private(set) var languagePreference: FuwaLanguagePreference
     let version: String
 
     @Published private(set) var pins: [PinSnapshot] = [] {
@@ -95,13 +96,15 @@ final class AppModel: ObservableObject {
     @Published private(set) var isUpdatingLaunchAtLogin = false
     @Published private(set) var softwareUpdate: SoftwareUpdateState
 
+    var onLanguageChanged: ((FuwaLanguagePreference) -> Void)?
     var onStatusPresentationChanged: (() -> Void)?
     var onRequestDismissPopover: (() -> Void)?
 
     private var actions: FuwaAppActions
 
     init(
-        copy: FuwaCopy = FuwaCopy(),
+        copy: FuwaCopy? = nil,
+        languagePreference: FuwaLanguagePreference = .system,
         version: String = "0.1.9",
         shortcut: KeyboardShortcut = .defaultPin,
         shortcutIsActive: Bool = true,
@@ -110,7 +113,8 @@ final class AppModel: ObservableObject {
         accessibilityPermission: FuwaPermissionState = .unknown,
         actions: FuwaAppActions = FuwaAppActions()
     ) {
-        self.copy = copy
+        self.copy = copy ?? FuwaCopy(language: languagePreference.resolved)
+        self.languagePreference = languagePreference
         self.version = version
         self.shortcut = shortcut
         self.shortcutIsActive = shortcutIsActive
@@ -119,6 +123,13 @@ final class AppModel: ObservableObject {
         self.accessibilityPermission = accessibilityPermission
         softwareUpdate = .idle(currentVersion: version)
         self.actions = actions
+    }
+
+    func setLanguage(_ preference: FuwaLanguagePreference) {
+        languagePreference = preference
+        copy = FuwaCopy(language: preference.resolved)
+        onLanguageChanged?(preference)
+        onStatusPresentationChanged?()
     }
 
     var statusItemAccessibilityLabel: String {

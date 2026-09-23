@@ -5,6 +5,7 @@ import ServiceManagement
 @MainActor
 final class AppSettingsStore {
     private enum Key {
+        static let language = "language"
         static let shortcut = "shortcut"
         static let didRequestScreenRecording = "didRequestScreenRecording"
         static let didRequestAccessibility = "didRequestAccessibility"
@@ -16,6 +17,11 @@ final class AppSettingsStore {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+    }
+
+    var language: FuwaLanguagePreference {
+        get { FuwaLanguagePreference(rawValue: defaults.string(forKey: Key.language) ?? "") ?? .system }
+        set { defaults.set(newValue.rawValue, forKey: Key.language) }
     }
 
     var shortcut: KeyboardShortcut {

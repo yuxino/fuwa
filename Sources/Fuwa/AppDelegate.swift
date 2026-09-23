@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let model = AppModel(
+            languagePreference: settingsStore.language,
             version: Self.version,
             shortcut: activeShortcut,
             shortcutIsActive: hotKey.currentShortcut != nil,
@@ -67,6 +68,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             accessibilityPermission: accessibilityPermissionState
         )
         self.model = model
+        model.onLanguageChanged = { [weak self, weak model] preference in
+            self?.settingsStore.language = preference
+            guard let model else { return }
+            NSApp.mainMenu = FuwaApplicationMenu.make(quitTitle: model.copy.text(.quit))
+        }
         pinCoordinator.presentationModel = model
         NSApp.mainMenu = FuwaApplicationMenu.make(quitTitle: model.copy.text(.quit))
         do {

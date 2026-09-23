@@ -55,6 +55,30 @@ struct PresentationTests {
         #expect(!model.isClearingAll)
     }
 
+    @Test func languageSelectionPersistsAndUpdatesExistingMenus() throws {
+        _ = NSApplication.shared
+        let suite = "FuwaLanguageTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = AppSettingsStore(defaults: defaults)
+        #expect(store.language == .system)
+        let model = AppModel(languagePreference: store.language)
+        model.onLanguageChanged = { store.language = $0 }
+        let controller = StatusBarController(model: model)
+        defer { controller.invalidate() }
+        model.setLanguage(.english)
+        #expect(controller.makeQuickMenu().items.contains { $0.title == "Quit Fuwa" })
+        model.setLanguage(.simplifiedChinese)
+        #expect(model.copy.text(.settings) == "设置")
+        #expect(!controller.makeQuickMenu().items.contains { $0.title == "Quit Fuwa" })
+        let relaunched = AppModel(languagePreference: AppSettingsStore(defaults: defaults).language)
+        #expect(relaunched.copy.language == .simplifiedChinese)
+        model.setLanguage(.system)
+        #expect(model.copy.language == FuwaLanguage.automatic())
+        defaults.set("invalid", forKey: "language")
+        #expect(store.language == .system)
+    }
+
     @Test func allCopyKeysHaveBothLanguages() {
         for language in [FuwaLanguage.english, .simplifiedChinese] {
             let copy = FuwaCopy(language: language)

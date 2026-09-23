@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-23
+
+### English
+
+- Choose Follow System, 简体中文, or English in Settings → General → Language. The interface and menus update immediately, and Fuwa remembers your choice after restarting.
+- Requires macOS 14 or later. Use Check for Updates, or quit Fuwa and replace the app in Applications. The universal Apple Silicon/Intel package retains the existing local signature and signed updater; it is not Apple Developer ID signed or notarized. Language persistence and menu regression tests passed, and Chinese/English settings layouts were rendered and checked. Intel hardware and the complete updater installation were not revalidated.
+
+### 中文
+
+- 在“设置 → 通用 → 语言”中选择跟随系统、简体中文或 English。界面和菜单立即更新，重启后保留选择。
+- 需要 macOS 14 或更新版本。可使用“检查更新”，或退出 Fuwa 后替换“应用程序”中的应用。Apple Silicon/Intel Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。语言保存和菜单回归测试通过，中英文设置页已渲染检查；未重新验证 Intel 实机和完整更新安装流程。
+
+
 ## [1.0.0] - 2026-09-23
 
 ### English

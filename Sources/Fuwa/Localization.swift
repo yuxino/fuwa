@@ -12,8 +12,24 @@ enum FuwaLanguage: String, Sendable {
     }
 }
 
+enum FuwaLanguagePreference: String, CaseIterable, Sendable {
+    case system
+    case simplifiedChinese
+    case english
+
+    var resolved: FuwaLanguage {
+        switch self {
+        case .system: .automatic()
+        case .simplifiedChinese: .simplifiedChinese
+        case .english: .english
+        }
+    }
+}
+
 enum FuwaString: String, CaseIterable, Sendable {
     case appName
+    case language
+    case systemLanguage
     case showControls
     case chooseWindow
     case searchWindows
@@ -125,6 +141,8 @@ struct FuwaCopy: Sendable {
     }
 
     private static let english: [FuwaString: String] = [
+        .language: "Language",
+        .systemLanguage: "Follow System",
         .appName: "Fuwa",
         .showControls: "Show Floating Controls",
         .chooseWindow: "Choose a Window",
@@ -212,6 +230,8 @@ struct FuwaCopy: Sendable {
     ]
 
     private static let simplifiedChinese: [FuwaString: String] = [
+        .language: "语言",
+        .systemLanguage: "跟随系统",
         .appName: "Fuwa",
         .showControls: "显示浮窗控制",
         .chooseWindow: "选择窗口",
