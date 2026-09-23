@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-09-23
+
+### English
+
+- Remove the startup override of the application icon so macOS renders the Dock icon from the app bundle normally. The existing portrait, white background, icon files, and in-app layout are unchanged.
+- Requires macOS 14 or later. Quit and reopen Fuwa after updating. The universal Apple Silicon/Intel package retains the existing local signature and signed updater; it is not Apple Developer ID signed or notarized. Strict universal builds, logic tests, and 11 native regression tests passed; installation, launch, and before/after Dock screenshots were checked on Apple Silicon. Intel hardware and a full updater-install cycle were not revalidated.
+
+### 中文
+
+- 移除启动时强制替换应用图标的代码，让 macOS 按应用包的默认方式显示 Dock 图标。保留原头像、白色底板、图标文件及应用内布局。
+- 需要 macOS 14 或更新版本。更新后退出并重新打开 Fuwa。Apple Silicon/Intel Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。已通过严格 Universal 构建、逻辑测试及 11 项原生回归测试，并在 Apple Silicon 上检查安装、启动和修复前后的 Dock 截图；未重新验证 Intel 实机和完整更新安装流程。
+
 ## [0.1.14] - 2026-09-22
 
 ### English
