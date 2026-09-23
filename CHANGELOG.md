@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-23
+
+### English
+
+- Fuwa 1.0 keeps a live view of a Mac window above your other apps, so a reference image, document, or tutorial stays in sight while you work. Freeze a frame when you want to keep it still, or use Reveal Source to interact with the original window.
+- Includes the recent mixed-scale display capture fixes, recovery of off-screen frozen views after display removal, and controls that stay hidden until requested. This release promotes the current feature set to 1.0; it does not introduce a new capture engine.
+- Requires macOS 14 or later. Quit Fuwa, replace the app in Applications, and reopen it, or use Check for Updates. The universal Apple Silicon/Intel package retains the existing local signature and signed updater; it is not Apple Developer ID signed or notarized. Automated regression checks passed. Earlier native virtual-display checks cover the recent capture fixes; physical external-display hardware, Intel hardware, and a complete updater installation were not revalidated for this release.
+
+### 中文
+
+- Fuwa 1.0 将 Mac 窗口的实时画面置顶，让参考图片、文档或教程在工作时一直可见。需要保留某一帧时可以冻结画面，需要操作原窗口时选择“显示源窗口”。
+- 包含近期的跨缩放屏幕采集修复、移除副屏后的冻结画面归位，以及默认隐藏、按需打开的控制条。这一版将当前功能正式定为 1.0，没有更换采集实现。
+- 需要 macOS 14 或更新版本。可退出 Fuwa，替换“应用程序”中的应用后重新打开，也可使用“检查更新”。Apple Silicon/Intel Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。自动回归检查通过；此前的原生虚拟屏测试覆盖了近期采集修复，本次未重新验证实体外接屏硬件、Intel 实机和完整更新安装流程。
+
 ## [0.1.18] - 2026-09-23
 
 ### English
