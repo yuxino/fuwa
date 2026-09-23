@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-09-23
+
+### English
+
+- Keep floating controls hidden when pinning, freezing, or resuming a window. Open them explicitly from Fuwa's window list or menu when needed; pressing Escape or moving focus elsewhere dismisses them without unpinning the window.
+- Requires macOS 14 or later. Quit and reopen Fuwa after updating. The universal package retains the existing local signature and signed updater; it is not Apple Developer ID signed or notarized. Native regression and logic tests passed. Intel hardware and a complete updater installation were not revalidated.
+
+### 中文
+
+- 固定、冻结或恢复窗口时不再自动显示浮动控制条。需要时可从 Fuwa 的窗口列表或菜单主动打开；按 Escape 或将焦点移到其他窗口即可收起，不会取消置顶。
+- 需要 macOS 14 或更新版本。更新后退出并重新打开 Fuwa。Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。原生回归和逻辑测试通过；未重新验证 Intel 实机和完整更新安装流程。
+
 ## [0.1.17] - 2026-09-23
 
 ### English

@@ -697,7 +697,7 @@ final class PinSession {
             controls.title = "Fuwa — \(windowTitle)"
             controls.level = .floating
             controls.isReleasedWhenClosed = false
-            controls.hidesOnDeactivate = false
+            controls.hidesOnDeactivate = true
             controls.sharingType = .none
             controls.collectionBehavior = panel.collectionBehavior
             controlsPanel = controls
@@ -716,18 +716,14 @@ final class PinSession {
     }
 
     func focusControls() {
-        guard panel?.isVisible == true else { return }
+        guard let panel, panel.isVisible, let controlsPanel else { return }
         reconcileDisplayArrangement()
-        controlsPanel?.makeKeyAndOrderFront(nil)
+        if controlsPanel.parent == nil { panel.addChildWindow(controlsPanel, ordered: .above) }
+        controlsPanel.makeKeyAndOrderFront(nil)
     }
 
     private func showPresentation() {
         panel?.orderFrontRegardless()
-        if let panel, let controlsPanel {
-            positionControls()
-            if controlsPanel.parent == nil { panel.addChildWindow(controlsPanel, ordered: .above) }
-            controlsPanel.orderFrontRegardless()
-        }
     }
 
     private func hidePresentation() {

@@ -103,4 +103,18 @@ struct PinControlsView: View {
 final class PinControlsPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func resignKey() {
+        super.resignKey()
+        dismissControls()
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        dismissControls()
+    }
+
+    private func dismissControls() {
+        parent?.removeChildWindow(self)
+        orderOut(nil)
+    }
 }
