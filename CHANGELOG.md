@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-09-23
+
+### English
+
+- Fix pinned window images shrinking into a corner or retaining the wrong resolution after moving between Retina and standard-resolution displays. Capture now follows the scale reported by each incoming frame and keeps the image fitted while the capture size changes.
+- Verified both directions between a built-in 2× Retina display and a 1× virtual display using the real capture pipeline: changing counter pixels, full image coverage, unchanged frozen pixels, and live frames after resume and virtual-display removal. Automated regression and logic tests passed. This does not validate physical external-display hardware, every layout, Intel hardware, or a full updater installation.
+- Requires macOS 14 or later. Quit and reopen Fuwa after updating. The universal package uses the existing local signature and signed updater; it is not Apple Developer ID signed or notarized.
+
+### 中文
+
+- 修复窗口在 Retina 屏和普通分辨率屏幕之间移动后，置顶画面缩到角落或沿用错误分辨率的问题。现在根据每个采集帧报告的缩放比例调整尺寸，并在尺寸切换期间保持画面铺满。
+- 已用真实采集流程验证内置 2× Retina 屏与 1× 虚拟屏之间的双向移动：计数画面持续更新、画面完整、冻结像素保持不变，恢复及移除虚拟屏后仍能收到实时画面。自动回归和逻辑测试通过。未验证实体外接屏硬件、所有排列方式、Intel 实机或完整更新安装流程。
+- 需要 macOS 14 或更新版本。更新后退出并重新打开 Fuwa。Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。
+
 ## [0.1.16] - 2026-09-23
 
 ### English

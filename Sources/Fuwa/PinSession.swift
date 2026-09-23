@@ -244,18 +244,10 @@ final class PinSession {
         coordinateSpace = currentCoordinateSpace
         updatePanelFrame(to: currentDescriptor.bounds)
 
-        let scaleChanged: Bool
-        if let currentCycle {
-            let latestScale = CGFloat(currentCycle.filter.pointPixelScale)
-            scaleChanged = abs(latestScale - currentCycle.pointScale) > 0.001
-        } else {
-            scaleChanged = false
-        }
-
-        if previousFrame.size != currentDescriptor.bounds.size || scaleChanged {
+        if previousFrame.size != currentDescriptor.bounds.size {
             scheduleCaptureResize(to: currentDescriptor.bounds.size)
         }
-        if previousFrame != currentDescriptor.bounds || scaleChanged {
+        if previousFrame != currentDescriptor.bounds {
             onGeometryChanged?()
         }
     }
@@ -324,6 +316,14 @@ final class PinSession {
     ) {
         guard isCurrent(streamID: streamID, generation: generation) else { return }
         guard let receipt = captureView?.consume(sampleBuffer) else { return }
+
+        // A desktop-independent filter retains its initial pointPixelScale.
+        // Complete frames carry the current display scale after a window moves.
+        if let scale = CaptureView.sourcePointScale(sampleBuffer),
+           let currentCycle, abs(scale - currentCycle.pointScale) > 0.001 {
+            currentCycle.pointScale = scale
+            scheduleCaptureResize(to: descriptor.bounds.size)
+        }
 
         missingObservationCount = 0
         guard receipt == .firstCompleteFrame, state == .starting else { return }
@@ -766,7 +766,7 @@ final class PinSession {
     private func scheduleCaptureResize(to pointSize: CGSize) {
         guard let currentCycle else { return }
 
-        let latestScale = max(1, CGFloat(currentCycle.filter.pointPixelScale))
+        let latestScale = currentCycle.pointScale
         let configuration = makeConfiguration(
             pointSize: pointSize,
             pointScale: latestScale
@@ -789,7 +789,6 @@ final class PinSession {
                 guard self.isCurrent(streamID: streamID, generation: generation) else {
                     return
                 }
-                self.currentCycle?.pointScale = latestScale
             } catch {
                 guard !Task.isCancelled else { return }
                 self.errorMessage = error.localizedDescription
@@ -810,6 +809,8 @@ final class PinSession {
         ) ?? PixelDimensions(width: 2, height: 2)
         configuration.width = dimensions.width
         configuration.height = dimensions.height
+        // Fill the canvas while a cross-display resize is being applied.
+        configuration.scalesToFit = true
         configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         configuration.queueDepth = 3
         configuration.pixelFormat = kCVPixelFormatType_32BGRA

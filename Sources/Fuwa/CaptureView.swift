@@ -105,6 +105,16 @@ final class CaptureView: NSView {
         return receipt
     }
 
+    static func sourcePointScale(_ sampleBuffer: CMSampleBuffer) -> CGFloat? {
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(
+            sampleBuffer, createIfNecessary: false
+        ) as? [[SCStreamFrameInfo: Any]],
+              let value = attachments.first?[.scaleFactor] as? NSNumber else { return nil }
+        let scale = CGFloat(value.doubleValue)
+        guard scale.isFinite, (1...4).contains(scale) else { return nil }
+        return scale
+    }
+
     func makeFrozenImage(maxPixels: Int = 4_000_000) throws -> CGImage {
         guard let pixelBuffer = latestCompletePixelBuffer else {
             throw FrozenFrameError.noCompleteFrame
