@@ -704,9 +704,20 @@ final class PinSession {
         }
     }
 
+    func reconcileDisplayArrangement() {
+        guard let panel else { return }
+        if case .frozen = state {
+            let recovered = FloatingControlsLayout.recoveredFrame(
+                source: panel.frame, visibleScreens: NSScreen.screens.map(\.visibleFrame)
+            )
+            if recovered != panel.frame { panel.setFrame(recovered, display: true) }
+        }
+        positionControls()
+    }
+
     func focusControls() {
         guard panel?.isVisible == true else { return }
-        positionControls()
+        reconcileDisplayArrangement()
         controlsPanel?.makeKeyAndOrderFront(nil)
     }
 
@@ -729,7 +740,7 @@ final class PinSession {
         let screens = NSScreen.screens
         guard let index = FloatingControlsLayout.screenIndex(source: panel.frame, screens: screens.map(\.frame)) else { return }
         let frame = FloatingControlsLayout.frame(source: panel.frame, visible: screens[index].visibleFrame)
-        controlsPanel.setFrame(frame, display: true)
+        if controlsPanel.frame != frame { controlsPanel.setFrame(frame, display: true) }
     }
 
     private func updateTarget(_ target: ResolvedTarget) {
@@ -747,8 +758,8 @@ final class PinSession {
     private func updatePanelFrame(to quartzFrame: CGRect) {
         let appKitFrame = coordinateSpace.appKitFrame(fromQuartzFrame: quartzFrame)
         guard appKitFrame.width > 0, appKitFrame.height > 0 else { return }
-        guard panel?.frame != appKitFrame else { return }
-        panel?.setFrame(appKitFrame, display: true)
+        if panel?.frame != appKitFrame { panel?.setFrame(appKitFrame, display: true) }
+        // Screen usable bounds can change even when the source window does not.
         positionControls()
     }
 

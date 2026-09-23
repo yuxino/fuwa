@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import FuwaCore
@@ -36,6 +37,7 @@ final class PinCoordinator {
     var onFailure: ((Error) -> Void)?
 
     private let resolver = TargetResolver()
+    private var displayObserver: NSObjectProtocol?
     private let tracker: WindowTracker
     private var sessionsByID: [UUID: PinSession] = [:]
     private var sessionIDByWindowID: [CGWindowID: UUID] = [:]
@@ -52,6 +54,21 @@ final class PinCoordinator {
         tracker.onError = { [weak self] error in
             self?.onFailure?(error)
         }
+        displayObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                for session in self.sessionsByID.values {
+                    session.reconcileDisplayArrangement()
+                }
+            }
+        }
+    }
+
+    isolated deinit {
+        if let displayObserver { NotificationCenter.default.removeObserver(displayObserver) }
     }
 
     var snapshots: [PinSnapshot] {

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-09-23
+
+### English
+
+- Handle display-layout changes even while every pin is frozen. Bring a fully off-screen frozen view onto the nearest remaining display, preserving its aspect ratio and leaving visible or partially visible views in place.
+- Reposition floating controls when screen usable bounds change even if the source window has not moved. Recover frozen-view placement when opening its controls from the menu bar.
+- Requires macOS 14 or later. The universal package retains the existing local signature and signed updater, without Apple Developer ID signing or notarization. Logic tests and 13 native regression tests passed, including simulated left/right/above/below display removal and oversized frozen views. Only one built-in Retina display was connected; physical multi-monitor movement, mixed-DPI capture, hot-plugging, Intel hardware, and a complete updater installation were not revalidated.
+
+### 中文
+
+- 即使所有固定窗口都已冻结，也会处理屏幕布局变化。将完全移出屏幕的冻结画面按比例放回最近的剩余屏幕；仍可见或部分可见的窗口保持原位。
+- 屏幕可用区域变化时，即使源窗口没有移动，也重新定位浮动控制条。从菜单栏打开控制条时，同样检查冻结画面是否需要恢复到屏幕内。
+- 需要 macOS 14 或更新版本。Universal 包沿用现有本地签名和签名更新源，未使用 Apple Developer ID 签名或 Apple 公证。逻辑测试和 13 项原生回归测试通过，包括模拟左、右、上、下副屏断开及超大冻结画面的恢复。当前仅连接内置 Retina 屏；未重新实测实体多屏移动、混合缩放采集、热插拔、Intel 实机和完整更新安装流程。
+
 ## [0.1.15] - 2026-09-23
 
 ### English
